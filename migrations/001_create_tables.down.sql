@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS platform;
+DROP TABLE IF EXISTS bus_terminal;
+DROP TABLE IF EXISTS city;

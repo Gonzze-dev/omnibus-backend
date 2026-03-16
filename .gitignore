@@ -1,0 +1,45 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/bin/
+/out/
+
+# Build output
+/cmd/api/api
+/cmd/api/api.exe
+
+# Test
+*.test
+*.out
+coverage.html
+coverage.txt
+
+# Dependency directories
+/vendor/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Temporary files
+tmp/
+*.tmp
+*.log
+
+planes/*

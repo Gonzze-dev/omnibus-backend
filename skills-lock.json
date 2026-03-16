@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "Golang Backend Development": {
+      "source": "septemhill/go-backend-dev-skill",
+      "sourceType": "github",
+      "computedHash": "07444e46c4b03a619e41ac27eb99790755722d255ce2fc4807dd591dc4eaad3c"
+    }
+  }
+}

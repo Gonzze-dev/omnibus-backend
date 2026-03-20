@@ -12,7 +12,11 @@ import (
 
 type PlatformRepository interface {
 	GetByCode(ctx context.Context, code int) (models.Platform, error)
+	List(ctx context.Context) ([]models.Platform, error)
 	ListByBusTerminalID(ctx context.Context, busTerminalID uuid.UUID) ([]models.Platform, error)
+	Create(ctx context.Context, platform *models.Platform) error
+	Update(ctx context.Context, platform *models.Platform) error
+	Delete(ctx context.Context, code int) error
 }
 
 type platformRepository struct {
@@ -39,13 +43,36 @@ func (r *platformRepository) GetByCode(ctx context.Context, code int) (models.Pl
 	return p, nil
 }
 
+func (r *platformRepository) List(ctx context.Context) ([]models.Platform, error) {
+	var platforms []models.Platform
+	err := r.db.WithContext(ctx).
+		Preload("BusTerminal").
+		Order("anden").
+		Find(&platforms).
+		Error
+
+	return platforms, err
+}
+
 func (r *platformRepository) ListByBusTerminalID(ctx context.Context, busTerminalID uuid.UUID) ([]models.Platform, error) {
 	var platforms []models.Platform
 	err := r.db.WithContext(ctx).
-			Where("bus_terminal_id = ?", busTerminalID).
-			Order("anden").
-			Find(&platforms).
-			Error
+		Where("bus_terminal_id = ?", busTerminalID).
+		Order("anden").
+		Find(&platforms).
+		Error
 
 	return platforms, err
+}
+
+func (r *platformRepository) Create(ctx context.Context, platform *models.Platform) error {
+	return r.db.WithContext(ctx).Create(platform).Error
+}
+
+func (r *platformRepository) Update(ctx context.Context, platform *models.Platform) error {
+	return r.db.WithContext(ctx).Save(platform).Error
+}
+
+func (r *platformRepository) Delete(ctx context.Context, code int) error {
+	return r.db.WithContext(ctx).Where("code = ?", code).Delete(&models.Platform{}).Error
 }

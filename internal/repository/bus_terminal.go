@@ -14,6 +14,9 @@ type BusTerminalRepository interface {
 	GetByUUID(ctx context.Context, id uuid.UUID) (models.BusTerminal, error)
 	ListByPostalCode(ctx context.Context, postalCode string) ([]models.BusTerminal, error)
 	List(ctx context.Context) ([]models.BusTerminal, error)
+	Create(ctx context.Context, terminal *models.BusTerminal) error
+	Update(ctx context.Context, terminal *models.BusTerminal) error
+	Delete(ctx context.Context, id uuid.UUID) error
 }
 
 type busTerminalRepository struct {
@@ -46,4 +49,16 @@ func (r *busTerminalRepository) List(ctx context.Context) ([]models.BusTerminal,
 	var terminals []models.BusTerminal
 	err := r.db.WithContext(ctx).Order("name").Find(&terminals).Error
 	return terminals, err
+}
+
+func (r *busTerminalRepository) Create(ctx context.Context, terminal *models.BusTerminal) error {
+	return r.db.WithContext(ctx).Create(terminal).Error
+}
+
+func (r *busTerminalRepository) Update(ctx context.Context, terminal *models.BusTerminal) error {
+	return r.db.WithContext(ctx).Save(terminal).Error
+}
+
+func (r *busTerminalRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	return r.db.WithContext(ctx).Where("uuid = ?", id).Delete(&models.BusTerminal{}).Error
 }

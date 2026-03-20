@@ -12,6 +12,9 @@ import (
 type CityRepository interface {
 	GetByPostalCode(ctx context.Context, postalCode string) (models.City, error)
 	List(ctx context.Context) ([]models.City, error)
+	Create(ctx context.Context, city *models.City) error
+	Update(ctx context.Context, city *models.City) error
+	Delete(ctx context.Context, postalCode string) error
 }
 
 type cityRepository struct {
@@ -38,4 +41,16 @@ func (r *cityRepository) List(ctx context.Context) ([]models.City, error) {
 	var cities []models.City
 	err := r.db.WithContext(ctx).Order("name").Find(&cities).Error
 	return cities, err
+}
+
+func (r *cityRepository) Create(ctx context.Context, city *models.City) error {
+	return r.db.WithContext(ctx).Create(city).Error
+}
+
+func (r *cityRepository) Update(ctx context.Context, city *models.City) error {
+	return r.db.WithContext(ctx).Save(city).Error
+}
+
+func (r *cityRepository) Delete(ctx context.Context, postalCode string) error {
+	return r.db.WithContext(ctx).Where("postal_code = ?", postalCode).Delete(&models.City{}).Error
 }

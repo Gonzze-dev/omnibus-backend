@@ -20,8 +20,8 @@ type AdminService interface {
 	DeleteCity(ctx context.Context, postalCode string) error
 
 	// Platforms (only admin's terminals)
-	ListAllPlatforms(ctx context.Context) ([]models.Platform, error)
-	ListPlatforms(ctx context.Context, adminID uuid.UUID) ([]models.Platform, error)
+	ListAllPlatforms(ctx context.Context, busTerminalID *uuid.UUID) ([]models.BusTerminalWithPlatformsResponse, error)
+	ListPlatforms(ctx context.Context, adminID uuid.UUID, busTerminalID *uuid.UUID) ([]models.BusTerminalWithPlatformsResponse, error)
 	GetPlatformByCode(ctx context.Context, code int) (models.Platform, error)
 	GetPlatform(ctx context.Context, adminID uuid.UUID, code int) (models.Platform, error)
 	CreatePlatformDirect(ctx context.Context, req models.CreatePlatformRequest) (models.Platform, error)
@@ -143,25 +143,56 @@ func (s *adminService) verifyTerminalOwnership(ctx context.Context, adminID, bus
 	return nil
 }
 
-func (s *adminService) ListAllPlatforms(ctx context.Context) ([]models.Platform, error) {
-	return s.platformRepo.List(ctx)
+func (s *adminService) ListAllPlatforms(ctx context.Context, busTerminalID *uuid.UUID) ([]models.BusTerminalWithPlatformsResponse, error) {
+	if busTerminalID != nil {
+		bt, err := s.busTerminalRepo.GetByUUIDWithPlatforms(ctx, *busTerminalID)
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return nil, ErrTerminalNotFound
+			}
+			return nil, err
+		}
+		return models.ToBusTerminalWithPlatformsResponse([]models.BusTerminal{bt}), nil
+	}
+
+	terminals, err := s.busTerminalRepo.ListWithPlatforms(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return models.ToBusTerminalWithPlatformsResponse(terminals), nil
 }
 
-func (s *adminService) ListPlatforms(ctx context.Context, adminID uuid.UUID) ([]models.Platform, error) {
+func (s *adminService) ListPlatforms(ctx context.Context, adminID uuid.UUID, busTerminalID *uuid.UUID) ([]models.BusTerminalWithPlatformsResponse, error) {
+	if busTerminalID != nil {
+		if err := s.verifyTerminalOwnership(ctx, adminID, *busTerminalID); err != nil {
+			return nil, err
+		}
+
+		bt, err := s.busTerminalRepo.GetByUUIDWithPlatforms(ctx, *busTerminalID)
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return nil, ErrTerminalNotFound
+			}
+			return nil, err
+		}
+		return models.ToBusTerminalWithPlatformsResponse([]models.BusTerminal{bt}), nil
+	}
+
 	uts, err := s.userTerminalRepo.GetByUserID(ctx, adminID)
 	if err != nil {
 		return nil, err
 	}
 
-	var platforms []models.Platform
-	for _, ut := range uts {
-		ps, err := s.platformRepo.ListByBusTerminalID(ctx, ut.BusTerminalID)
-		if err != nil {
-			return nil, err
-		}
-		platforms = append(platforms, ps...)
+	ids := make([]uuid.UUID, len(uts))
+	for i, ut := range uts {
+		ids[i] = ut.BusTerminalID
 	}
-	return platforms, nil
+
+	terminals, err := s.busTerminalRepo.ListByUUIDs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	return models.ToBusTerminalWithPlatformsResponse(terminals), nil
 }
 
 func (s *adminService) GetPlatformByCode(ctx context.Context, code int) (models.Platform, error) {

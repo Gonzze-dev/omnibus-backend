@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 
 	"tesina/backend/internal/models"
@@ -76,13 +77,22 @@ func (h *AdminHandler) DeleteCity(c echo.Context) error {
 // --- Platforms ---
 
 func (h *AdminHandler) ListPlatforms(c echo.Context) error {
+	var busTerminalID *uuid.UUID
+	if raw := c.QueryParam("bus_terminal_id"); raw != "" {
+		id, err := uuid.Parse(raw)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, "invalid bus_terminal_id")
+		}
+		busTerminalID = &id
+	}
+
 	role, _ := c.Get("role").(string)
 	if role == "super_admin" {
-		platforms, err := h.svc.ListAllPlatforms(c.Request().Context())
+		terminals, err := h.svc.ListAllPlatforms(c.Request().Context(), busTerminalID)
 		if err != nil {
 			return mapAdminError(err)
 		}
-		return c.JSON(http.StatusOK, platforms)
+		return c.JSON(http.StatusOK, terminals)
 	}
 
 	adminID, err := getUserID(c)
@@ -90,11 +100,11 @@ func (h *AdminHandler) ListPlatforms(c echo.Context) error {
 		return err
 	}
 
-	platforms, err := h.svc.ListPlatforms(c.Request().Context(), adminID)
+	terminals, err := h.svc.ListPlatforms(c.Request().Context(), adminID, busTerminalID)
 	if err != nil {
 		return mapAdminError(err)
 	}
-	return c.JSON(http.StatusOK, platforms)
+	return c.JSON(http.StatusOK, terminals)
 }
 
 func (h *AdminHandler) GetPlatform(c echo.Context) error {

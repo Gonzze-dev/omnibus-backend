@@ -30,6 +30,40 @@ func (Platform) TableName() string {
 	return "platform"
 }
 
+type PlatformResponse struct {
+	Code        int             `json:"code"`
+	Anden       string          `json:"anden"`
+	Coordinates json.RawMessage `json:"coordinates"`
+}
+
+type BusTerminalWithPlatformsResponse struct {
+	UUID       uuid.UUID          `json:"uuid"`
+	PostalCode string             `json:"postal_code"`
+	Name       string             `json:"name"`
+	Platforms  []PlatformResponse `json:"platforms"`
+}
+
+func ToBusTerminalWithPlatformsResponse(terminals []BusTerminal) []BusTerminalWithPlatformsResponse {
+	resp := make([]BusTerminalWithPlatformsResponse, len(terminals))
+	for i, t := range terminals {
+		platforms := make([]PlatformResponse, len(t.Platforms))
+		for j, p := range t.Platforms {
+			platforms[j] = PlatformResponse{
+				Code:        p.Code,
+				Anden:       p.Anden,
+				Coordinates: p.Coordinates,
+			}
+		}
+		resp[i] = BusTerminalWithPlatformsResponse{
+			UUID:       t.UUID,
+			PostalCode: t.PostalCode,
+			Name:       t.Name,
+			Platforms:  platforms,
+		}
+	}
+	return resp
+}
+
 type CreateBusTerminalRequest struct {
 	PostalCode string `json:"postal_code"`
 	Name       string `json:"name"`

@@ -16,5 +16,6 @@ type CreateCityRequest struct {
 }
 
 type UpdateCityRequest struct {
-	Name string `json:"name"`
+	PostalCode *string `json:"postal_code,omitempty"`
+	Name       *string `json:"name,omitempty"`
 }

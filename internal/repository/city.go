@@ -14,6 +14,7 @@ type CityRepository interface {
 	List(ctx context.Context) ([]models.City, error)
 	Create(ctx context.Context, city *models.City) error
 	Update(ctx context.Context, city *models.City) error
+	UpdatePostalCode(ctx context.Context, oldPostalCode, newPostalCode string) error
 	Delete(ctx context.Context, postalCode string) error
 }
 
@@ -49,6 +50,13 @@ func (r *cityRepository) Create(ctx context.Context, city *models.City) error {
 
 func (r *cityRepository) Update(ctx context.Context, city *models.City) error {
 	return r.db.WithContext(ctx).Save(city).Error
+}
+
+func (r *cityRepository) UpdatePostalCode(ctx context.Context, oldPostalCode, newPostalCode string) error {
+	return r.db.WithContext(ctx).
+		Model(&models.City{}).
+		Where("postal_code = ?", oldPostalCode).
+		Update("postal_code", newPostalCode).Error
 }
 
 func (r *cityRepository) Delete(ctx context.Context, postalCode string) error {

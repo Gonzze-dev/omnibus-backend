@@ -110,13 +110,29 @@ func (s *adminService) UpdateCity(ctx context.Context, postalCode string, req mo
 		return models.City{}, err
 	}
 
-	if req.Name != "" {
-		city.Name = req.Name
+	if req.Name != nil {
+		city.Name = *req.Name
 	}
 
-	if err := s.cityRepo.Update(ctx, &city); err != nil {
-		return models.City{}, fmt.Errorf("failed to update city: %w", err)
+	if req.PostalCode != nil && *req.PostalCode != postalCode {
+		if _, err := s.cityRepo.GetByPostalCode(ctx, *req.PostalCode); err == nil {
+			return models.City{}, ErrCityAlreadyExists
+		}
+
+		if err := s.cityRepo.Update(ctx, &city); err != nil {
+			return models.City{}, fmt.Errorf("failed to update city: %w", err)
+		}
+
+		if err := s.cityRepo.UpdatePostalCode(ctx, postalCode, *req.PostalCode); err != nil {
+			return models.City{}, fmt.Errorf("failed to update postal code: %w", err)
+		}
+		city.PostalCode = *req.PostalCode
+	} else {
+		if err := s.cityRepo.Update(ctx, &city); err != nil {
+			return models.City{}, fmt.Errorf("failed to update city: %w", err)
+		}
 	}
+
 	return city, nil
 }
 

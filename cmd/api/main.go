@@ -63,7 +63,7 @@ func main() {
 
 	// Auth & user services
 	authSvc := service.NewAuthService(userRepo, rolRepo, refreshTokenRepo, jwtSecret)
-	userSvc := service.NewUserService(userRepo, refreshTokenRepo)
+	userSvc := service.NewUserService(userRepo, refreshTokenRepo, busTerminalRepo)
 
 	// Admin & super admin services
 	adminSvc := service.NewAdminService(cityRepo, platformRepo, busTerminalRepo, userRepo, rolRepo, userTerminalRepo)
@@ -98,6 +98,7 @@ func main() {
 	users.GET("/me", userHandler.GetProfile)
 	users.PUT("/me", userHandler.UpdateProfile)
 	users.DELETE("/me", userHandler.DeleteAccount)
+	users.GET("/terminals", userHandler.ListTerminals)
 
 	// Admin routes (authenticated + admin or super_admin role)
 	admin := e.Group("/api/admin", middleware.Auth(), middleware.RequireRole("admin", "super_admin"))

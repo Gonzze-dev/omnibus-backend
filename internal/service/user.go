@@ -16,20 +16,24 @@ type UserService interface {
 	GetProfile(ctx context.Context, userID uuid.UUID) (models.UserResponse, error)
 	UpdateProfile(ctx context.Context, userID uuid.UUID, req models.UpdateUserRequest) (models.UserResponse, error)
 	DeleteAccount(ctx context.Context, userID uuid.UUID) error
+	ListTerminals(ctx context.Context) ([]models.BusTerminalResponse, error)
 }
 
 type userService struct {
 	userRepo         repository.UserRepository
 	refreshTokenRepo repository.RefreshTokenRepository
+	busTerminalRepo  repository.BusTerminalRepository
 }
 
 func NewUserService(
 	userRepo repository.UserRepository,
 	refreshTokenRepo repository.RefreshTokenRepository,
+	busTerminalRepo repository.BusTerminalRepository,
 ) *userService {
 	return &userService{
 		userRepo:         userRepo,
 		refreshTokenRepo: refreshTokenRepo,
+		busTerminalRepo:  busTerminalRepo,
 	}
 }
 
@@ -104,4 +108,12 @@ func (s *userService) DeleteAccount(ctx context.Context, userID uuid.UUID) error
 	}
 
 	return nil
+}
+
+func (s *userService) ListTerminals(ctx context.Context) ([]models.BusTerminalResponse, error) {
+	terminals, err := s.busTerminalRepo.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return models.ToBusTerminalResponses(terminals), nil
 }

@@ -2,8 +2,11 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
+
+	"github.com/google/uuid"
 
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/repository"
@@ -46,13 +49,27 @@ func (s *notificationService) NotifyPassengers(ctx context.Context, req models.N
 	if err != nil {
 		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", ErrPlatformLookup, err)
 	}
+	if platform.BusTerminalID == uuid.Nil {
+		return models.NotifyPassengersResponse{}, ErrPlatformMissingTerminal
+	}
 
 	platformInfo := models.PlatformInfo{
 		Anden:       platform.Anden,
 		Coordinates: platform.Coordinates,
 	}
 
-	if err := s.notifier.Invoke(ctx, "SendToFrontend", req.LicensePatent, platformInfo); err != nil {
+	payload, err := json.Marshal(platformInfo)
+	if err != nil {
+		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+	}
+
+	msg := models.PassengerNotificationMessage{
+		Type:    models.PassengerNotificationBUSArrival,
+		Payload: payload,
+	}
+
+	groupKey := req.LicensePatent + ":" + platform.BusTerminalID.String()
+	if err := s.notifier.Invoke(ctx, "SendToFrontend", groupKey, msg); err != nil {
 		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
 	}
 

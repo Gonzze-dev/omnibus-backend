@@ -41,6 +41,8 @@ func mapNotificationError(err error) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case errors.Is(err, repository.ErrNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, "platform not found")
+	case errors.Is(err, service.ErrPlatformMissingTerminal):
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	case errors.Is(err, service.ErrNotification):
 		return echo.NewHTTPError(http.StatusBadGateway, "failed to notify passengers")
 	default:

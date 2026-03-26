@@ -64,6 +64,24 @@ func ToBusTerminalWithPlatformsResponse(terminals []BusTerminal) []BusTerminalWi
 	return resp
 }
 
+type BusTerminalResponse struct {
+	UUID       uuid.UUID `json:"uuid"`
+	PostalCode string    `json:"postal_code"`
+	Name       string    `json:"name"`
+}
+
+func ToBusTerminalResponses(terminals []BusTerminal) []BusTerminalResponse {
+	resp := make([]BusTerminalResponse, len(terminals))
+	for i, t := range terminals {
+		resp[i] = BusTerminalResponse{
+			UUID:       t.UUID,
+			PostalCode: t.PostalCode,
+			Name:       t.Name,
+		}
+	}
+	return resp
+}
+
 type CreateBusTerminalRequest struct {
 	PostalCode string `json:"postal_code"`
 	Name       string `json:"name"`

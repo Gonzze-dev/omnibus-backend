@@ -52,6 +52,14 @@ func (h *UserHandler) UpdateProfile(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
+func (h *UserHandler) ListTerminals(c echo.Context) error {
+	terminals, err := h.svc.ListTerminals(c.Request().Context())
+	if err != nil {
+		return mapUserError(err)
+	}
+	return c.JSON(http.StatusOK, terminals)
+}
+
 func (h *UserHandler) DeleteAccount(c echo.Context) error {
 	userID, err := getUserID(c)
 	if err != nil {

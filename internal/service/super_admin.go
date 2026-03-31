@@ -25,11 +25,12 @@ type SuperAdminService interface {
 }
 
 type superAdminService struct {
-	cityRepo         repository.CityRepository
-	busTerminalRepo  repository.BusTerminalRepository
-	userRepo         repository.UserRepository
-	rolRepo          repository.RolRepository
-	userTerminalRepo repository.UserTerminalRepository
+	cityRepo              repository.CityRepository
+	busTerminalRepo       repository.BusTerminalRepository
+	userRepo              repository.UserRepository
+	rolRepo               repository.RolRepository
+	userTerminalRepo      repository.UserTerminalRepository
+	externalTerminalCheck PasajeService
 }
 
 func NewSuperAdminService(
@@ -38,13 +39,15 @@ func NewSuperAdminService(
 	userRepo repository.UserRepository,
 	rolRepo repository.RolRepository,
 	userTerminalRepo repository.UserTerminalRepository,
+	externalTerminalCheck PasajeService,
 ) *superAdminService {
 	return &superAdminService{
-		cityRepo:         cityRepo,
-		busTerminalRepo:  busTerminalRepo,
-		userRepo:         userRepo,
-		rolRepo:          rolRepo,
-		userTerminalRepo: userTerminalRepo,
+		cityRepo:              cityRepo,
+		busTerminalRepo:       busTerminalRepo,
+		userRepo:              userRepo,
+		rolRepo:               rolRepo,
+		userTerminalRepo:      userTerminalRepo,
+		externalTerminalCheck: externalTerminalCheck,
 	}
 }
 
@@ -69,6 +72,23 @@ func (s *superAdminService) CreateTerminal(ctx context.Context, req models.Creat
 	if req.PostalCode == "" || req.Name == "" {
 		return models.BusTerminal{}, ErrMissingFields
 	}
+	if req.ExternalTerminalID == uuid.Nil {
+		return models.BusTerminal{}, ErrExternalTerminalIDRequired
+	}
+
+	if _, err := s.busTerminalRepo.GetByExternalTerminalID(ctx, req.ExternalTerminalID); err == nil {
+		return models.BusTerminal{}, ErrExternalTerminalIDAlreadyUsed
+	} else if !errors.Is(err, repository.ErrNotFound) {
+		return models.BusTerminal{}, err
+	}
+
+	exists, err := s.externalTerminalCheck.ExternalTerminalExists(ctx, req.ExternalTerminalID)
+	if err != nil {
+		return models.BusTerminal{}, err
+	}
+	if !exists {
+		return models.BusTerminal{}, ErrInvalidExternalTerminalID
+	}
 
 	if _, err := s.cityRepo.GetByPostalCode(ctx, req.PostalCode); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
@@ -77,10 +97,12 @@ func (s *superAdminService) CreateTerminal(ctx context.Context, req models.Creat
 		return models.BusTerminal{}, err
 	}
 
+	extID := req.ExternalTerminalID
 	terminal := models.BusTerminal{
-		UUID:       uuid.New(),
-		PostalCode: req.PostalCode,
-		Name:       req.Name,
+		UUID:               uuid.New(),
+		ExternalTerminalID: &extID,
+		PostalCode:         req.PostalCode,
+		Name:               req.Name,
 	}
 	if err := s.busTerminalRepo.Create(ctx, &terminal); err != nil {
 		return models.BusTerminal{}, fmt.Errorf("failed to create terminal: %w", err)
@@ -108,6 +130,35 @@ func (s *superAdminService) UpdateTerminal(ctx context.Context, id uuid.UUID, re
 	}
 	if req.Name != nil {
 		terminal.Name = *req.Name
+	}
+
+	if req.ExternalTerminalID != nil {
+		newExt := *req.ExternalTerminalID
+		if newExt == uuid.Nil {
+			return models.BusTerminal{}, ErrExternalTerminalIDRequired
+		}
+
+		sameAsCurrent := terminal.ExternalTerminalID != nil && *terminal.ExternalTerminalID == newExt
+		if !sameAsCurrent {
+			if existing, err := s.busTerminalRepo.GetByExternalTerminalID(ctx, newExt); err == nil {
+				if existing.UUID != terminal.UUID {
+					return models.BusTerminal{}, ErrExternalTerminalIDAlreadyUsed
+				}
+			} else if !errors.Is(err, repository.ErrNotFound) {
+				return models.BusTerminal{}, err
+			}
+
+			exists, err := s.externalTerminalCheck.ExternalTerminalExists(ctx, newExt)
+			if err != nil {
+				return models.BusTerminal{}, err
+			}
+			if !exists {
+				return models.BusTerminal{}, ErrInvalidExternalTerminalID
+			}
+		}
+
+		extCopy := newExt
+		terminal.ExternalTerminalID = &extCopy
 	}
 
 	if err := s.busTerminalRepo.Update(ctx, &terminal); err != nil {

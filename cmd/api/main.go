@@ -56,10 +56,10 @@ func main() {
 		Timeout: 10 * time.Second,
 	}
 	upstreamURL := "http://localhost:4990"
-	pasajeSvc := service.NewPasajeService(httpClient, upstreamURL)
+	terminal_simulation_svc := service.NewPasajeService(httpClient, upstreamURL)
 
 	signalRClient := realtime.NewClient("http://localhost:4988/realtime")
-	notificationSvc := service.NewNotificationService(platformRepo, signalRClient)
+	notificationSvc := service.NewNotificationService(platformRepo, userTerminalRepo, busTerminalRepo, signalRClient, terminal_simulation_svc)
 
 	// Auth & user services
 	authSvc := service.NewAuthService(userRepo, rolRepo, refreshTokenRepo, jwtSecret)
@@ -67,10 +67,10 @@ func main() {
 
 	// Admin & super admin services
 	adminSvc := service.NewAdminService(cityRepo, platformRepo, busTerminalRepo, userRepo, rolRepo, userTerminalRepo)
-	superAdminSvc := service.NewSuperAdminService(cityRepo, busTerminalRepo, userRepo, rolRepo, userTerminalRepo)
+	superAdminSvc := service.NewSuperAdminService(cityRepo, busTerminalRepo, userRepo, rolRepo, userTerminalRepo, terminal_simulation_svc)
 
 	// Handlers
-	pasajeHandler := handler.NewPasajeHandler(pasajeSvc)
+	pasajeHandler := handler.NewPasajeHandler(terminal_simulation_svc)
 	notificationHandler := handler.NewNotificationHandler(notificationSvc)
 	authHandler := handler.NewAuthHandler(authSvc)
 	userHandler := handler.NewUserHandler(userSvc)
@@ -114,6 +114,8 @@ func main() {
 	admin.DELETE("/platforms/:code", adminHandler.DeletePlatform)
 	admin.POST("/users/promote", adminHandler.PromoteToAdmin)
 	admin.POST("/users/demote", adminHandler.DemoteAdmin)
+	admin.POST("/notifications", notificationHandler.SendAdminNotification)
+	admin.POST("/notify-bus-delay", notificationHandler.NotifyBusDelay)
 
 	// Super admin routes (authenticated + super_admin role)
 	// Cities, platforms, and promote/demote admin are handled by the admin group above.

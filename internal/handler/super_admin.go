@@ -117,6 +117,14 @@ func mapSuperAdminError(err error) error {
 	switch {
 	case errors.Is(err, service.ErrMissingFields):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	case errors.Is(err, service.ErrExternalTerminalIDRequired):
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	case errors.Is(err, service.ErrInvalidExternalTerminalID):
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	case errors.Is(err, service.ErrExternalTerminalIDAlreadyUsed):
+		return echo.NewHTTPError(http.StatusConflict, err.Error())
+	case errors.Is(err, service.ErrUpstreamRequest), errors.Is(err, service.ErrUpstreamResponse):
+		return echo.NewHTTPError(http.StatusBadGateway, err.Error())
 	case errors.Is(err, service.ErrTerminalNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, err.Error())
 	case errors.Is(err, service.ErrCityNotFound):

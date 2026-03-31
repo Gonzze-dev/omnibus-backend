@@ -7,9 +7,10 @@ import (
 )
 
 type BusTerminal struct {
-	UUID       uuid.UUID  `json:"uuid" gorm:"primaryKey;column:uuid;type:uuid;default:uuid_generate_v4()"`
-	PostalCode string     `json:"postal_code" gorm:"column:postal_code;not null"`
-	Name       string     `json:"name" gorm:"column:name;not null"`
+	UUID                uuid.UUID  `json:"uuid" gorm:"primaryKey;column:uuid;type:uuid;default:uuid_generate_v4()"`
+	ExternalTerminalID  *uuid.UUID `json:"external_terminal_id,omitempty" gorm:"column:external_terminal_id;type:uuid"`
+	PostalCode          string     `json:"postal_code" gorm:"column:postal_code;not null"`
+	Name                string     `json:"name" gorm:"column:name;not null"`
 	City       *City      `json:"city,omitempty" gorm:"foreignKey:PostalCode;references:PostalCode"`
 	Platforms  []Platform `json:"platforms,omitempty" gorm:"foreignKey:BusTerminalID;references:UUID"`
 }
@@ -37,10 +38,11 @@ type PlatformResponse struct {
 }
 
 type BusTerminalWithPlatformsResponse struct {
-	UUID       uuid.UUID          `json:"uuid"`
-	PostalCode string             `json:"postal_code"`
-	Name       string             `json:"name"`
-	Platforms  []PlatformResponse `json:"platforms"`
+	UUID               uuid.UUID          `json:"uuid"`
+	ExternalTerminalID *uuid.UUID         `json:"external_terminal_id,omitempty"`
+	PostalCode         string             `json:"postal_code"`
+	Name               string             `json:"name"`
+	Platforms          []PlatformResponse `json:"platforms"`
 }
 
 func ToBusTerminalWithPlatformsResponse(terminals []BusTerminal) []BusTerminalWithPlatformsResponse {
@@ -55,36 +57,40 @@ func ToBusTerminalWithPlatformsResponse(terminals []BusTerminal) []BusTerminalWi
 			}
 		}
 		resp[i] = BusTerminalWithPlatformsResponse{
-			UUID:       t.UUID,
-			PostalCode: t.PostalCode,
-			Name:       t.Name,
-			Platforms:  platforms,
+			UUID:               t.UUID,
+			ExternalTerminalID: t.ExternalTerminalID,
+			PostalCode:         t.PostalCode,
+			Name:               t.Name,
+			Platforms:          platforms,
 		}
 	}
 	return resp
 }
 
 type BusTerminalResponse struct {
-	UUID       uuid.UUID `json:"uuid"`
-	PostalCode string    `json:"postal_code"`
-	Name       string    `json:"name"`
+	UUID               uuid.UUID  `json:"uuid"`
+	ExternalTerminalID *uuid.UUID `json:"external_terminal_id,omitempty"`
+	PostalCode         string     `json:"postal_code"`
+	Name               string     `json:"name"`
 }
 
 func ToBusTerminalResponses(terminals []BusTerminal) []BusTerminalResponse {
 	resp := make([]BusTerminalResponse, len(terminals))
 	for i, t := range terminals {
 		resp[i] = BusTerminalResponse{
-			UUID:       t.UUID,
-			PostalCode: t.PostalCode,
-			Name:       t.Name,
+			UUID:               t.UUID,
+			ExternalTerminalID: t.ExternalTerminalID,
+			PostalCode:         t.PostalCode,
+			Name:               t.Name,
 		}
 	}
 	return resp
 }
 
 type CreateBusTerminalRequest struct {
-	PostalCode string `json:"postal_code"`
-	Name       string `json:"name"`
+	ExternalTerminalID uuid.UUID `json:"external_terminal_id"`
+	PostalCode         string    `json:"postal_code"`
+	Name               string    `json:"name"`
 }
 
 type CreatePlatformRequest struct {
@@ -94,8 +100,9 @@ type CreatePlatformRequest struct {
 }
 
 type UpdateBusTerminalRequest struct {
-	PostalCode *string `json:"postal_code,omitempty"`
-	Name       *string `json:"name,omitempty"`
+	ExternalTerminalID *uuid.UUID `json:"external_terminal_id,omitempty"`
+	PostalCode         *string    `json:"postal_code,omitempty"`
+	Name               *string    `json:"name,omitempty"`
 }
 
 type UpdatePlatformRequest struct {

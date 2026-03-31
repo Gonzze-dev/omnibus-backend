@@ -12,6 +12,7 @@ import (
 
 type BusTerminalRepository interface {
 	GetByUUID(ctx context.Context, id uuid.UUID) (models.BusTerminal, error)
+	GetByExternalTerminalID(ctx context.Context, externalID uuid.UUID) (models.BusTerminal, error)
 	GetByUUIDWithPlatforms(ctx context.Context, id uuid.UUID) (models.BusTerminal, error)
 	ListByPostalCode(ctx context.Context, postalCode string) ([]models.BusTerminal, error)
 	List(ctx context.Context) ([]models.BusTerminal, error)
@@ -33,6 +34,18 @@ func NewBusTerminalRepository(db *gorm.DB) *busTerminalRepository {
 func (r *busTerminalRepository) GetByUUID(ctx context.Context, id uuid.UUID) (models.BusTerminal, error) {
 	var bt models.BusTerminal
 	err := r.db.WithContext(ctx).Where("uuid = ?", id).First(&bt).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return models.BusTerminal{}, ErrNotFound
+		}
+		return models.BusTerminal{}, err
+	}
+	return bt, nil
+}
+
+func (r *busTerminalRepository) GetByExternalTerminalID(ctx context.Context, externalID uuid.UUID) (models.BusTerminal, error) {
+	var bt models.BusTerminal
+	err := r.db.WithContext(ctx).Where("external_terminal_id = ?", externalID).First(&bt).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return models.BusTerminal{}, ErrNotFound

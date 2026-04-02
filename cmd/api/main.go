@@ -112,6 +112,7 @@ func main() {
 	admin.POST("/platforms", adminHandler.CreatePlatform)
 	admin.PUT("/platforms/:code", adminHandler.UpdatePlatform)
 	admin.DELETE("/platforms/:code", adminHandler.DeletePlatform)
+	admin.GET("/users/by-email", adminHandler.GetUserByEmail)
 	admin.POST("/users/promote", adminHandler.PromoteToAdmin)
 	admin.POST("/users/demote", adminHandler.DemoteAdmin)
 	admin.GET("/notification-types", notificationHandler.ListAdminNotificationTypes)

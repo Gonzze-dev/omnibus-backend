@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 
@@ -32,6 +33,7 @@ type AdminService interface {
 	DeletePlatform(ctx context.Context, adminID uuid.UUID, code int) error
 
 	// User management
+	GetUserByEmail(ctx context.Context, email string) (models.AdminUserByEmailResponse, error)
 	PromoteToAdminDirect(ctx context.Context, req models.PromoteAdminRequest) (models.UserResponse, error)
 	PromoteToAdmin(ctx context.Context, adminID uuid.UUID, req models.PromoteAdminRequest) (models.UserResponse, error)
 	DemoteAdminDirect(ctx context.Context, req models.DemoteAdminRequest) (models.UserResponse, error)
@@ -369,6 +371,45 @@ func (s *adminService) DeletePlatform(ctx context.Context, adminID uuid.UUID, co
 }
 
 // --- User management ---
+
+func (s *adminService) GetUserByEmail(ctx context.Context, email string) (models.AdminUserByEmailResponse, error) {
+	email = strings.TrimSpace(email)
+	if email == "" {
+		return models.AdminUserByEmailResponse{}, ErrMissingFields
+	}
+
+	user, err := s.userRepo.GetByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return models.AdminUserByEmailResponse{}, ErrUserNotFound
+		}
+		return models.AdminUserByEmailResponse{}, err
+	}
+
+	var terminals []string
+	if user.Rol != nil && user.Rol.Name == "admin" {
+		userTerminals, err := s.userTerminalRepo.GetByUserID(ctx, user.UUID)
+		if err != nil {
+			return models.AdminUserByEmailResponse{}, err
+		}
+		if len(userTerminals) > 0 {
+			ids := make([]uuid.UUID, len(userTerminals))
+			for i := range userTerminals {
+				ids[i] = userTerminals[i].BusTerminalID
+			}
+			busTerminals, err := s.busTerminalRepo.ListByUUIDs(ctx, ids)
+			if err != nil {
+				return models.AdminUserByEmailResponse{}, err
+			}
+			terminals = make([]string, len(busTerminals))
+			for i := range busTerminals {
+				terminals[i] = busTerminals[i].Name
+			}
+		}
+	}
+
+	return models.ToAdminUserByEmailResponse(user, terminals), nil
+}
 
 func (s *adminService) PromoteToAdminDirect(ctx context.Context, req models.PromoteAdminRequest) (models.UserResponse, error) {
 	if req.Email == "" {

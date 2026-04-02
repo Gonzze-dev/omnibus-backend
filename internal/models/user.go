@@ -1,6 +1,7 @@
 package models
 
 import (
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -88,5 +89,29 @@ func ToUserResponse(u User) UserResponse {
 		Rol:       rolName,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
+	}
+}
+
+// AdminUserByEmailResponse is the JSON for GET /api/admin/users/by-email.
+type AdminUserByEmailResponse struct {
+	Name      string   `json:"name"`
+	Email     string   `json:"email"`
+	DNI       string   `json:"dni"`
+	Role      string   `json:"role"`
+	Terminals []string `json:"terminals,omitempty"`
+}
+
+func ToAdminUserByEmailResponse(u User, terminals []string) AdminUserByEmailResponse {
+	fullName := strings.TrimSpace(u.FirstName + " " + u.LastName)
+	roleName := ""
+	if u.Rol != nil {
+		roleName = u.Rol.Name
+	}
+	return AdminUserByEmailResponse{
+		Name:      fullName,
+		Email:     u.Email,
+		DNI:       u.DNI,
+		Role:      roleName,
+		Terminals: terminals,
 	}
 }

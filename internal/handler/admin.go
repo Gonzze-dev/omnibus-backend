@@ -220,6 +220,15 @@ func (h *AdminHandler) DeletePlatform(c echo.Context) error {
 
 // --- User management ---
 
+func (h *AdminHandler) GetUserByEmail(c echo.Context) error {
+	email := c.QueryParam("email")
+	resp, err := h.svc.GetUserByEmail(c.Request().Context(), email)
+	if err != nil {
+		return mapAdminError(err)
+	}
+	return c.JSON(http.StatusOK, resp)
+}
+
 func (h *AdminHandler) PromoteToAdmin(c echo.Context) error {
 	var req models.PromoteAdminRequest
 	if err := c.Bind(&req); err != nil {

@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -16,7 +15,7 @@ type JWTClaims struct {
 	jwt.RegisteredClaims
 }
 
-func Auth() echo.MiddlewareFunc {
+func Auth(jwtSecret string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			authHeader := c.Request().Header.Get("Authorization")
@@ -29,17 +28,12 @@ func Auth() echo.MiddlewareFunc {
 				return echo.NewHTTPError(http.StatusUnauthorized, "invalid authorization format")
 			}
 
-			secret := os.Getenv("JWT_SECRET")
-			if secret == "" {
-				secret = "default-secret-change-me"
-			}
-
 			claims := &JWTClaims{}
 			token, err := jwt.ParseWithClaims(parts[1], claims, func(t *jwt.Token) (any, error) {
 				if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 					return nil, echo.NewHTTPError(http.StatusUnauthorized, "unexpected signing method")
 				}
-				return []byte(secret), nil
+				return []byte(jwtSecret), nil
 			})
 
 			if err != nil || !token.Valid {

@@ -15,62 +15,62 @@ import (
 	"tesina/backend/internal/models"
 )
 
-type PasajeService interface {
-	GetPasaje(ctx context.Context, req models.GetPasajeRequest) (models.PasajeResponse, error)
+type BusTicketService interface {
+	GetBusTicket(ctx context.Context, req models.GetBusTicketRequest) (models.BusTicketResponse, error)
 	ExternalTerminalExists(ctx context.Context, externalTerminalUUID uuid.UUID) (bool, error)
 	TripExists(ctx context.Context, externalTerminalUUID uuid.UUID, startDate, licensePlate string) (bool, error)
 }
 
-type pasajeService struct {
+type busTicketService struct {
 	httpClient  *http.Client
 	upstreamURL string
 }
 
-func NewPasajeService(httpClient *http.Client, upstreamURL string) *pasajeService {
-	return &pasajeService{
+func NewBusTicketService(httpClient *http.Client, upstreamURL string) *busTicketService {
+	return &busTicketService{
 		httpClient:  httpClient,
 		upstreamURL: upstreamURL,
 	}
 }
 
-func (s *pasajeService) GetPasaje(ctx context.Context, req models.GetPasajeRequest) (models.PasajeResponse, error) {
+func (s *busTicketService) GetBusTicket(ctx context.Context, req models.GetBusTicketRequest) (models.BusTicketResponse, error) {
 	if req.TicketString == "" {
-		return models.PasajeResponse{}, ErrTicketStringEmpty
+		return models.BusTicketResponse{}, ErrTicketStringEmpty
 	}
 
-	url := fmt.Sprintf("%s/pasajes/%s", s.upstreamURL, req.TicketString)
+	url := fmt.Sprintf("%s/bus_tickets/%s", s.upstreamURL, req.TicketString)
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return models.PasajeResponse{}, fmt.Errorf("%w: %w", ErrUpstreamRequest, err)
+		return models.BusTicketResponse{}, fmt.Errorf("%w: %w", ErrUpstreamRequest, err)
 	}
 
 	resp, err := s.httpClient.Do(httpReq)
 	if err != nil {
-		return models.PasajeResponse{}, fmt.Errorf("%w: %w", ErrUpstreamRequest, err)
+		return models.BusTicketResponse{}, fmt.Errorf("%w: %w", ErrUpstreamRequest, err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return models.PasajeResponse{}, fmt.Errorf("%w: %w", ErrUpstreamResponse, err)
+		return models.BusTicketResponse{}, fmt.Errorf("%w: %w", ErrUpstreamResponse, err)
 	}
 
 	if resp.StatusCode == http.StatusOK {
-		normalized, err := normalizePasaje(body)
+		normalized, err := normalizeBusTicket(body)
 		if err == nil {
 			body = normalized
 		}
 	}
 
-	return models.PasajeResponse{
+	return models.BusTicketResponse{
 		Body:       body,
 		StatusCode: resp.StatusCode,
 	}, nil
 }
 
-func normalizePasaje(raw []byte) ([]byte, error) {
-	var p models.Pasaje
+func normalizeBusTicket(raw []byte) ([]byte, error) {
+	var p models.BusTicket
 	if err := json.Unmarshal(raw, &p); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrUpstreamResponse, err)
 	}
@@ -88,7 +88,7 @@ func normalizePasaje(raw []byte) ([]byte, error) {
 	return json.Marshal(p)
 }
 
-func (s *pasajeService) ExternalTerminalExists(ctx context.Context, externalTerminalUUID uuid.UUID) (bool, error) {
+func (s *busTicketService) ExternalTerminalExists(ctx context.Context, externalTerminalUUID uuid.UUID) (bool, error) {
 	if externalTerminalUUID == uuid.Nil {
 		return false, ErrExternalTerminalIDRequired
 	}
@@ -125,7 +125,7 @@ func (s *pasajeService) ExternalTerminalExists(ctx context.Context, externalTerm
 	return parseUpstreamBoolBody(body)
 }
 
-func (s *pasajeService) TripExists(ctx context.Context, externalTerminalUUID uuid.UUID, startDate, licensePlate string) (bool, error) {
+func (s *busTicketService) TripExists(ctx context.Context, externalTerminalUUID uuid.UUID, startDate, licensePlate string) (bool, error) {
 	if externalTerminalUUID == uuid.Nil {
 		return false, ErrExternalTerminalIDRequired
 	}

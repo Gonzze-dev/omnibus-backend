@@ -10,21 +10,21 @@ import (
 	"tesina/backend/internal/service"
 )
 
-type PasajeHandler struct {
-	svc service.PasajeService
+type BusTicketHandler struct {
+	svc service.BusTicketService
 }
 
-func NewPasajeHandler(svc service.PasajeService) *PasajeHandler {
-	return &PasajeHandler{svc: svc}
+func NewBusTicketHandler(svc service.BusTicketService) *BusTicketHandler {
+	return &BusTicketHandler{svc: svc}
 }
 
-func (h *PasajeHandler) GetPasaje(c echo.Context) error {
+func (h *BusTicketHandler) GetBusTicket(c echo.Context) error {
 	ticketString := c.Param("ticket_string")
 	if ticketString == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "ticket_string is required in the URL path")
 	}
 
-	resp, err := h.svc.GetPasaje(c.Request().Context(), models.GetPasajeRequest{TicketString: ticketString})
+	resp, err := h.svc.GetBusTicket(c.Request().Context(), models.GetBusTicketRequest{TicketString: ticketString})
 	if err != nil {
 		return err
 	}

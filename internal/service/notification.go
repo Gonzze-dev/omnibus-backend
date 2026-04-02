@@ -31,7 +31,7 @@ type notificationService struct {
 	userTerminalRepo repository.UserTerminalRepository
 	busTerminalRepo  repository.BusTerminalRepository
 	notifier         RealtimeNotifier
-	pasajeSvc        PasajeService
+	BusTicketSvc     BusTicketService
 }
 
 func NewNotificationService(
@@ -39,14 +39,14 @@ func NewNotificationService(
 	userTerminalRepo repository.UserTerminalRepository,
 	busTerminalRepo repository.BusTerminalRepository,
 	notifier RealtimeNotifier,
-	pasajeSvc PasajeService,
+	BusTicketSvc BusTicketService,
 ) *notificationService {
 	return &notificationService{
 		platformRepo:     platformRepo,
 		userTerminalRepo: userTerminalRepo,
 		busTerminalRepo:  busTerminalRepo,
 		notifier:         notifier,
-		pasajeSvc:        pasajeSvc,
+		BusTicketSvc:     BusTicketSvc,
 	}
 }
 
@@ -299,7 +299,7 @@ func (s *notificationService) NotifyBusDelay(
 		return models.NotifyBusDelayResponse{}, ErrExternalTerminalNotConfigured
 	}
 
-	exists, err := s.pasajeSvc.TripExists(ctx, *terminal.ExternalTerminalID, req.StartDate, req.LicensePatent)
+	exists, err := s.BusTicketSvc.TripExists(ctx, *terminal.ExternalTerminalID, req.StartDate, req.LicensePatent)
 	if err != nil {
 		return models.NotifyBusDelayResponse{}, err
 	}

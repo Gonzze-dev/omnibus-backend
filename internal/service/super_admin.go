@@ -30,7 +30,7 @@ type superAdminService struct {
 	userRepo              repository.UserRepository
 	rolRepo               repository.RolRepository
 	userTerminalRepo      repository.UserTerminalRepository
-	externalTerminalCheck PasajeService
+	externalTerminalCheck BusTicketService
 }
 
 func NewSuperAdminService(
@@ -39,7 +39,7 @@ func NewSuperAdminService(
 	userRepo repository.UserRepository,
 	rolRepo repository.RolRepository,
 	userTerminalRepo repository.UserTerminalRepository,
-	externalTerminalCheck PasajeService,
+	externalTerminalCheck BusTicketService,
 ) *superAdminService {
 	return &superAdminService{
 		cityRepo:              cityRepo,

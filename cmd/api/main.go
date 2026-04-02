@@ -114,6 +114,7 @@ func main() {
 	admin.DELETE("/platforms/:code", adminHandler.DeletePlatform)
 	admin.POST("/users/promote", adminHandler.PromoteToAdmin)
 	admin.POST("/users/demote", adminHandler.DemoteAdmin)
+	admin.GET("/notification-types", notificationHandler.ListAdminNotificationTypes)
 	admin.POST("/notifications", notificationHandler.SendAdminNotification)
 	admin.POST("/notify-bus-delay", notificationHandler.NotifyBusDelay)
 

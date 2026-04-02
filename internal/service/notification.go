@@ -23,6 +23,7 @@ type NotificationService interface {
 	NotifyPassengers(ctx context.Context, req models.NotifyPassengersRequest) (models.NotifyPassengersResponse, error)
 	SendAdminNotification(ctx context.Context, userID uuid.UUID, role string, queryTerminalUUID string, req models.AdminSendNotificationRequest) (models.AdminSendNotificationResponse, error)
 	NotifyBusDelay(ctx context.Context, userID uuid.UUID, role string, req models.NotifyBusDelayRequest) (models.NotifyBusDelayResponse, error)
+	ListAdminSelectableNotificationTypes(ctx context.Context, role string) (models.AdminNotificationTypesResponse, error)
 }
 
 type notificationService struct {
@@ -46,6 +47,28 @@ func NewNotificationService(
 		busTerminalRepo:  busTerminalRepo,
 		notifier:         notifier,
 		pasajeSvc:        pasajeSvc,
+	}
+}
+
+func (s *notificationService) ListAdminSelectableNotificationTypes(_ context.Context, role string) (models.AdminNotificationTypesResponse, error) {
+	switch role {
+	case "super_admin":
+		return models.AdminNotificationTypesResponse{
+			Types: []models.PassengerNotificationType{
+				models.PassengerNotificationLocal,
+				models.PassengerNotificationGlobal,
+				models.PassengerNotificationBUSDelay,
+			},
+		}, nil
+	case "admin":
+		return models.AdminNotificationTypesResponse{
+			Types: []models.PassengerNotificationType{
+				models.PassengerNotificationLocal,
+				models.PassengerNotificationBUSDelay,
+			},
+		}, nil
+	default:
+		return models.AdminNotificationTypesResponse{}, ErrUnsupportedNotificationRole
 	}
 }
 

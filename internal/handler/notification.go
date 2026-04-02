@@ -34,6 +34,18 @@ func (h *NotificationHandler) NotifyPassengers(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
+func (h *NotificationHandler) ListAdminNotificationTypes(c echo.Context) error {
+	role, _ := c.Get("role").(string)
+	resp, err := h.svc.ListAdminSelectableNotificationTypes(c.Request().Context(), role)
+	if err != nil {
+		if errors.Is(err, service.ErrUnsupportedNotificationRole) {
+			return echo.NewHTTPError(http.StatusForbidden, err.Error())
+		}
+		return err
+	}
+	return c.JSON(http.StatusOK, resp)
+}
+
 func (h *NotificationHandler) SendAdminNotification(c echo.Context) error {
 
 	userID, ok := c.Get("user_id").(uuid.UUID)

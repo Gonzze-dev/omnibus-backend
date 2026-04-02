@@ -67,3 +67,9 @@ type NotifyBusDelayPayload struct {
 type NotifyBusDelayResponse struct {
 	Message string `json:"message"`
 }
+
+// AdminNotificationTypesResponse is the JSON body for GET /api/admin/notification-types.
+// Types depend on the caller role (admin vs super_admin).
+type AdminNotificationTypesResponse struct {
+	Types []PassengerNotificationType `json:"types"`
+}

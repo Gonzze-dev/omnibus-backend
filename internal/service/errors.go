@@ -54,4 +54,9 @@ var (
 	ErrBusDelayTerminalUUIDRequired  = errors.New("uuid_terminal is required")
 	ErrExternalTerminalNotConfigured = errors.New("terminal has no external_terminal_id configured")
 	ErrTripNotRegistered             = errors.New("trip is not registered in the terminal system; notification cannot be sent")
+
+	ErrCameraNotificationTypeInvalid = errors.New("type incorrect or missing")
+	ErrCodeCameraEmpty               = errors.New("code_camera is required")
+	ErrCodeCameraInvalid             = errors.New("code_camera must be a valid integer")
+	ErrCameraErrorMessageEmpty       = errors.New("payload.message is required")
 )

@@ -10,6 +10,7 @@ const (
 	PassengerNotificationBUSDelay   PassengerNotificationType = "BUS_DELAY"
 	PassengerNotificationLocal      PassengerNotificationType = "LOCAL"
 	PassengerNotificationGlobal     PassengerNotificationType = "GLOBAL"
+	PassengerNotificationCAMERA     PassengerNotificationType = "CAMERA"
 )
 
 // PassengerNotificationMessage is sent to the frontend (SendToFrontend).
@@ -72,4 +73,22 @@ type NotifyBusDelayResponse struct {
 // Types depend on the caller role (admin vs super_admin).
 type AdminNotificationTypesResponse struct {
 	Types []PassengerNotificationType `json:"types"`
+}
+
+// CameraErrorNotifyRequest is the JSON body for POST /notify_camera_error (X-API-Key).
+// code_camera is the platform code; it resolves to the bus terminal UUID for SignalR grouping.
+type CameraErrorNotifyRequest struct {
+	Type       PassengerNotificationType `json:"type"`
+	CodeCamera string                  `json:"code_camera"`
+	Payload    CameraErrorNotifyPayload  `json:"payload"`
+}
+
+type CameraErrorNotifyPayload struct {
+	Message string `json:"message"`
+}
+
+// CameraErrorNotifyResponse echoes the notification sent to admins via NotifyAdminFromCamera.
+type CameraErrorNotifyResponse struct {
+	Type    PassengerNotificationType `json:"type"`
+	Payload CameraErrorNotifyPayload  `json:"payload"`
 }

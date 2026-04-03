@@ -4,13 +4,16 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"tesina/backend/internal/app"
+	"tesina/backend/internal/config"
 	"tesina/backend/internal/handler"
+	"tesina/backend/internal/middleware"
 )
 
-func registerPublic(e *echo.Echo, a *app.App) {
+func registerPublic(e *echo.Echo, a *app.App, cfg config.Config) {
 	e.GET("/health", handler.HealthHandler)
 	e.GET("/bus_tickets/:ticket_string", a.BusTicket.GetBusTicket)
 	e.POST("/notify_passengers", a.Notification.NotifyPassengers)
+	e.POST("/notify_camera_error", a.Notification.NotifyCameraError, middleware.CameraAPIKey(cfg.CameraNotificationAPIKey))
 
 	auth := e.Group("/api/auth")
 	auth.POST("/register", a.Auth.Register)

@@ -12,6 +12,7 @@ const (
 	defaultRealtimeURL                 = "http://localhost:4988/realtime"
 	defaultHTTPClientTimeout           = 10 * time.Second
 	defaultListenAddr                  = ":4989"
+	defaultCameraNotificationAPIKey    = "DEFAULT_API_KEY"
 )
 
 type Config struct {
@@ -21,6 +22,7 @@ type Config struct {
 	RealtimeURL                 string
 	HTTPClientTimeout           time.Duration
 	ListenAddr                  string
+	CameraNotificationAPIKey    string
 }
 
 func Load() Config {
@@ -49,6 +51,11 @@ func Load() Config {
 		realtimeURL = defaultRealtimeURL
 	}
 
+	cameraAPIKey := os.Getenv("CAMERA_NOTIFICATION_API_KEY")
+	if cameraAPIKey == "" {
+		cameraAPIKey = defaultCameraNotificationAPIKey
+	}
+
 	return Config{
 		DatabaseURL:                 dsn,
 		JWTSecret:                   jwtSecret,
@@ -56,5 +63,6 @@ func Load() Config {
 		RealtimeURL:                 realtimeURL,
 		HTTPClientTimeout:           defaultHTTPClientTimeout,
 		ListenAddr:                  listenAddr,
+		CameraNotificationAPIKey:    cameraAPIKey,
 	}
 }

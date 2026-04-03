@@ -13,7 +13,7 @@ func Register(e *echo.Echo, a *app.App, cfg config.Config) {
 	e.Use(middleware.CORS())
 	e.Use(middleware.Logging())
 
-	registerPublic(e, a)
+	registerPublic(e, a, cfg)
 	registerUser(e, a, cfg.JWTSecret)
 	registerAdmin(e, a, cfg.JWTSecret)
 	registerSuperAdmin(e, a, cfg.JWTSecret)

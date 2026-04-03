@@ -24,6 +24,7 @@ type NotificationService interface {
 	SendAdminNotification(ctx context.Context, userID uuid.UUID, role string, queryTerminalUUID string, req models.AdminSendNotificationRequest) (models.AdminSendNotificationResponse, error)
 	NotifyBusDelay(ctx context.Context, userID uuid.UUID, role string, req models.NotifyBusDelayRequest) (models.NotifyBusDelayResponse, error)
 	ListAdminSelectableNotificationTypes(ctx context.Context, role string) (models.AdminNotificationTypesResponse, error)
+	NotifyAdminCameraError(ctx context.Context, req models.CameraErrorNotifyRequest) (models.CameraErrorNotifyResponse, error)
 }
 
 type notificationService struct {
@@ -327,6 +328,54 @@ func (s *notificationService) NotifyBusDelay(
 
 func normalizeLicensePlateForDelay(patent string) string {
 	return strings.ToUpper(strings.ReplaceAll(strings.TrimSpace(patent), " ", ""))
+}
+
+func (s *notificationService) NotifyAdminCameraError(
+	ctx context.Context,
+	req models.CameraErrorNotifyRequest,
+) (models.CameraErrorNotifyResponse, error) {
+	if req.Type != models.PassengerNotificationCAMERA {
+		return models.CameraErrorNotifyResponse{}, ErrCameraNotificationTypeInvalid
+	}
+	if strings.TrimSpace(req.CodeCamera) == "" {
+		return models.CameraErrorNotifyResponse{}, ErrCodeCameraEmpty
+	}
+	code, err := strconv.Atoi(strings.TrimSpace(req.CodeCamera))
+	if err != nil {
+		return models.CameraErrorNotifyResponse{}, ErrCodeCameraInvalid
+	}
+	if strings.TrimSpace(req.Payload.Message) == "" {
+		return models.CameraErrorNotifyResponse{}, ErrCameraErrorMessageEmpty
+	}
+
+	platform, err := s.platformRepo.GetByCode(ctx, code)
+	if err != nil {
+		return models.CameraErrorNotifyResponse{}, fmt.Errorf("%w: %w", ErrPlatformLookup, err)
+	}
+	if platform.BusTerminalID == uuid.Nil {
+		return models.CameraErrorNotifyResponse{}, ErrPlatformMissingTerminal
+	}
+
+	inner, err := json.Marshal(models.CameraErrorNotifyPayload{Message: strings.TrimSpace(req.Payload.Message)})
+	if err != nil {
+		return models.CameraErrorNotifyResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+	}
+
+	msg := models.PassengerNotificationMessage{
+		Type:    models.PassengerNotificationCAMERA,
+		Payload: inner,
+	}
+
+	if err := s.notifier.Invoke(ctx, "NotifyAdminFromCamera", platform.BusTerminalID.String(), msg); err != nil {
+		return models.CameraErrorNotifyResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+	}
+
+	return models.CameraErrorNotifyResponse{
+		Type: models.PassengerNotificationCAMERA,
+		Payload: models.CameraErrorNotifyPayload{
+			Message: strings.TrimSpace(req.Payload.Message),
+		},
+	}, nil
 }
 
 func (s *notificationService) resolveTerminalForBusDelay(

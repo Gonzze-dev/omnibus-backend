@@ -69,6 +69,20 @@ func (h *NotificationHandler) SendAdminNotification(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
+func (h *NotificationHandler) NotifyCameraError(c echo.Context) error {
+	var req models.CameraErrorNotifyRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	resp, err := h.svc.NotifyAdminCameraError(c.Request().Context(), req)
+	if err != nil {
+		return mapCameraErrorNotifyError(err)
+	}
+
+	return c.JSON(http.StatusOK, resp)
+}
+
 func (h *NotificationHandler) NotifyBusDelay(c echo.Context) error {
 	userID, ok := c.Get("user_id").(uuid.UUID)
 	if !ok {
@@ -126,6 +140,24 @@ func mapAdminLocalNotificationError(err error) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case errors.Is(err, service.ErrNotification):
 		return echo.NewHTTPError(http.StatusBadGateway, "failed to send notification")
+	default:
+		return err
+	}
+}
+
+func mapCameraErrorNotifyError(err error) error {
+	switch {
+	case errors.Is(err, service.ErrCameraNotificationTypeInvalid),
+		errors.Is(err, service.ErrCodeCameraEmpty),
+		errors.Is(err, service.ErrCodeCameraInvalid),
+		errors.Is(err, service.ErrCameraErrorMessageEmpty):
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	case errors.Is(err, repository.ErrNotFound):
+		return echo.NewHTTPError(http.StatusNotFound, "platform not found")
+	case errors.Is(err, service.ErrPlatformMissingTerminal):
+		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+	case errors.Is(err, service.ErrNotification):
+		return echo.NewHTTPError(http.StatusBadGateway, "failed to notify admins")
 	default:
 		return err
 	}

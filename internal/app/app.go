@@ -39,7 +39,7 @@ func New(cfg config.Config, db *gorm.DB) *App {
 	notificationSvc := service.NewNotificationService(platformRepo, userTerminalRepo, busTerminalRepo, signalRClient, BusTicketSvc)
 
 	authSvc := service.NewAuthService(userRepo, rolRepo, refreshTokenRepo, cfg.JWTSecret)
-	userSvc := service.NewUserService(userRepo, refreshTokenRepo, busTerminalRepo)
+	userSvc := service.NewUserService(userRepo, refreshTokenRepo, busTerminalRepo, userTerminalRepo)
 
 	adminSvc := service.NewAdminService(cityRepo, platformRepo, busTerminalRepo, userRepo, rolRepo, userTerminalRepo)
 	superAdminSvc := service.NewSuperAdminService(cityRepo, busTerminalRepo, userRepo, rolRepo, userTerminalRepo, BusTicketSvc)

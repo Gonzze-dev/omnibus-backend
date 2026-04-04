@@ -20,20 +20,23 @@ type UserService interface {
 }
 
 type userService struct {
-	userRepo         repository.UserRepository
-	refreshTokenRepo repository.RefreshTokenRepository
-	busTerminalRepo  repository.BusTerminalRepository
+	userRepo          repository.UserRepository
+	refreshTokenRepo  repository.RefreshTokenRepository
+	busTerminalRepo   repository.BusTerminalRepository
+	userTerminalRepo  repository.UserTerminalRepository
 }
 
 func NewUserService(
 	userRepo repository.UserRepository,
 	refreshTokenRepo repository.RefreshTokenRepository,
 	busTerminalRepo repository.BusTerminalRepository,
+	userTerminalRepo repository.UserTerminalRepository,
 ) *userService {
 	return &userService{
 		userRepo:         userRepo,
 		refreshTokenRepo: refreshTokenRepo,
 		busTerminalRepo:  busTerminalRepo,
+		userTerminalRepo: userTerminalRepo,
 	}
 }
 
@@ -45,7 +48,32 @@ func (s *userService) GetProfile(ctx context.Context, userID uuid.UUID) (models.
 		}
 		return models.UserResponse{}, err
 	}
-	return models.ToUserResponse(user), nil
+	resp := models.ToUserResponse(user)
+	if user.Rol != nil && user.Rol.Name == "admin" {
+		uts, err := s.userTerminalRepo.GetByUserID(ctx, userID)
+		if err != nil {
+			return models.UserResponse{}, err
+		}
+		if len(uts) == 0 {
+			return resp, nil
+		}
+		ids := make([]uuid.UUID, len(uts))
+		for i := range uts {
+			ids[i] = uts[i].BusTerminalID
+		}
+		terminals, err := s.busTerminalRepo.ListByUUIDs(ctx, ids)
+		if err != nil {
+			return models.UserResponse{}, err
+		}
+		resp.Terminals = make([]models.ProfileTerminalRef, 0, len(terminals))
+		for _, t := range terminals {
+			resp.Terminals = append(resp.Terminals, models.ProfileTerminalRef{
+				UUID: t.UUID,
+				Name: t.Name,
+			})
+		}
+	}
+	return resp, nil
 }
 
 func (s *userService) UpdateProfile(ctx context.Context, userID uuid.UUID, req models.UpdateUserRequest) (models.UserResponse, error) {

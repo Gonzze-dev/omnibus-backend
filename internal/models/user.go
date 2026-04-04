@@ -64,15 +64,22 @@ type UpdateUserRequest struct {
 	DNI       *string `json:"dni,omitempty"`
 }
 
+// ProfileTerminalRef is a minimal terminal reference for GET /users/me (admin only).
+type ProfileTerminalRef struct {
+	UUID uuid.UUID `json:"uuid"`
+	Name string    `json:"name"`
+}
+
 type UserResponse struct {
-	UUID      uuid.UUID `json:"uuid"`
-	FirstName string    `json:"first_name"`
-	LastName  string    `json:"last_name"`
-	Email     string    `json:"email"`
-	DNI       string    `json:"dni"`
-	Rol       string    `json:"rol"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	UUID      uuid.UUID              `json:"uuid"`
+	FirstName string                 `json:"first_name"`
+	LastName  string                 `json:"last_name"`
+	Email     string                 `json:"email"`
+	DNI       string                 `json:"dni"`
+	Rol       string                 `json:"rol"`
+	CreatedAt time.Time              `json:"created_at"`
+	UpdatedAt time.Time              `json:"updated_at"`
+	Terminals []ProfileTerminalRef   `json:"terminals,omitempty"`
 }
 
 func ToUserResponse(u User) UserResponse {

@@ -12,7 +12,7 @@ import (
 func registerPublic(e *echo.Echo, a *app.App, cfg config.Config) {
 	e.GET("/health", handler.HealthHandler)
 	e.GET("/bus_tickets/:ticket_string", a.BusTicket.GetBusTicket)
-	e.POST("/notify_passengers", a.Notification.NotifyPassengers)
+	e.POST("/notify_passengers", a.Notification.NotifyPassengers, middleware.CameraAPIKey(cfg.CameraNotificationAPIKey))
 	e.POST("/notify_camera_error", a.Notification.NotifyCameraError, middleware.CameraAPIKey(cfg.CameraNotificationAPIKey))
 
 	auth := e.Group("/api/auth")
@@ -20,4 +20,7 @@ func registerPublic(e *echo.Echo, a *app.App, cfg config.Config) {
 	auth.POST("/login", a.Auth.Login)
 	auth.POST("/refresh", a.Auth.RefreshToken)
 	auth.POST("/logout", a.Auth.Logout)
+	auth.POST("/forgot-password", a.PasswordRecovery.ForgotPassword)
+	auth.POST("/validate-recovery-token", a.PasswordRecovery.ValidateRecoveryToken)
+	auth.POST("/reset-password", a.PasswordRecovery.ResetPassword)
 }

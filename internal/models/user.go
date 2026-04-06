@@ -56,6 +56,23 @@ type LogoutRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+type ForgotPasswordRequest struct {
+	Email string `json:"email"`
+}
+
+type ForgotPasswordResponse struct {
+	Message string `json:"message"`
+}
+
+type ValidateRecoveryTokenResponse struct {
+	Valid     bool       `json:"valid"`
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
+}
+
+type ResetPasswordRequest struct {
+	Password string `json:"password"`
+}
+
 type UpdateUserRequest struct {
 	FirstName *string `json:"first_name,omitempty"`
 	LastName  *string `json:"last_name,omitempty"`

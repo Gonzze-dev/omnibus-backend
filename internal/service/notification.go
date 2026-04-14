@@ -32,6 +32,7 @@ type notificationService struct {
 	userTerminalRepo repository.UserTerminalRepository
 	busTerminalRepo  repository.BusTerminalRepository
 	notifier         RealtimeNotifier
+	hubMethods       RealtimeHubMethods
 	BusTicketSvc     BusTicketService
 }
 
@@ -40,6 +41,7 @@ func NewNotificationService(
 	userTerminalRepo repository.UserTerminalRepository,
 	busTerminalRepo repository.BusTerminalRepository,
 	notifier RealtimeNotifier,
+	hubMethods RealtimeHubMethods,
 	BusTicketSvc BusTicketService,
 ) *notificationService {
 	return &notificationService{
@@ -47,6 +49,7 @@ func NewNotificationService(
 		userTerminalRepo: userTerminalRepo,
 		busTerminalRepo:  busTerminalRepo,
 		notifier:         notifier,
+		hubMethods:       hubMethods,
 		BusTicketSvc:     BusTicketSvc,
 	}
 }
@@ -110,7 +113,7 @@ func (s *notificationService) NotifyPassengers(ctx context.Context, req models.N
 	}
 
 	groupKey := req.LicensePatent + ":" + platform.BusTerminalID.String()
-	if err := s.notifier.Invoke(ctx, "SendToFrontend", groupKey, msg); err != nil {
+	if err := s.notifier.Invoke(ctx, s.hubMethods.SendToFrontend, groupKey, msg); err != nil {
 		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
 	}
 
@@ -157,7 +160,7 @@ func (s *notificationService) sendAdminNotificationGlobal(
 		Payload: json.RawMessage(append([]byte(nil), trimmed...)),
 	}
 
-	if err := s.notifier.Invoke(ctx, "SendToFrontendGlobal", msg); err != nil {
+	if err := s.notifier.Invoke(ctx, s.hubMethods.SendToFrontendGlobal, msg); err != nil {
 		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
 	}
 
@@ -258,7 +261,7 @@ func (s *notificationService) sendAdminNotificationLocal(
 		Payload: inner,
 	}
 
-	if err := s.notifier.Invoke(ctx, "SendToFrontend", terminalID.String(), msg); err != nil {
+	if err := s.notifier.Invoke(ctx, s.hubMethods.SendToFrontend, terminalID.String(), msg); err != nil {
 		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
 	}
 
@@ -319,7 +322,7 @@ func (s *notificationService) NotifyBusDelay(
 	}
 
 	groupKey := normalizeLicensePlateForDelay(req.LicensePatent) + ":" + terminalID.String()
-	if err := s.notifier.Invoke(ctx, "NotifyDelayBus", groupKey, msg); err != nil {
+	if err := s.notifier.Invoke(ctx, s.hubMethods.NotifyDelayBus, groupKey, msg); err != nil {
 		return models.NotifyBusDelayResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
 	}
 
@@ -366,7 +369,7 @@ func (s *notificationService) NotifyAdminCameraError(
 		Payload: inner,
 	}
 
-	if err := s.notifier.Invoke(ctx, "NotifyAdminFromCamera", platform.BusTerminalID.String(), msg); err != nil {
+	if err := s.notifier.Invoke(ctx, s.hubMethods.NotifyAdminFromCamera, platform.BusTerminalID.String(), msg); err != nil {
 		return models.CameraErrorNotifyResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
 	}
 

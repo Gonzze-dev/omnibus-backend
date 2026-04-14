@@ -39,7 +39,7 @@ func New(cfg config.Config, db *gorm.DB) *App {
 	BusTicketSvc := service.NewBusTicketService(httpClient, cfg.ExternalTerminalUpstreamURL)
 
 	signalRClient := realtime.NewClient(cfg.RealtimeURL)
-	notificationSvc := service.NewNotificationService(platformRepo, userTerminalRepo, busTerminalRepo, signalRClient, BusTicketSvc)
+	notificationSvc := service.NewNotificationService(platformRepo, userTerminalRepo, busTerminalRepo, signalRClient, service.DefaultRealtimeHubMethods(), BusTicketSvc)
 
 	authSvc := service.NewAuthService(userRepo, rolRepo, refreshTokenRepo, cfg.JWTSecret)
 

@@ -38,6 +38,7 @@ var (
 	ErrNotificationGlobalSuperAdminOnly = errors.New("notification type GLOBAL is only allowed for super_admin")
 	ErrNotificationPayloadInvalidJSON   = errors.New("payload must be valid JSON")
 	ErrNotificationPayloadEmpty         = errors.New("payload is required")
+	ErrNotificationTimeLifeInvalid      = errors.New("time_life must be greater than 0")
 	ErrUnsupportedNotificationRole      = errors.New("unsupported role for notification types")
 	ErrTerminalUUIDRequired             = errors.New("query terminaluuid is required for super_admin")
 	ErrTerminalUUIDRequiredMultiAdmin   = errors.New("query terminaluuid is required when admin has more than one terminal")

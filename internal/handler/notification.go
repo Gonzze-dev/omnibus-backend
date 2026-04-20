@@ -107,7 +107,8 @@ func mapNotificationError(err error) error {
 	switch {
 	case errors.Is(err, service.ErrLicensePatentEmpty),
 		errors.Is(err, service.ErrCodeEmpty),
-		errors.Is(err, service.ErrInvalidCode):
+		errors.Is(err, service.ErrInvalidCode),
+		errors.Is(err, service.ErrNotificationTimeLifeInvalid):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case errors.Is(err, repository.ErrNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, "platform not found")
@@ -128,7 +129,8 @@ func mapAdminLocalNotificationError(err error) error {
 		errors.Is(err, service.ErrTerminalUUIDRequiredMultiAdmin),
 		errors.Is(err, service.ErrInvalidTerminalUUID),
 		errors.Is(err, service.ErrNotificationPayloadInvalidJSON),
-		errors.Is(err, service.ErrNotificationPayloadEmpty):
+		errors.Is(err, service.ErrNotificationPayloadEmpty),
+		errors.Is(err, service.ErrNotificationTimeLifeInvalid):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case errors.Is(err, service.ErrNotificationGlobalSuperAdminOnly):
 		return echo.NewHTTPError(http.StatusForbidden, err.Error())
@@ -150,7 +152,8 @@ func mapCameraErrorNotifyError(err error) error {
 	case errors.Is(err, service.ErrCameraNotificationTypeInvalid),
 		errors.Is(err, service.ErrCodeCameraEmpty),
 		errors.Is(err, service.ErrCodeCameraInvalid),
-		errors.Is(err, service.ErrCameraErrorMessageEmpty):
+		errors.Is(err, service.ErrCameraErrorMessageEmpty),
+		errors.Is(err, service.ErrNotificationTimeLifeInvalid):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case errors.Is(err, repository.ErrNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, "platform not found")
@@ -170,7 +173,8 @@ func mapNotifyBusDelayError(err error) error {
 		errors.Is(err, service.ErrBusDelayStartDateRequired),
 		errors.Is(err, service.ErrBusDelayTimeDelayInvalid),
 		errors.Is(err, service.ErrBusDelayTerminalUUIDRequired),
-		errors.Is(err, service.ErrInvalidTerminalUUID):
+		errors.Is(err, service.ErrInvalidTerminalUUID),
+		errors.Is(err, service.ErrNotificationTimeLifeInvalid):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case errors.Is(err, service.ErrTerminalNotOwned):
 		return echo.NewHTTPError(http.StatusForbidden, err.Error())

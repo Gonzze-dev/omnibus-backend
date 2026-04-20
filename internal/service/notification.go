@@ -84,6 +84,10 @@ func (s *notificationService) NotifyPassengers(ctx context.Context, req models.N
 		return models.NotifyPassengersResponse{}, ErrCodeEmpty
 	}
 
+	if req.TimeLife <= 0 {
+		return models.NotifyPassengersResponse{}, ErrNotificationTimeLifeInvalid
+	}
+
 	code, err := strconv.Atoi(req.Code)
 	if err != nil {
 		return models.NotifyPassengersResponse{}, ErrInvalidCode
@@ -98,8 +102,10 @@ func (s *notificationService) NotifyPassengers(ctx context.Context, req models.N
 	}
 
 	platformInfo := models.PlatformInfo{
+		ID:          uuid.New(),
 		Anden:       platform.Anden,
 		Coordinates: platform.Coordinates,
+		TimeLife:    req.TimeLife,
 	}
 
 	payload, err := json.Marshal(platformInfo)
@@ -155,9 +161,23 @@ func (s *notificationService) sendAdminNotificationGlobal(
 		return models.AdminSendNotificationResponse{}, ErrNotificationPayloadInvalidJSON
 	}
 
+	var tmp struct {
+		TimeLife int `json:"time_life"`
+	}
+	if err := json.Unmarshal(trimmed, &tmp); err != nil || tmp.TimeLife <= 0 {
+		return models.AdminSendNotificationResponse{}, ErrNotificationTimeLifeInvalid
+	}
+
+	merged, err := mergeJSONWithFields(trimmed, map[string]any{
+		"id": uuid.New().String(),
+	})
+	if err != nil {
+		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+	}
+
 	msg := models.PassengerNotificationMessage{
 		Type:    models.PassengerNotificationGlobal,
-		Payload: json.RawMessage(append([]byte(nil), trimmed...)),
+		Payload: merged,
 	}
 
 	if err := s.notifier.Invoke(ctx, s.hubMethods.SendToFrontendGlobal, msg); err != nil {
@@ -184,6 +204,10 @@ func (s *notificationService) sendAdminNotificationLocal(
 	if localPayload.Message == "" {
 		return models.AdminSendNotificationResponse{}, ErrNotificationMessageEmpty
 	}
+	if localPayload.TimeLife <= 0 {
+		return models.AdminSendNotificationResponse{}, ErrNotificationTimeLifeInvalid
+	}
+	localPayload.ID = uuid.New().String()
 
 	var terminalID uuid.UUID
 
@@ -286,6 +310,9 @@ func (s *notificationService) NotifyBusDelay(
 	if req.Payload.TimeDelay <= 0 {
 		return models.NotifyBusDelayResponse{}, ErrBusDelayTimeDelayInvalid
 	}
+	if req.Payload.TimeLife <= 0 {
+		return models.NotifyBusDelayResponse{}, ErrNotificationTimeLifeInvalid
+	}
 
 	terminalID, err := s.resolveTerminalForBusDelay(ctx, userID, role, strings.TrimSpace(req.UUIDTerminal))
 	if err != nil {
@@ -303,7 +330,11 @@ func (s *notificationService) NotifyBusDelay(
 		return models.NotifyBusDelayResponse{}, ErrExternalTerminalNotConfigured
 	}
 
+
+	
 	exists, err := s.BusTicketSvc.TripExists(ctx, *terminal.ExternalTerminalID, req.StartDate, req.LicensePatent)
+	
+	fmt.Print(exists, err)
 	if err != nil {
 		return models.NotifyBusDelayResponse{}, err
 	}
@@ -311,7 +342,11 @@ func (s *notificationService) NotifyBusDelay(
 		return models.NotifyBusDelayResponse{}, ErrTripNotRegistered
 	}
 
-	inner, err := json.Marshal(models.NotifyBusDelayPayload{TimeDelay: req.Payload.TimeDelay})
+	inner, err := json.Marshal(models.NotifyBusDelayPayload{
+		ID:        uuid.New().String(),
+		TimeDelay: req.Payload.TimeDelay,
+		TimeLife:  req.Payload.TimeLife,
+	})
 	if err != nil {
 		return models.NotifyBusDelayResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
 	}
@@ -321,8 +356,16 @@ func (s *notificationService) NotifyBusDelay(
 		Payload: inner,
 	}
 
-	groupKey := normalizeLicensePlateForDelay(req.LicensePatent) + ":" + terminalID.String()
-	if err := s.notifier.Invoke(ctx, s.hubMethods.NotifyDelayBus, groupKey, msg); err != nil {
+	normalizedPatent := normalizeLicensePlateForDelay(req.LicensePatent)
+
+	compositeKey :=  normalizedPatent + ":" + terminalID.String()
+
+	keys := models.NotifyDelayBusKeys{
+		Key:           compositeKey,
+		LicensePatent: normalizedPatent,
+		TerminalID:    terminalID.String(),
+	}
+	if err := s.notifier.Invoke(ctx, s.hubMethods.NotifyDelayBus, keys, msg); err != nil {
 		return models.NotifyBusDelayResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
 	}
 
@@ -350,6 +393,9 @@ func (s *notificationService) NotifyAdminCameraError(
 	if strings.TrimSpace(req.Payload.Message) == "" {
 		return models.CameraErrorNotifyResponse{}, ErrCameraErrorMessageEmpty
 	}
+	if req.Payload.TimeLife <= 0 {
+		return models.CameraErrorNotifyResponse{}, ErrNotificationTimeLifeInvalid
+	}
 
 	platform, err := s.platformRepo.GetByCode(ctx, code)
 	if err != nil {
@@ -359,7 +405,12 @@ func (s *notificationService) NotifyAdminCameraError(
 		return models.CameraErrorNotifyResponse{}, ErrPlatformMissingTerminal
 	}
 
-	inner, err := json.Marshal(models.CameraErrorNotifyPayload{Message: strings.TrimSpace(req.Payload.Message)})
+	cameraPayload := models.CameraErrorNotifyPayload{
+		ID:       uuid.New().String(),
+		Message:  strings.TrimSpace(req.Payload.Message),
+		TimeLife: req.Payload.TimeLife,
+	}
+	inner, err := json.Marshal(cameraPayload)
 	if err != nil {
 		return models.CameraErrorNotifyResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
 	}
@@ -374,11 +425,20 @@ func (s *notificationService) NotifyAdminCameraError(
 	}
 
 	return models.CameraErrorNotifyResponse{
-		Type: models.PassengerNotificationCAMERA,
-		Payload: models.CameraErrorNotifyPayload{
-			Message: strings.TrimSpace(req.Payload.Message),
-		},
+		Type:    models.PassengerNotificationCAMERA,
+		Payload: cameraPayload,
 	}, nil
+}
+
+func mergeJSONWithFields(base json.RawMessage, extra map[string]any) (json.RawMessage, error) {
+	var m map[string]any
+	if err := json.Unmarshal(base, &m); err != nil {
+		return nil, err
+	}
+	for k, v := range extra {
+		m[k] = v
+	}
+	return json.Marshal(m)
 }
 
 func (s *notificationService) resolveTerminalForBusDelay(

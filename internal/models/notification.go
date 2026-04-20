@@ -1,6 +1,10 @@
 package models
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/google/uuid"
+)
 
 // PassengerNotificationType categorizes realtime messages to passengers.
 type PassengerNotificationType string
@@ -22,6 +26,7 @@ type PassengerNotificationMessage struct {
 type NotifyPassengersRequest struct {
 	LicensePatent string `json:"license_patent"`
 	Code          string `json:"code"`
+	TimeLife      int    `json:"time_life"`
 }
 
 type NotifyPassengersResponse struct {
@@ -29,13 +34,17 @@ type NotifyPassengersResponse struct {
 }
 
 type PlatformInfo struct {
+	ID          uuid.UUID       `json:"id"`
 	Anden       string          `json:"anden"`
 	Coordinates json.RawMessage `json:"coordinates"`
+	TimeLife    int             `json:"time_life"`
 }
 
 // AdminLocalNotificationPayload is the expected shape of payload when type is LOCAL.
 type AdminLocalNotificationPayload struct {
-	Message string `json:"message"`
+	ID       string `json:"id"`
+	Message  string `json:"message"`
+	TimeLife int    `json:"time_life"`
 }
 
 // AdminSendNotificationRequest is the JSON body for POST /api/admin/notifications.
@@ -62,11 +71,19 @@ type NotifyBusDelayRequest struct {
 }
 
 type NotifyBusDelayPayload struct {
-	TimeDelay int `json:"time_delay"`
+	ID        string `json:"id"`
+	TimeDelay int    `json:"time_delay"`
+	TimeLife  int    `json:"time_life"`
 }
 
 type NotifyBusDelayResponse struct {
 	Message string `json:"message"`
+}
+
+type NotifyDelayBusKeys struct {
+	Key           string `json:"key"`
+	LicensePatent string `json:"licensePatent"`
+	TerminalID    string `json:"terminalId"`
 }
 
 // AdminNotificationTypesResponse is the JSON body for GET /api/admin/notification-types.
@@ -84,7 +101,9 @@ type CameraErrorNotifyRequest struct {
 }
 
 type CameraErrorNotifyPayload struct {
-	Message string `json:"message"`
+	ID       string `json:"id"`
+	Message  string `json:"message"`
+	TimeLife int    `json:"time_life"`
 }
 
 // CameraErrorNotifyResponse echoes the notification sent to admins via NotifyAdminFromCamera.

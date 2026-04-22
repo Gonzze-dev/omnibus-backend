@@ -33,13 +33,15 @@ func New(cfg config.Config, db *gorm.DB) *App {
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
 	userTerminalRepo := repository.NewUserTerminalRepository(db)
 
+	notificationRepo := repository.NewNotificationRepository(db)
+
 	httpClient := &http.Client{
 		Timeout: cfg.HTTPClientTimeout,
 	}
 	BusTicketSvc := service.NewBusTicketService(httpClient, cfg.ExternalTerminalUpstreamURL)
 
 	signalRClient := realtime.NewClient(cfg.RealtimeURL)
-	notificationSvc := service.NewNotificationService(platformRepo, userTerminalRepo, busTerminalRepo, signalRClient, service.DefaultRealtimeHubMethods(), BusTicketSvc)
+	notificationSvc := service.NewNotificationService(platformRepo, userTerminalRepo, busTerminalRepo, notificationRepo, signalRClient, service.DefaultRealtimeHubMethods(), BusTicketSvc)
 
 	authSvc := service.NewAuthService(userRepo, rolRepo, refreshTokenRepo, cfg.JWTSecret)
 

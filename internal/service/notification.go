@@ -25,32 +25,36 @@ type NotificationService interface {
 	NotifyBusDelay(ctx context.Context, userID uuid.UUID, role string, req models.NotifyBusDelayRequest) (models.NotifyBusDelayResponse, error)
 	ListAdminSelectableNotificationTypes(ctx context.Context, role string) (models.AdminNotificationTypesResponse, error)
 	NotifyAdminCameraError(ctx context.Context, req models.CameraErrorNotifyRequest) (models.CameraErrorNotifyResponse, error)
+	ListNotifications(ctx context.Context) ([]models.Notification, error)
 }
 
 type notificationService struct {
-	platformRepo     repository.PlatformRepository
-	userTerminalRepo repository.UserTerminalRepository
-	busTerminalRepo  repository.BusTerminalRepository
-	notifier         RealtimeNotifier
-	hubMethods       RealtimeHubMethods
-	BusTicketSvc     BusTicketService
+	platformRepo         repository.PlatformRepository
+	userTerminalRepo     repository.UserTerminalRepository
+	busTerminalRepo      repository.BusTerminalRepository
+	notificationRepo     repository.NotificationRepository
+	notifier             RealtimeNotifier
+	hubMethods           RealtimeHubMethods
+	BusTicketSvc         BusTicketService
 }
 
 func NewNotificationService(
 	platformRepo repository.PlatformRepository,
 	userTerminalRepo repository.UserTerminalRepository,
 	busTerminalRepo repository.BusTerminalRepository,
+	notificationRepo repository.NotificationRepository,
 	notifier RealtimeNotifier,
 	hubMethods RealtimeHubMethods,
 	BusTicketSvc BusTicketService,
 ) *notificationService {
 	return &notificationService{
-		platformRepo:     platformRepo,
-		userTerminalRepo: userTerminalRepo,
-		busTerminalRepo:  busTerminalRepo,
-		notifier:         notifier,
-		hubMethods:       hubMethods,
-		BusTicketSvc:     BusTicketSvc,
+		platformRepo:         platformRepo,
+		userTerminalRepo:     userTerminalRepo,
+		busTerminalRepo:      busTerminalRepo,
+		notificationRepo:     notificationRepo,
+		notifier:             notifier,
+		hubMethods:           hubMethods,
+		BusTicketSvc:         BusTicketSvc,
 	}
 }
 
@@ -428,6 +432,10 @@ func (s *notificationService) NotifyAdminCameraError(
 		Type:    models.PassengerNotificationCAMERA,
 		Payload: cameraPayload,
 	}, nil
+}
+
+func (s *notificationService) ListNotifications(ctx context.Context) ([]models.Notification, error) {
+	return s.notificationRepo.List(ctx)
 }
 
 func mergeJSONWithFields(base json.RawMessage, extra map[string]any) (json.RawMessage, error) {

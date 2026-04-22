@@ -2,9 +2,23 @@ package models
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/google/uuid"
 )
+
+type Notification struct {
+	ID         uuid.UUID       `json:"id" gorm:"primaryKey;column:id;type:uuid;default:uuid_generate_v4()"`
+	GroupKey   *string         `json:"group_key,omitempty" gorm:"column:group_key"`
+	GroupName  string          `json:"group_name" gorm:"column:group_name;not null"`
+	Expiration time.Time       `json:"expiration" gorm:"column:expiration;not null"`
+	Date       time.Time       `json:"date" gorm:"column:date;not null"`
+	Payload    json.RawMessage `json:"payload" gorm:"column:payload;type:jsonb;not null"`
+}
+
+func (Notification) TableName() string {
+	return "notifications"
+}
 
 // PassengerNotificationType categorizes realtime messages to passengers.
 type PassengerNotificationType string

@@ -83,6 +83,14 @@ func (h *NotificationHandler) NotifyCameraError(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
+func (h *NotificationHandler) GetNotifications(c echo.Context) error {
+	notifications, err := h.svc.ListNotifications(c.Request().Context())
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
+	}
+	return c.JSON(http.StatusOK, notifications)
+}
+
 func (h *NotificationHandler) NotifyBusDelay(c echo.Context) error {
 	userID, ok := c.Get("user_id").(uuid.UUID)
 	if !ok {

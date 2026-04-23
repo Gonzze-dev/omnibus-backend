@@ -18,6 +18,7 @@ const (
 	defaultHTTPClientTimeout           = 10 * time.Second
 	defaultListenAddr                  = ":4989"
 	defaultCameraNotificationAPIKey    = "DEFAULT_API_KEY"
+	defaultRealtimeAPIKey               = "agag2J26sgJ2SAV6ATAJ6aG26sg26JG"
 	defaultMailSiteName                = "Omnibus"
 	defaultSMTPPort                    = 587
 	defaultFrontEndBaseLink            = "http://localhost:4200/"
@@ -39,6 +40,7 @@ type Config struct {
 	HTTPClientTimeout           time.Duration
 	ListenAddr                  string
 	CameraNotificationAPIKey    string
+	RealtimeAPIKey              string
 }
 
 func Load() Config {
@@ -74,6 +76,11 @@ func Load() Config {
 	cameraAPIKey := os.Getenv("CAMERA_NOTIFICATION_API_KEY")
 	if cameraAPIKey == "" {
 		cameraAPIKey = defaultCameraNotificationAPIKey
+	}
+
+	realtimeAPIKey := os.Getenv("REALTIME_API_KEY")
+	if realtimeAPIKey == "" {
+		realtimeAPIKey = defaultRealtimeAPIKey
 	}
 
 	passwordResetJWTSecret := os.Getenv("PASSWORD_RESET_JWT_SECRET")
@@ -114,5 +121,6 @@ func Load() Config {
 		HTTPClientTimeout:           defaultHTTPClientTimeout,
 		ListenAddr:                  listenAddr,
 		CameraNotificationAPIKey:    cameraAPIKey,
+		RealtimeAPIKey:              realtimeAPIKey,
 	}
 }

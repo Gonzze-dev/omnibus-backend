@@ -3,6 +3,7 @@ package realtime
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	"github.com/philippseith/signalr"
 )
@@ -13,7 +14,14 @@ type Client struct {
 	address string
 }
 
-func NewClient(address string) *Client {
+func NewClient(address, apiKey string) *Client {
+	u, err := url.Parse(address)
+	if err == nil {
+		q := u.Query()
+		q.Set("apiKey", apiKey)
+		u.RawQuery = q.Encode()
+		address = u.String()
+	}
 	return &Client{address: address}
 }
 

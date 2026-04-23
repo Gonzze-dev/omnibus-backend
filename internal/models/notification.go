@@ -85,9 +85,10 @@ type NotifyBusDelayRequest struct {
 }
 
 type NotifyBusDelayPayload struct {
-	ID        string `json:"id"`
-	TimeDelay int    `json:"time_delay"`
-	TimeLife  int    `json:"time_life"`
+	ID            string `json:"id"`
+	LicensePatent string `json:"license_patent"`
+	TimeDelay     int    `json:"time_delay"`
+	TimeLife      int    `json:"time_life"`
 }
 
 type NotifyBusDelayResponse struct {

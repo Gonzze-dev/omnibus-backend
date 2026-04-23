@@ -346,9 +346,10 @@ func (s *notificationService) NotifyBusDelay(
 	}
 
 	inner, err := json.Marshal(models.NotifyBusDelayPayload{
-		ID:        uuid.New().String(),
-		TimeDelay: req.Payload.TimeDelay,
-		TimeLife:  req.Payload.TimeLife,
+		ID:            uuid.New().String(),
+		LicensePatent: req.LicensePatent,
+		TimeDelay:     req.Payload.TimeDelay,
+		TimeLife:      req.Payload.TimeLife,
 	})
 	if err != nil {
 		return models.NotifyBusDelayResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)

@@ -125,3 +125,47 @@ type CameraErrorNotifyResponse struct {
 	Type    PassengerNotificationType `json:"type"`
 	Payload CameraErrorNotifyPayload  `json:"payload"`
 }
+
+// GetNotificationsParams carries raw query params from the handler to the service.
+type GetNotificationsParams struct {
+	TerminalID       string // UUID string; required for user role
+	NotificationType string // optional: one of the PassengerNotificationType constants
+	ExpirationFilter string // "true" = only expired; "" / "false" = only non-expired (default)
+	LicensePlate     string // optional: raw license plate
+	StartDate        string // optional: "YYYY-MM-DD"
+	EndDate          string // optional: "YYYY-MM-DD", ignored if StartDate is empty
+	Limit            int    // default 10
+	Offset           int    // default 0
+}
+
+// NotificationFilters is built by the service from RBAC logic + query params
+// and forwarded to the repository's ListWithFilters method.
+type NotificationFilters struct {
+	GroupKeyIsNull     bool
+	GroupKeyExact      []string // WHERE group_key IN (values...)
+	GroupKeyLike       []string // WHERE group_key LIKE pattern (one per entry)
+	ExcludeAdminGroups bool     // WHERE group_name NOT ILIKE '%admin%'
+
+	NotificationType *PassengerNotificationType
+	OnlyExpired      *bool // nil → default: expiration > NOW()
+	StartDate        *time.Time
+	EndDate          *time.Time // only applied when StartDate != nil
+
+	Limit  int
+	Offset int
+}
+
+// NotificationResponseItem is a single notification in the paginated response.
+type NotificationResponseItem struct {
+	ID         uuid.UUID       `json:"id"`
+	Expiration string          `json:"expiration"` // "2006-01-02 15:04:05"
+	Date       string          `json:"date"`        // "2006-01-02"
+	Data       json.RawMessage `json:"data"`        // DB payload column with inner id stripped
+}
+
+// GetNotificationsResponse is the paginated response for GET /api/notifications.
+type GetNotificationsResponse struct {
+	TotalPages    int                        `json:"total_pages"`
+	NumberPage    int                        `json:"number_page"`
+	Notifications []NotificationResponseItem `json:"notifications"`
+}

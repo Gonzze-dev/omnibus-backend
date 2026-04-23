@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -26,6 +27,7 @@ type NotificationService interface {
 	ListAdminSelectableNotificationTypes(ctx context.Context, role string) (models.AdminNotificationTypesResponse, error)
 	NotifyAdminCameraError(ctx context.Context, req models.CameraErrorNotifyRequest) (models.CameraErrorNotifyResponse, error)
 	ListNotifications(ctx context.Context) ([]models.Notification, error)
+	GetNotifications(ctx context.Context, userID uuid.UUID, role string, params models.GetNotificationsParams) (models.GetNotificationsResponse, error)
 }
 
 type notificationService struct {
@@ -447,6 +449,171 @@ func mergeJSONWithFields(base json.RawMessage, extra map[string]any) (json.RawMe
 		m[k] = v
 	}
 	return json.Marshal(m)
+}
+
+func (s *notificationService) GetNotifications(
+	ctx context.Context,
+	userID uuid.UUID,
+	role string,
+	params models.GetNotificationsParams,
+) (models.GetNotificationsResponse, error) {
+	var f models.NotificationFilters
+
+	switch role {
+	case "super_admin":
+		if params.LicensePlate != "" {
+			plate := normalizeLicensePlateForDelay(params.LicensePlate)
+			f.GroupKeyLike = []string{plate + ":%"}
+		}
+
+	case "admin":
+		uts, err := s.userTerminalRepo.GetByUserID(ctx, userID)
+		if err != nil {
+			return models.GetNotificationsResponse{}, err
+		}
+		if len(uts) == 0 {
+			return models.GetNotificationsResponse{}, ErrAdminNoTerminal
+		}
+		tids := make([]string, len(uts))
+		for i, ut := range uts {
+			tids[i] = ut.BusTerminalID.String()
+		}
+		if params.LicensePlate != "" {
+			plate := normalizeLicensePlateForDelay(params.LicensePlate)
+			composites := make([]string, len(tids))
+			for i, tid := range tids {
+				composites[i] = plate + ":" + tid
+			}
+			f.GroupKeyExact = append(tids, composites...)
+		} else {
+			f.GroupKeyExact = tids
+			likes := make([]string, len(tids))
+			for i, tid := range tids {
+				likes[i] = "%:" + tid
+			}
+			f.GroupKeyLike = likes
+		}
+
+	default: // user / passenger
+		if params.TerminalID == "" {
+			return models.GetNotificationsResponse{}, ErrTerminalIDRequired
+		}
+		tid, err := uuid.Parse(params.TerminalID)
+		if err != nil {
+			return models.GetNotificationsResponse{}, ErrInvalidTerminalID
+		}
+		tidStr := tid.String()
+		f.GroupKeyIsNull = true
+		f.GroupKeyExact = []string{tidStr}
+		if params.LicensePlate != "" {
+			plate := normalizeLicensePlateForDelay(params.LicensePlate)
+			f.GroupKeyExact = []string{tidStr, plate + ":" + tidStr}
+		} else {
+			f.GroupKeyLike = []string{"%:" + tidStr}
+		}
+		f.ExcludeAdminGroups = true
+	}
+
+	if err := applyCommonFilters(params, &f); err != nil {
+		return models.GetNotificationsResponse{}, err
+	}
+
+	rows, total, err := s.notificationRepo.ListWithFilters(ctx, f)
+	if err != nil {
+		return models.GetNotificationsResponse{}, err
+	}
+
+	items := make([]models.NotificationResponseItem, len(rows))
+	for i, n := range rows {
+		items[i] = models.NotificationResponseItem{
+			ID:         n.ID,
+			Expiration: n.Expiration.Format("2006-01-02 15:04:05"),
+			Date:       n.Date.Format("2006-01-02"),
+			Data:       stripPayloadID(n.Payload),
+		}
+	}
+
+	limit := f.Limit
+	if limit <= 0 {
+		limit = 10
+	}
+	totalPages := 0
+	if total > 0 {
+		totalPages = int((total + int64(limit) - 1) / int64(limit))
+	}
+
+	return models.GetNotificationsResponse{
+		TotalPages:    totalPages,
+		NumberPage:    f.Offset/limit + 1,
+		Notifications: items,
+	}, nil
+}
+
+func applyCommonFilters(params models.GetNotificationsParams, f *models.NotificationFilters) error {
+	if params.NotificationType != "" {
+		t := models.PassengerNotificationType(params.NotificationType)
+		switch t {
+		case models.PassengerNotificationBUSArrival,
+			models.PassengerNotificationBUSDelay,
+			models.PassengerNotificationLocal,
+			models.PassengerNotificationGlobal,
+			models.PassengerNotificationCAMERA:
+			f.NotificationType = &t
+		default:
+			return ErrNotificationTypeInvalid
+		}
+	}
+	if params.ExpirationFilter == "true" {
+		v := true
+		f.OnlyExpired = &v
+	}
+	if params.StartDate != "" {
+		t, err := time.Parse("2006-01-02", params.StartDate)
+		if err != nil {
+			return ErrInvalidStartDate
+		}
+		f.StartDate = &t
+		if params.EndDate != "" {
+			t2, err := time.Parse("2006-01-02", params.EndDate)
+			if err != nil {
+				return ErrInvalidEndDate
+			}
+			if t2.Before(t) {
+				return ErrEndDateBeforeStart
+			}
+			f.EndDate = &t2
+		}
+	}
+	f.Limit = params.Limit
+	f.Offset = params.Offset
+	return nil
+}
+
+func stripPayloadID(raw json.RawMessage) json.RawMessage {
+	var outer struct {
+		Type    string          `json:"type"`
+		Payload json.RawMessage `json:"payload"`
+	}
+	if err := json.Unmarshal(raw, &outer); err != nil {
+		return raw
+	}
+	var inner map[string]any
+	if err := json.Unmarshal(outer.Payload, &inner); err != nil {
+		return raw
+	}
+	delete(inner, "id")
+	innerClean, err := json.Marshal(inner)
+	if err != nil {
+		return raw
+	}
+	result, err := json.Marshal(map[string]any{
+		"type":    outer.Type,
+		"payload": json.RawMessage(innerClean),
+	})
+	if err != nil {
+		return raw
+	}
+	return result
 }
 
 func (s *notificationService) resolveTerminalForBusDelay(

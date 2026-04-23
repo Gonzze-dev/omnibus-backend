@@ -61,4 +61,10 @@ var (
 	ErrCodeCameraEmpty               = errors.New("code_camera is required")
 	ErrCodeCameraInvalid             = errors.New("code_camera must be a valid integer")
 	ErrCameraErrorMessageEmpty       = errors.New("payload.message is required")
+
+	ErrTerminalIDRequired = errors.New("terminalID query parameter is required")
+	ErrInvalidTerminalID  = errors.New("terminalID must be a valid UUID")
+	ErrInvalidStartDate   = errors.New("start_date must be in YYYY-MM-DD format")
+	ErrInvalidEndDate     = errors.New("end_date must be in YYYY-MM-DD format")
+	ErrEndDateBeforeStart = errors.New("end_date must be greater than or equal to start_date")
 )

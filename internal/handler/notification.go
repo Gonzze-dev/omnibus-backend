@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -84,11 +85,56 @@ func (h *NotificationHandler) NotifyCameraError(c echo.Context) error {
 }
 
 func (h *NotificationHandler) GetNotifications(c echo.Context) error {
-	notifications, err := h.svc.ListNotifications(c.Request().Context())
+	userID, ok := c.Get("user_id").(uuid.UUID)
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "invalid user context")
+	}
+	role, _ := c.Get("role").(string)
+
+	limit := 10
+	offset := 0
+	if raw := c.QueryParam("limit"); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v > 0 {
+			limit = v
+		}
+	}
+	if raw := c.QueryParam("offset"); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v >= 0 {
+			offset = v
+		}
+	}
+
+	params := models.GetNotificationsParams{
+		TerminalID:       c.QueryParam("terminalID"),
+		NotificationType: c.QueryParam("notification_type"),
+		ExpirationFilter: c.QueryParam("expirated_notifications"),
+		LicensePlate:     c.QueryParam("license_plate"),
+		StartDate:        c.QueryParam("start_date"),
+		EndDate:          c.QueryParam("end_date"),
+		Limit:            limit,
+		Offset:           offset,
+	}
+
+	resp, err := h.svc.GetNotifications(c.Request().Context(), userID, role, params)
 	if err != nil {
+		return mapGetNotificationsError(err)
+	}
+	return c.JSON(http.StatusOK, resp)
+}
+
+func mapGetNotificationsError(err error) error {
+	switch {
+	case errors.Is(err, service.ErrTerminalIDRequired),
+		errors.Is(err, service.ErrInvalidTerminalID),
+		errors.Is(err, service.ErrNotificationTypeInvalid),
+		errors.Is(err, service.ErrInvalidStartDate),
+		errors.Is(err, service.ErrInvalidEndDate),
+		errors.Is(err, service.ErrEndDateBeforeStart),
+		errors.Is(err, service.ErrAdminNoTerminal):
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	default:
 		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 	}
-	return c.JSON(http.StatusOK, notifications)
 }
 
 func (h *NotificationHandler) NotifyBusDelay(c echo.Context) error {

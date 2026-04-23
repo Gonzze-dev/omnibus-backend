@@ -14,7 +14,7 @@ func registerPublic(e *echo.Echo, a *app.App, cfg config.Config) {
 	e.GET("/bus_tickets/:ticket_string", a.BusTicket.GetBusTicket)
 	e.POST("/notify_passengers", a.Notification.NotifyPassengers, middleware.CameraAPIKey(cfg.CameraNotificationAPIKey))
 	e.POST("/notify_camera_error", a.Notification.NotifyCameraError, middleware.CameraAPIKey(cfg.CameraNotificationAPIKey))
-	e.GET("/api/notifications", a.Notification.GetNotifications)
+	e.GET("/api/notifications", a.Notification.GetNotifications, middleware.Auth(cfg.JWTSecret))
 
 	auth := e.Group("/api/auth")
 	auth.POST("/register", a.Auth.Register)

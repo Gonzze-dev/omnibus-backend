@@ -336,11 +336,8 @@ func (s *notificationService) NotifyBusDelay(
 		return models.NotifyBusDelayResponse{}, ErrExternalTerminalNotConfigured
 	}
 
-
-	
 	exists, err := s.BusTicketSvc.TripExists(ctx, *terminal.ExternalTerminalID, req.StartDate, req.LicensePatent)
 	
-	fmt.Print(exists, err)
 	if err != nil {
 		return models.NotifyBusDelayResponse{}, err
 	}

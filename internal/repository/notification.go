@@ -2,8 +2,10 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"strings"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"tesina/backend/internal/models"
@@ -12,6 +14,8 @@ import (
 type NotificationRepository interface {
 	List(ctx context.Context) ([]models.Notification, error)
 	ListWithFilters(ctx context.Context, f models.NotificationFilters) ([]models.Notification, int64, error)
+	GetByID(ctx context.Context, id uuid.UUID) (models.Notification, error)
+	Delete(ctx context.Context, id uuid.UUID) error
 }
 
 type notificationRepository struct {
@@ -78,4 +82,24 @@ func (r *notificationRepository) ListWithFilters(ctx context.Context, f models.N
 	var results []models.Notification
 	err := q.Order("date desc").Limit(f.Limit).Offset(f.Offset).Find(&results).Error
 	return results, total, err
+}
+
+func (r *notificationRepository) GetByID(ctx context.Context, id uuid.UUID) (models.Notification, error) {
+	var n models.Notification
+	err := r.db.WithContext(ctx).Where("id = ?", id).First(&n).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return models.Notification{}, ErrNotFound
+	}
+	return n, err
+}
+
+func (r *notificationRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	result := r.db.WithContext(ctx).Delete(&models.Notification{}, "id = ?", id)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
 }

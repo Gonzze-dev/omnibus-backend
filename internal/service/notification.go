@@ -28,6 +28,7 @@ type NotificationService interface {
 	NotifyAdminCameraError(ctx context.Context, req models.CameraErrorNotifyRequest) (models.CameraErrorNotifyResponse, error)
 	ListNotifications(ctx context.Context) ([]models.Notification, error)
 	GetNotifications(ctx context.Context, userID uuid.UUID, role string, params models.GetNotificationsParams) (models.GetNotificationsResponse, error)
+	DeleteNotification(ctx context.Context, userID uuid.UUID, role string, notificationID uuid.UUID) error
 }
 
 type notificationService struct {
@@ -436,6 +437,58 @@ func (s *notificationService) NotifyAdminCameraError(
 
 func (s *notificationService) ListNotifications(ctx context.Context) ([]models.Notification, error) {
 	return s.notificationRepo.List(ctx)
+}
+
+func (s *notificationService) DeleteNotification(ctx context.Context, userID uuid.UUID, role string, notificationID uuid.UUID) error {
+	switch role {
+	case "user":
+		return ErrUserCannotDeleteNotification
+
+	case "super_admin":
+		n, err := s.notificationRepo.GetByID(ctx, notificationID)
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return ErrNotificationNotFound
+			}
+			return err
+		}
+		if err := s.notifier.Invoke(ctx, s.hubMethods.DeleteNotification, notificationID.String(), n.GroupName); err != nil {
+			return fmt.Errorf("%w: %w", ErrNotification, err)
+		}
+		return s.notificationRepo.Delete(ctx, notificationID)
+
+	case "admin":
+		n, err := s.notificationRepo.GetByID(ctx, notificationID)
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return ErrNotificationNotFound
+			}
+			return err
+		}
+		// Global notifications (null group_key) are super_admin-only
+		if n.GroupKey == nil {
+			return ErrNotificationDeleteForbidden
+		}
+		uts, err := s.userTerminalRepo.GetByUserID(ctx, userID)
+		if err != nil {
+			return err
+		}
+		if len(uts) == 0 {
+			return ErrAdminNoTerminal
+		}
+		for _, ut := range uts {
+			if strings.Contains(*n.GroupKey, ut.BusTerminalID.String()) {
+				if err := s.notifier.Invoke(ctx, s.hubMethods.DeleteNotification, notificationID.String(), n.GroupName); err != nil {
+					return fmt.Errorf("%w: %w", ErrNotification, err)
+				}
+				return s.notificationRepo.Delete(ctx, notificationID)
+			}
+		}
+		return ErrNotificationDeleteForbidden
+
+	default:
+		return ErrNotificationDeleteForbidden
+	}
 }
 
 func mergeJSONWithFields(base json.RawMessage, extra map[string]any) (json.RawMessage, error) {

@@ -220,6 +220,42 @@ func mapCameraErrorNotifyError(err error) error {
 	}
 }
 
+func (h *NotificationHandler) DeleteNotification(c echo.Context) error {
+	userID, ok := c.Get("user_id").(uuid.UUID)
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "invalid user context")
+	}
+	role, _ := c.Get("role").(string)
+
+	rawID := c.QueryParam("notification_id")
+	if rawID == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "notification_id is required")
+	}
+	notificationID, err := uuid.Parse(rawID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "notification_id must be a valid UUID")
+	}
+
+	if err := h.svc.DeleteNotification(c.Request().Context(), userID, role, notificationID); err != nil {
+		return mapDeleteNotificationError(err)
+	}
+	return c.NoContent(http.StatusNoContent)
+}
+
+func mapDeleteNotificationError(err error) error {
+	switch {
+	case errors.Is(err, service.ErrUserCannotDeleteNotification),
+		errors.Is(err, service.ErrNotificationDeleteForbidden):
+		return echo.NewHTTPError(http.StatusForbidden, err.Error())
+	case errors.Is(err, service.ErrNotificationNotFound):
+		return echo.NewHTTPError(http.StatusNotFound, err.Error())
+	case errors.Is(err, service.ErrAdminNoTerminal):
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	default:
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
+	}
+}
+
 func mapNotifyBusDelayError(err error) error {
 	switch {
 	case errors.Is(err, service.ErrBusDelayTypeInvalid),

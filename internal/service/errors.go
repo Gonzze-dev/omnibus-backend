@@ -67,4 +67,8 @@ var (
 	ErrInvalidStartDate   = errors.New("start_date must be in YYYY-MM-DD format")
 	ErrInvalidEndDate     = errors.New("end_date must be in YYYY-MM-DD format")
 	ErrEndDateBeforeStart = errors.New("end_date must be greater than or equal to start_date")
+
+	ErrNotificationNotFound         = errors.New("notification not found")
+	ErrNotificationDeleteForbidden  = errors.New("you do not have permission to delete this notification")
+	ErrUserCannotDeleteNotification = errors.New("users cannot delete notifications")
 )

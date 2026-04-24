@@ -24,5 +24,6 @@ func registerAdmin(e *echo.Echo, a *app.App, jwtSecret string) {
 	admin.POST("/users/demote", a.Admin.DemoteAdmin)
 	admin.GET("/notification-types", a.Notification.ListAdminNotificationTypes)
 	admin.POST("/notifications", a.Notification.SendAdminNotification)
+	admin.DELETE("/notifications", a.Notification.DeleteNotification)
 	admin.POST("/notify-bus-delay", a.Notification.NotifyBusDelay)
 }

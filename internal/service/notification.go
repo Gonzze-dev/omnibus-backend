@@ -108,8 +108,9 @@ func (s *notificationService) NotifyPassengers(ctx context.Context, req models.N
 		return models.NotifyPassengersResponse{}, ErrPlatformMissingTerminal
 	}
 
+	notifID := uuid.New()
 	platformInfo := models.PlatformInfo{
-		ID:          uuid.New(),
+		ID:          notifID,
 		Anden:       platform.Anden,
 		Coordinates: platform.Coordinates,
 		TimeLife:    req.TimeLife,
@@ -126,7 +127,24 @@ func (s *notificationService) NotifyPassengers(ctx context.Context, req models.N
 	}
 
 	groupKey := req.LicensePatent + ":" + platform.BusTerminalID.String()
-	if err := s.notifier.Invoke(ctx, s.hubMethods.SendToFrontend, groupKey, msg); err != nil {
+	groupName := "frontend/" + groupKey
+
+	msgJSON, err := json.Marshal(msg)
+	if err != nil {
+		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+	}
+	if err := s.notificationRepo.Insert(ctx, models.Notification{
+		ID:         notifID,
+		GroupKey:   &groupKey,
+		GroupName:  groupName,
+		Expiration: time.Now().UTC().Add(time.Duration(req.TimeLife) * time.Minute),
+		Date:       time.Now().UTC(),
+		Payload:    msgJSON,
+	}); err != nil {
+		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+	}
+
+	if err := s.notifier.Invoke(ctx, s.hubMethods.SendToFrontend, groupName, msg); err != nil {
 		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
 	}
 
@@ -175,8 +193,9 @@ func (s *notificationService) sendAdminNotificationGlobal(
 		return models.AdminSendNotificationResponse{}, ErrNotificationTimeLifeInvalid
 	}
 
+	notifID := uuid.New()
 	merged, err := mergeJSONWithFields(trimmed, map[string]any{
-		"id": uuid.New().String(),
+		"id": notifID.String(),
 	})
 	if err != nil {
 		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
@@ -187,7 +206,24 @@ func (s *notificationService) sendAdminNotificationGlobal(
 		Payload: merged,
 	}
 
-	if err := s.notifier.Invoke(ctx, s.hubMethods.SendToFrontendGlobal, msg); err != nil {
+	groupName := "frontend/global"
+
+	msgJSON, err := json.Marshal(msg)
+	if err != nil {
+		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+	}
+	if err := s.notificationRepo.Insert(ctx, models.Notification{
+		ID:         notifID,
+		GroupKey:   nil,
+		GroupName:  groupName,
+		Expiration: time.Now().UTC().Add(time.Duration(tmp.TimeLife) * time.Minute),
+		Date:       time.Now().UTC(),
+		Payload:    msgJSON,
+	}); err != nil {
+		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+	}
+
+	if err := s.notifier.Invoke(ctx, s.hubMethods.SendToFrontendGlobal, groupName, msg); err != nil {
 		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
 	}
 
@@ -214,7 +250,8 @@ func (s *notificationService) sendAdminNotificationLocal(
 	if localPayload.TimeLife <= 0 {
 		return models.AdminSendNotificationResponse{}, ErrNotificationTimeLifeInvalid
 	}
-	localPayload.ID = uuid.New().String()
+	notifID := uuid.New()
+	localPayload.ID = notifID.String()
 
 	var terminalID uuid.UUID
 
@@ -292,7 +329,25 @@ func (s *notificationService) sendAdminNotificationLocal(
 		Payload: inner,
 	}
 
-	if err := s.notifier.Invoke(ctx, s.hubMethods.SendToFrontend, terminalID.String(), msg); err != nil {
+	groupKey := terminalID.String()
+	groupName := "frontend/" + groupKey
+
+	msgJSON, err := json.Marshal(msg)
+	if err != nil {
+		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+	}
+	if err := s.notificationRepo.Insert(ctx, models.Notification{
+		ID:         notifID,
+		GroupKey:   &groupKey,
+		GroupName:  groupName,
+		Expiration: time.Now().UTC().Add(time.Duration(localPayload.TimeLife) * time.Minute),
+		Date:       time.Now().UTC(),
+		Payload:    msgJSON,
+	}); err != nil {
+		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+	}
+
+	if err := s.notifier.Invoke(ctx, s.hubMethods.SendToFrontend, groupName, msg); err != nil {
 		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
 	}
 
@@ -346,8 +401,9 @@ func (s *notificationService) NotifyBusDelay(
 		return models.NotifyBusDelayResponse{}, ErrTripNotRegistered
 	}
 
+	notifID := uuid.New()
 	inner, err := json.Marshal(models.NotifyBusDelayPayload{
-		ID:            uuid.New().String(),
+		ID:            notifID.String(),
 		LicensePatent: req.LicensePatent,
 		TimeDelay:     req.Payload.TimeDelay,
 		TimeLife:      req.Payload.TimeLife,
@@ -363,14 +419,30 @@ func (s *notificationService) NotifyBusDelay(
 
 	normalizedPatent := normalizeLicensePlateForDelay(req.LicensePatent)
 
-	compositeKey :=  normalizedPatent + ":" + terminalID.String()
+	compositeKey := normalizedPatent + ":" + terminalID.String()
+	groupName := "frontend/" + compositeKey
 
-	keys := models.NotifyDelayBusKeys{
-		Key:           compositeKey,
-		LicensePatent: normalizedPatent,
-		TerminalID:    terminalID.String(),
+	msgJSON, err := json.Marshal(msg)
+	if err != nil {
+		return models.NotifyBusDelayResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
 	}
-	if err := s.notifier.Invoke(ctx, s.hubMethods.NotifyDelayBus, keys, msg); err != nil {
+	if err := s.notificationRepo.Insert(ctx, models.Notification{
+		ID:         notifID,
+		GroupKey:   &compositeKey,
+		GroupName:  groupName,
+		Expiration: time.Now().UTC().Add(time.Duration(req.Payload.TimeLife) * time.Minute),
+		Date:       time.Now().UTC(),
+		Payload:    msgJSON,
+	}); err != nil {
+		return models.NotifyBusDelayResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+	}
+
+	// keys := models.NotifyDelayBusKeys{
+	// 	Key:           compositeKey,
+	// 	LicensePatent: normalizedPatent,
+	// 	TerminalID:    terminalID.String(),
+	// }
+	if err := s.notifier.Invoke(ctx, s.hubMethods.NotifyDelayBus, groupName, msg); err != nil {
 		return models.NotifyBusDelayResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
 	}
 
@@ -410,8 +482,9 @@ func (s *notificationService) NotifyAdminCameraError(
 		return models.CameraErrorNotifyResponse{}, ErrPlatformMissingTerminal
 	}
 
+	notifID := uuid.New()
 	cameraPayload := models.CameraErrorNotifyPayload{
-		ID:       uuid.New().String(),
+		ID:       notifID.String(),
 		Message:  strings.TrimSpace(req.Payload.Message),
 		TimeLife: req.Payload.TimeLife,
 	}
@@ -425,7 +498,25 @@ func (s *notificationService) NotifyAdminCameraError(
 		Payload: inner,
 	}
 
-	if err := s.notifier.Invoke(ctx, s.hubMethods.NotifyAdminFromCamera, platform.BusTerminalID.String(), msg); err != nil {
+	groupKey := platform.BusTerminalID.String()
+	groupName := "frontend/admin/" + groupKey
+
+	msgJSON, err := json.Marshal(msg)
+	if err != nil {
+		return models.CameraErrorNotifyResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+	}
+	if err := s.notificationRepo.Insert(ctx, models.Notification{
+		ID:         notifID,
+		GroupKey:   &groupKey,
+		GroupName:  groupName,
+		Expiration: time.Now().UTC().Add(time.Duration(req.Payload.TimeLife) * time.Minute),
+		Date:       time.Now().UTC(),
+		Payload:    msgJSON,
+	}); err != nil {
+		return models.CameraErrorNotifyResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+	}
+
+	if err := s.notifier.Invoke(ctx, s.hubMethods.NotifyAdminFromCamera, groupName, msg); err != nil {
 		return models.CameraErrorNotifyResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
 	}
 

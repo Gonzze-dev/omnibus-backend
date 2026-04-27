@@ -12,6 +12,7 @@ import (
 )
 
 type NotificationRepository interface {
+	Insert(ctx context.Context, n models.Notification) error
 	List(ctx context.Context) ([]models.Notification, error)
 	ListWithFilters(ctx context.Context, f models.NotificationFilters) ([]models.Notification, int64, error)
 	GetByID(ctx context.Context, id uuid.UUID) (models.Notification, error)
@@ -24,6 +25,10 @@ type notificationRepository struct {
 
 func NewNotificationRepository(db *gorm.DB) *notificationRepository {
 	return &notificationRepository{db: db}
+}
+
+func (r *notificationRepository) Insert(ctx context.Context, n models.Notification) error {
+	return r.db.WithContext(ctx).Create(&n).Error
 }
 
 func (r *notificationRepository) List(ctx context.Context) ([]models.Notification, error) {

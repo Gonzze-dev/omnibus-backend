@@ -438,11 +438,6 @@ func (s *notificationService) NotifyBusDelay(
 		return models.NotifyBusDelayResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
 	}
 
-	// keys := models.NotifyDelayBusKeys{
-	// 	Key:           compositeKey,
-	// 	LicensePatent: normalizedPatent,
-	// 	TerminalID:    terminalID.String(),
-	// }
 	if err := s.notifier.Invoke(ctx, s.hubMethods.NotifyDelayBus, groupName, msg); err != nil {
 		return models.NotifyBusDelayResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
 	}

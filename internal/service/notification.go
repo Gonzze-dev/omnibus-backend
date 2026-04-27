@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 
 	"tesina/backend/internal/models"
+	"tesina/backend/internal/realtime"
 	"tesina/backend/internal/repository"
 )
 
@@ -127,7 +128,7 @@ func (s *notificationService) NotifyPassengers(ctx context.Context, req models.N
 	}
 
 	groupKey := req.LicensePatent + ":" + platform.BusTerminalID.String()
-	groupName := "frontend/" + groupKey
+	groupName := realtime.GroupPrefixFrontend + groupKey
 
 	msgJSON, err := json.Marshal(msg)
 	if err != nil {
@@ -206,7 +207,7 @@ func (s *notificationService) sendAdminNotificationGlobal(
 		Payload: merged,
 	}
 
-	groupName := "frontend/global"
+	groupName := realtime.GroupNameFrontendGlobal
 
 	msgJSON, err := json.Marshal(msg)
 	if err != nil {
@@ -330,7 +331,7 @@ func (s *notificationService) sendAdminNotificationLocal(
 	}
 
 	groupKey := terminalID.String()
-	groupName := "frontend/" + groupKey
+	groupName := realtime.GroupPrefixFrontend + groupKey
 
 	msgJSON, err := json.Marshal(msg)
 	if err != nil {
@@ -420,7 +421,7 @@ func (s *notificationService) NotifyBusDelay(
 	normalizedPatent := normalizeLicensePlateForDelay(req.LicensePatent)
 
 	compositeKey := normalizedPatent + ":" + terminalID.String()
-	groupName := "frontend/" + compositeKey
+	groupName := realtime.GroupPrefixFrontend + compositeKey
 
 	msgJSON, err := json.Marshal(msg)
 	if err != nil {
@@ -499,7 +500,7 @@ func (s *notificationService) NotifyAdminCameraError(
 	}
 
 	groupKey := platform.BusTerminalID.String()
-	groupName := "frontend/admin/" + groupKey
+	groupName := realtime.GroupPrefixFrontendAdmin + groupKey
 
 	msgJSON, err := json.Marshal(msg)
 	if err != nil {

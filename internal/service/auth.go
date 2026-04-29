@@ -14,6 +14,7 @@ import (
 	"tesina/backend/internal/middleware"
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/repository"
+	"tesina/backend/internal/validators"
 )
 
 const (
@@ -50,8 +51,8 @@ func NewAuthService(
 }
 
 func (s *authService) Register(ctx context.Context, req models.CreateUserRequest) (models.UserResponse, error) {
-	if req.Email == "" || req.Password == "" || req.FirstName == "" || req.LastName == "" || req.DNI == "" {
-		return models.UserResponse{}, ErrMissingFields
+	if err := validators.ValidateCreateUserRequest(req); err != nil {
+		return models.UserResponse{}, err
 	}
 
 	if _, err := s.userRepo.GetByEmail(ctx, req.Email); err == nil {
@@ -92,8 +93,8 @@ func (s *authService) Register(ctx context.Context, req models.CreateUserRequest
 }
 
 func (s *authService) Login(ctx context.Context, req models.LoginRequest) (models.LoginResponse, error) {
-	if req.Email == "" || req.Password == "" {
-		return models.LoginResponse{}, ErrMissingFields
+	if err := validators.ValidateLoginRequest(req); err != nil {
+		return models.LoginResponse{}, err
 	}
 
 	user, err := s.userRepo.GetByEmail(ctx, req.Email)
@@ -140,8 +141,8 @@ func (s *authService) Login(ctx context.Context, req models.LoginRequest) (model
 }
 
 func (s *authService) RefreshToken(ctx context.Context, req models.RefreshTokenRequest) (models.RefreshTokenResponse, error) {
-	if req.RefreshToken == "" {
-		return models.RefreshTokenResponse{}, ErrMissingFields
+	if err := validators.ValidateRefreshTokenRequest(req); err != nil {
+		return models.RefreshTokenResponse{}, err
 	}
 
 	hashedIncoming := hashToken(req.RefreshToken)
@@ -192,8 +193,8 @@ func (s *authService) RefreshToken(ctx context.Context, req models.RefreshTokenR
 }
 
 func (s *authService) Logout(ctx context.Context, req models.LogoutRequest) error {
-	if req.RefreshToken == "" {
-		return ErrMissingFields
+	if err := validators.ValidateLogoutRequest(req); err != nil {
+		return err
 	}
 
 	hashedIncoming := hashToken(req.RefreshToken)

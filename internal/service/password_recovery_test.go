@@ -12,6 +12,7 @@ import (
 	"tesina/backend/internal/middleware"
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/repository"
+	"tesina/backend/internal/validators"
 )
 
 func Test_parsePasswordResetToken_roundTrip(t *testing.T) {
@@ -103,8 +104,8 @@ func TestForgotPassword_emptyEmail(t *testing.T) {
 		"Test",
 	)
 	_, err := svc.ForgotPassword(context.Background(), "   ")
-	if err != ErrMissingFields {
-		t.Fatalf("got %v want ErrMissingFields", err)
+	if err != validators.ErrEmailRequired {
+		t.Fatalf("got %v want validators.ErrEmailRequired", err)
 	}
 }
 

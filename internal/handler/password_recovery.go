@@ -9,6 +9,7 @@ import (
 
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/service"
+	"tesina/backend/internal/validators"
 )
 
 type PasswordRecoveryHandler struct {
@@ -76,7 +77,9 @@ func bearerTokenFromRequest(c echo.Context) (string, error) {
 
 func mapPasswordRecoveryError(err error) error {
 	switch {
-	case errors.Is(err, service.ErrMissingFields):
+	case errors.Is(err, validators.ErrEmailRequired),
+		errors.Is(err, validators.ErrPasswordRequired),
+		errors.Is(err, validators.ErrTokenRequired):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case errors.Is(err, service.ErrInvalidPasswordResetToken):
 		return echo.NewHTTPError(http.StatusUnauthorized, "invalid or expired token")

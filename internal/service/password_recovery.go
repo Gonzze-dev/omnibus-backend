@@ -16,6 +16,7 @@ import (
 	"tesina/backend/internal/mail"
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/repository"
+	"tesina/backend/internal/validators"
 )
 
 const (
@@ -62,8 +63,8 @@ func NewPasswordRecoveryService(
 
 func (s *passwordRecoveryService) ForgotPassword(ctx context.Context, email string) (models.ForgotPasswordResponse, error) {
 	email = strings.TrimSpace(email)
-	if email == "" {
-		return models.ForgotPasswordResponse{}, ErrMissingFields
+	if err := validators.ValidateForgotPasswordRequest(models.ForgotPasswordRequest{Email: email}); err != nil {
+		return models.ForgotPasswordResponse{}, err
 	}
 
 	user, err := s.userRepo.GetByEmail(ctx, email)
@@ -120,8 +121,8 @@ func (s *passwordRecoveryService) ForgotPassword(ctx context.Context, email stri
 }
 
 func (s *passwordRecoveryService) ValidateRecoveryToken(ctx context.Context, token string) (models.ValidateRecoveryTokenResponse, error) {
-	if strings.TrimSpace(token) == "" {
-		return models.ValidateRecoveryTokenResponse{}, ErrInvalidPasswordResetToken
+	if err := validators.ValidateRecoveryTokenRequest(token); err != nil {
+		return models.ValidateRecoveryTokenResponse{}, err
 	}
 	_, exp, err := parsePasswordResetToken(token, s.resetJWTSecret)
 	if err != nil {
@@ -132,8 +133,8 @@ func (s *passwordRecoveryService) ValidateRecoveryToken(ctx context.Context, tok
 }
 
 func (s *passwordRecoveryService) ResetPasswordWithToken(ctx context.Context, token, password string) error {
-	if strings.TrimSpace(password) == "" {
-		return ErrMissingFields
+	if err := validators.ValidateResetPasswordWithTokenRequest(models.ResetPasswordRequest{Password: password}); err != nil {
+		return err
 	}
 	userID, _, err := parsePasswordResetToken(token, s.resetJWTSecret)
 	if err != nil {

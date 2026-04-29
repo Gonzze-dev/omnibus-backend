@@ -10,6 +10,7 @@ import (
 
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/service"
+	"tesina/backend/internal/validators"
 )
 
 type AdminHandler struct {
@@ -285,7 +286,10 @@ func (h *AdminHandler) DemoteAdmin(c echo.Context) error {
 
 func mapAdminError(err error) error {
 	switch {
-	case errors.Is(err, service.ErrMissingFields):
+	case errors.Is(err, validators.ErrPostalCodeRequired),
+		errors.Is(err, validators.ErrCityNameRequired),
+		errors.Is(err, validators.ErrAndenRequired),
+		errors.Is(err, validators.ErrEmailRequired):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case errors.Is(err, service.ErrCityNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, err.Error())

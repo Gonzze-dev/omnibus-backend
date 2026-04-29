@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/google/uuid"
 
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/repository"
+	"tesina/backend/internal/validators"
 )
 
 type AdminService interface {
@@ -85,8 +85,8 @@ func (s *adminService) GetCity(ctx context.Context, postalCode string) (models.C
 }
 
 func (s *adminService) CreateCity(ctx context.Context, req models.CreateCityRequest) (models.City, error) {
-	if req.PostalCode == "" || req.Name == "" {
-		return models.City{}, ErrMissingFields
+	if err := validators.ValidateCreateCityRequest(req); err != nil {
+		return models.City{}, err
 	}
 
 	if _, err := s.cityRepo.GetByPostalCode(ctx, req.PostalCode); err == nil {
@@ -254,8 +254,8 @@ func (s *adminService) GetPlatform(ctx context.Context, adminID uuid.UUID, code 
 }
 
 func (s *adminService) CreatePlatformDirect(ctx context.Context, req models.CreatePlatformRequest) (models.Platform, error) {
-	if req.Anden == "" {
-		return models.Platform{}, ErrMissingFields
+	if err := validators.ValidateCreatePlatformRequest(req); err != nil {
+		return models.Platform{}, err
 	}
 
 	if _, err := s.busTerminalRepo.GetByUUID(ctx, req.BusTerminalID); err != nil {
@@ -277,8 +277,8 @@ func (s *adminService) CreatePlatformDirect(ctx context.Context, req models.Crea
 }
 
 func (s *adminService) CreatePlatform(ctx context.Context, adminID uuid.UUID, req models.CreatePlatformRequest) (models.Platform, error) {
-	if req.Anden == "" {
-		return models.Platform{}, ErrMissingFields
+	if err := validators.ValidateCreatePlatformRequest(req); err != nil {
+		return models.Platform{}, err
 	}
 
 	if err := s.verifyTerminalOwnership(ctx, adminID, req.BusTerminalID); err != nil {
@@ -373,9 +373,10 @@ func (s *adminService) DeletePlatform(ctx context.Context, adminID uuid.UUID, co
 // --- User management ---
 
 func (s *adminService) GetUserByEmail(ctx context.Context, email string) (models.AdminUserByEmailResponse, error) {
-	email = strings.TrimSpace(email)
-	if email == "" {
-		return models.AdminUserByEmailResponse{}, ErrMissingFields
+	var err error
+	email, err = validators.ValidateAdminEmail(email)
+	if err != nil {
+		return models.AdminUserByEmailResponse{}, err
 	}
 
 	user, err := s.userRepo.GetByEmail(ctx, email)
@@ -412,8 +413,8 @@ func (s *adminService) GetUserByEmail(ctx context.Context, email string) (models
 }
 
 func (s *adminService) PromoteToAdminDirect(ctx context.Context, req models.PromoteAdminRequest) (models.UserResponse, error) {
-	if req.Email == "" {
-		return models.UserResponse{}, ErrMissingFields
+	if err := validators.ValidatePromoteAdminRequest(req); err != nil {
+		return models.UserResponse{}, err
 	}
 
 	if _, err := s.busTerminalRepo.GetByUUID(ctx, req.BusTerminalID); err != nil {
@@ -461,8 +462,8 @@ func (s *adminService) PromoteToAdminDirect(ctx context.Context, req models.Prom
 }
 
 func (s *adminService) PromoteToAdmin(ctx context.Context, adminID uuid.UUID, req models.PromoteAdminRequest) (models.UserResponse, error) {
-	if req.Email == "" {
-		return models.UserResponse{}, ErrMissingFields
+	if err := validators.ValidatePromoteAdminRequest(req); err != nil {
+		return models.UserResponse{}, err
 	}
 
 	if err := s.verifyTerminalOwnership(ctx, adminID, req.BusTerminalID); err != nil {
@@ -507,8 +508,8 @@ func (s *adminService) PromoteToAdmin(ctx context.Context, adminID uuid.UUID, re
 }
 
 func (s *adminService) DemoteAdminDirect(ctx context.Context, req models.DemoteAdminRequest) (models.UserResponse, error) {
-	if req.Email == "" {
-		return models.UserResponse{}, ErrMissingFields
+	if err := validators.ValidateDemoteAdminRequest(req); err != nil {
+		return models.UserResponse{}, err
 	}
 
 	user, err := s.userRepo.GetByEmail(ctx, req.Email)
@@ -548,8 +549,8 @@ func (s *adminService) DemoteAdminDirect(ctx context.Context, req models.DemoteA
 }
 
 func (s *adminService) DemoteAdmin(ctx context.Context, adminID uuid.UUID, req models.DemoteAdminRequest) (models.UserResponse, error) {
-	if req.Email == "" {
-		return models.UserResponse{}, ErrMissingFields
+	if err := validators.ValidateDemoteAdminRequest(req); err != nil {
+		return models.UserResponse{}, err
 	}
 
 	if err := s.verifyTerminalOwnership(ctx, adminID, req.BusTerminalID); err != nil {

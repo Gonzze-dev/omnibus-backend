@@ -11,6 +11,7 @@ import (
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/repository"
 	"tesina/backend/internal/service"
+	"tesina/backend/internal/validators"
 )
 
 type NotificationHandler struct {
@@ -39,7 +40,7 @@ func (h *NotificationHandler) ListAdminNotificationTypes(c echo.Context) error {
 	role, _ := c.Get("role").(string)
 	resp, err := h.svc.ListAdminSelectableNotificationTypes(c.Request().Context(), role)
 	if err != nil {
-		if errors.Is(err, service.ErrUnsupportedNotificationRole) {
+		if errors.Is(err, validators.ErrUnsupportedNotificationRole) {
 			return echo.NewHTTPError(http.StatusForbidden, err.Error())
 		}
 		return err
@@ -124,12 +125,12 @@ func (h *NotificationHandler) GetNotifications(c echo.Context) error {
 
 func mapGetNotificationsError(err error) error {
 	switch {
-	case errors.Is(err, service.ErrTerminalIDRequired),
-		errors.Is(err, service.ErrInvalidTerminalID),
-		errors.Is(err, service.ErrNotificationTypeInvalid),
-		errors.Is(err, service.ErrInvalidStartDate),
-		errors.Is(err, service.ErrInvalidEndDate),
-		errors.Is(err, service.ErrEndDateBeforeStart),
+	case errors.Is(err, validators.ErrTerminalIDRequired),
+		errors.Is(err, validators.ErrInvalidTerminalID),
+		errors.Is(err, validators.ErrNotificationTypeInvalid),
+		errors.Is(err, validators.ErrInvalidStartDate),
+		errors.Is(err, validators.ErrInvalidEndDate),
+		errors.Is(err, validators.ErrEndDateBeforeStart),
 		errors.Is(err, service.ErrAdminNoTerminal):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	default:
@@ -159,10 +160,10 @@ func (h *NotificationHandler) NotifyBusDelay(c echo.Context) error {
 
 func mapNotificationError(err error) error {
 	switch {
-	case errors.Is(err, service.ErrLicensePatentEmpty),
-		errors.Is(err, service.ErrCodeEmpty),
-		errors.Is(err, service.ErrInvalidCode),
-		errors.Is(err, service.ErrNotificationTimeLifeInvalid):
+	case errors.Is(err, validators.ErrLicensePatentEmpty),
+		errors.Is(err, validators.ErrCodeEmpty),
+		errors.Is(err, validators.ErrInvalidCode),
+		errors.Is(err, validators.ErrNotificationTimeLifeInvalid):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case errors.Is(err, repository.ErrNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, "platform not found")
@@ -177,16 +178,16 @@ func mapNotificationError(err error) error {
 
 func mapAdminLocalNotificationError(err error) error {
 	switch {
-	case errors.Is(err, service.ErrNotificationTypeInvalid),
-		errors.Is(err, service.ErrNotificationMessageEmpty),
+	case errors.Is(err, validators.ErrNotificationTypeInvalid),
+		errors.Is(err, validators.ErrNotificationMessageEmpty),
 		errors.Is(err, service.ErrTerminalUUIDRequired),
 		errors.Is(err, service.ErrTerminalUUIDRequiredMultiAdmin),
 		errors.Is(err, service.ErrInvalidTerminalUUID),
-		errors.Is(err, service.ErrNotificationPayloadInvalidJSON),
-		errors.Is(err, service.ErrNotificationPayloadEmpty),
-		errors.Is(err, service.ErrNotificationTimeLifeInvalid):
+		errors.Is(err, validators.ErrNotificationPayloadInvalidJSON),
+		errors.Is(err, validators.ErrNotificationPayloadEmpty),
+		errors.Is(err, validators.ErrNotificationTimeLifeInvalid):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	case errors.Is(err, service.ErrNotificationGlobalSuperAdminOnly):
+	case errors.Is(err, validators.ErrNotificationGlobalSuperAdminOnly):
 		return echo.NewHTTPError(http.StatusForbidden, err.Error())
 	case errors.Is(err, service.ErrTerminalNotOwned):
 		return echo.NewHTTPError(http.StatusForbidden, err.Error())
@@ -203,11 +204,11 @@ func mapAdminLocalNotificationError(err error) error {
 
 func mapCameraErrorNotifyError(err error) error {
 	switch {
-	case errors.Is(err, service.ErrCameraNotificationTypeInvalid),
-		errors.Is(err, service.ErrCodeCameraEmpty),
-		errors.Is(err, service.ErrCodeCameraInvalid),
-		errors.Is(err, service.ErrCameraErrorMessageEmpty),
-		errors.Is(err, service.ErrNotificationTimeLifeInvalid):
+	case errors.Is(err, validators.ErrCameraNotificationTypeInvalid),
+		errors.Is(err, validators.ErrCodeCameraEmpty),
+		errors.Is(err, validators.ErrCodeCameraInvalid),
+		errors.Is(err, validators.ErrCameraErrorMessageEmpty),
+		errors.Is(err, validators.ErrNotificationTimeLifeInvalid):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case errors.Is(err, repository.ErrNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, "platform not found")
@@ -258,13 +259,13 @@ func mapDeleteNotificationError(err error) error {
 
 func mapNotifyBusDelayError(err error) error {
 	switch {
-	case errors.Is(err, service.ErrBusDelayTypeInvalid),
-		errors.Is(err, service.ErrBusDelayLicensePatentRequired),
-		errors.Is(err, service.ErrBusDelayStartDateRequired),
-		errors.Is(err, service.ErrBusDelayTimeDelayInvalid),
+	case errors.Is(err, validators.ErrBusDelayTypeInvalid),
+		errors.Is(err, validators.ErrBusDelayLicensePatentRequired),
+		errors.Is(err, validators.ErrBusDelayStartDateRequired),
+		errors.Is(err, validators.ErrBusDelayTimeDelayInvalid),
 		errors.Is(err, service.ErrBusDelayTerminalUUIDRequired),
 		errors.Is(err, service.ErrInvalidTerminalUUID),
-		errors.Is(err, service.ErrNotificationTimeLifeInvalid):
+		errors.Is(err, validators.ErrNotificationTimeLifeInvalid):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case errors.Is(err, service.ErrTerminalNotOwned):
 		return echo.NewHTTPError(http.StatusForbidden, err.Error())

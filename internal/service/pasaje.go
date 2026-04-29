@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 
 	"tesina/backend/internal/models"
+	"tesina/backend/internal/validators"
 )
 
 type BusTicketService interface {
@@ -130,10 +131,10 @@ func (s *busTicketService) TripExists(ctx context.Context, externalTerminalUUID 
 		return false, ErrExternalTerminalIDRequired
 	}
 	if strings.TrimSpace(startDate) == "" {
-		return false, ErrBusDelayStartDateRequired
+		return false, validators.ErrBusDelayStartDateRequired
 	}
 	if strings.TrimSpace(licensePlate) == "" {
-		return false, ErrBusDelayLicensePatentRequired
+		return false, validators.ErrBusDelayLicensePatentRequired
 	}
 
 	u, err := url.Parse(s.upstreamURL)

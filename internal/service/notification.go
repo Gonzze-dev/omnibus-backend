@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/realtime"
 	"tesina/backend/internal/repository"
+	"tesina/backend/internal/validators"
 )
 
 type RealtimeNotifier interface {
@@ -80,25 +80,14 @@ func (s *notificationService) ListAdminSelectableNotificationTypes(_ context.Con
 			},
 		}, nil
 	default:
-		return models.AdminNotificationTypesResponse{}, ErrUnsupportedNotificationRole
+		return models.AdminNotificationTypesResponse{}, validators.ErrUnsupportedNotificationRole
 	}
 }
 
 func (s *notificationService) NotifyPassengers(ctx context.Context, req models.NotifyPassengersRequest) (models.NotifyPassengersResponse, error) {
-	if req.LicensePatent == "" {
-		return models.NotifyPassengersResponse{}, ErrLicensePatentEmpty
-	}
-	if req.Code == "" {
-		return models.NotifyPassengersResponse{}, ErrCodeEmpty
-	}
-
-	if req.TimeLife <= 0 {
-		return models.NotifyPassengersResponse{}, ErrNotificationTimeLifeInvalid
-	}
-
-	code, err := strconv.Atoi(req.Code)
+	code, err := validators.ValidateNotifyPassengersRequest(req)
 	if err != nil {
-		return models.NotifyPassengersResponse{}, ErrInvalidCode
+		return models.NotifyPassengersResponse{}, err
 	}
 
 	platform, err := s.platformRepo.GetByCode(ctx, code)
@@ -167,7 +156,7 @@ func (s *notificationService) SendAdminNotification(
 	case models.PassengerNotificationLocal:
 		return s.sendAdminNotificationLocal(ctx, userID, role, queryTerminalUUID, req.Payload)
 	default:
-		return models.AdminSendNotificationResponse{}, ErrNotificationTypeInvalid
+		return models.AdminSendNotificationResponse{}, validators.ErrNotificationTypeInvalid
 	}
 }
 
@@ -176,24 +165,12 @@ func (s *notificationService) sendAdminNotificationGlobal(
 	role string,
 	payloadRaw json.RawMessage,
 ) (models.AdminSendNotificationResponse, error) {
-	if role != "super_admin" {
-		return models.AdminSendNotificationResponse{}, ErrNotificationGlobalSuperAdminOnly
+	timeLife, err := validators.ValidateAdminGlobalNotification(role, payloadRaw)
+	if err != nil {
+		return models.AdminSendNotificationResponse{}, err
 	}
+
 	trimmed := bytes.TrimSpace(payloadRaw)
-	if len(trimmed) == 0 {
-		return models.AdminSendNotificationResponse{}, ErrNotificationPayloadEmpty
-	}
-	if !json.Valid(trimmed) {
-		return models.AdminSendNotificationResponse{}, ErrNotificationPayloadInvalidJSON
-	}
-
-	var tmp struct {
-		TimeLife int `json:"time_life"`
-	}
-	if err := json.Unmarshal(trimmed, &tmp); err != nil || tmp.TimeLife <= 0 {
-		return models.AdminSendNotificationResponse{}, ErrNotificationTimeLifeInvalid
-	}
-
 	notifID := uuid.New()
 	merged, err := mergeJSONWithFields(trimmed, map[string]any{
 		"id": notifID.String(),
@@ -217,7 +194,7 @@ func (s *notificationService) sendAdminNotificationGlobal(
 		ID:         notifID,
 		GroupKey:   nil,
 		GroupName:  groupName,
-		Expiration: time.Now().UTC().Add(time.Duration(tmp.TimeLife) * time.Minute),
+		Expiration: time.Now().UTC().Add(time.Duration(timeLife) * time.Minute),
 		Date:       time.Now().UTC(),
 		Payload:    msgJSON,
 	}); err != nil {
@@ -238,19 +215,11 @@ func (s *notificationService) sendAdminNotificationLocal(
 	queryTerminalUUID string,
 	payloadRaw json.RawMessage,
 ) (models.AdminSendNotificationResponse, error) {
-	if len(bytes.TrimSpace(payloadRaw)) == 0 {
-		return models.AdminSendNotificationResponse{}, ErrNotificationPayloadEmpty
+	localPayload, err := validators.ValidateAdminLocalNotification(payloadRaw)
+	if err != nil {
+		return models.AdminSendNotificationResponse{}, err
 	}
-	var localPayload models.AdminLocalNotificationPayload
-	if err := json.Unmarshal(payloadRaw, &localPayload); err != nil {
-		return models.AdminSendNotificationResponse{}, ErrNotificationPayloadInvalidJSON
-	}
-	if localPayload.Message == "" {
-		return models.AdminSendNotificationResponse{}, ErrNotificationMessageEmpty
-	}
-	if localPayload.TimeLife <= 0 {
-		return models.AdminSendNotificationResponse{}, ErrNotificationTimeLifeInvalid
-	}
+
 	notifID := uuid.New()
 	localPayload.ID = notifID.String()
 
@@ -361,20 +330,8 @@ func (s *notificationService) NotifyBusDelay(
 	role string,
 	req models.NotifyBusDelayRequest,
 ) (models.NotifyBusDelayResponse, error) {
-	if req.Type != models.PassengerNotificationBUSDelay {
-		return models.NotifyBusDelayResponse{}, ErrBusDelayTypeInvalid
-	}
-	if strings.TrimSpace(req.LicensePatent) == "" {
-		return models.NotifyBusDelayResponse{}, ErrBusDelayLicensePatentRequired
-	}
-	if strings.TrimSpace(req.StartDate) == "" {
-		return models.NotifyBusDelayResponse{}, ErrBusDelayStartDateRequired
-	}
-	if req.Payload.TimeDelay <= 0 {
-		return models.NotifyBusDelayResponse{}, ErrBusDelayTimeDelayInvalid
-	}
-	if req.Payload.TimeLife <= 0 {
-		return models.NotifyBusDelayResponse{}, ErrNotificationTimeLifeInvalid
+	if err := validators.ValidateNotifyBusDelayRequest(req); err != nil {
+		return models.NotifyBusDelayResponse{}, err
 	}
 
 	terminalID, err := s.resolveTerminalForBusDelay(ctx, userID, role, strings.TrimSpace(req.UUIDTerminal))
@@ -394,7 +351,7 @@ func (s *notificationService) NotifyBusDelay(
 	}
 
 	exists, err := s.BusTicketSvc.TripExists(ctx, *terminal.ExternalTerminalID, req.StartDate, req.LicensePatent)
-	
+
 	if err != nil {
 		return models.NotifyBusDelayResponse{}, err
 	}
@@ -453,21 +410,9 @@ func (s *notificationService) NotifyAdminCameraError(
 	ctx context.Context,
 	req models.CameraErrorNotifyRequest,
 ) (models.CameraErrorNotifyResponse, error) {
-	if req.Type != models.PassengerNotificationCAMERA {
-		return models.CameraErrorNotifyResponse{}, ErrCameraNotificationTypeInvalid
-	}
-	if strings.TrimSpace(req.CodeCamera) == "" {
-		return models.CameraErrorNotifyResponse{}, ErrCodeCameraEmpty
-	}
-	code, err := strconv.Atoi(strings.TrimSpace(req.CodeCamera))
+	code, err := validators.ValidateCameraErrorRequest(req)
 	if err != nil {
-		return models.CameraErrorNotifyResponse{}, ErrCodeCameraInvalid
-	}
-	if strings.TrimSpace(req.Payload.Message) == "" {
-		return models.CameraErrorNotifyResponse{}, ErrCameraErrorMessageEmpty
-	}
-	if req.Payload.TimeLife <= 0 {
-		return models.CameraErrorNotifyResponse{}, ErrNotificationTimeLifeInvalid
+		return models.CameraErrorNotifyResponse{}, err
 	}
 
 	platform, err := s.platformRepo.GetByCode(ctx, code)
@@ -633,12 +578,9 @@ func (s *notificationService) GetNotifications(
 		}
 
 	default: // user / passenger
-		if params.TerminalID == "" {
-			return models.GetNotificationsResponse{}, ErrTerminalIDRequired
-		}
-		tid, err := uuid.Parse(params.TerminalID)
+		tid, err := validators.ValidateGetNotificationsUserRole(params)
 		if err != nil {
-			return models.GetNotificationsResponse{}, ErrInvalidTerminalID
+			return models.GetNotificationsResponse{}, err
 		}
 		tidStr := tid.String()
 		f.GroupKeyIsNull = true
@@ -698,7 +640,7 @@ func applyCommonFilters(params models.GetNotificationsParams, f *models.Notifica
 			models.PassengerNotificationCAMERA:
 			f.NotificationType = &t
 		default:
-			return ErrNotificationTypeInvalid
+			return validators.ErrNotificationTypeInvalid
 		}
 	}
 	if params.ExpirationFilter == "true" {
@@ -708,16 +650,16 @@ func applyCommonFilters(params models.GetNotificationsParams, f *models.Notifica
 	if params.StartDate != "" {
 		t, err := time.Parse("2006-01-02", params.StartDate)
 		if err != nil {
-			return ErrInvalidStartDate
+			return validators.ErrInvalidStartDate
 		}
 		f.StartDate = &t
 		if params.EndDate != "" {
 			t2, err := time.Parse("2006-01-02", params.EndDate)
 			if err != nil {
-				return ErrInvalidEndDate
+				return validators.ErrInvalidEndDate
 			}
 			if t2.Before(t) {
-				return ErrEndDateBeforeStart
+				return validators.ErrEndDateBeforeStart
 			}
 			f.EndDate = &t2
 		}

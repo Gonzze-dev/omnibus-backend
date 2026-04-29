@@ -10,6 +10,7 @@ import (
 
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/repository"
+	"tesina/backend/internal/validators"
 )
 
 type UserService interface {
@@ -77,6 +78,10 @@ func (s *userService) GetProfile(ctx context.Context, userID uuid.UUID) (models.
 }
 
 func (s *userService) UpdateProfile(ctx context.Context, userID uuid.UUID, req models.UpdateUserRequest) (models.UserResponse, error) {
+	if err := validators.ValidateUpdateUserRequest(req); err != nil {
+		return models.UserResponse{}, err
+	}
+
 	user, err := s.userRepo.GetByUUID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {

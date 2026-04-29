@@ -9,6 +9,7 @@ import (
 
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/repository"
+	"tesina/backend/internal/validators"
 )
 
 type SuperAdminService interface {
@@ -69,11 +70,8 @@ func (s *superAdminService) GetTerminal(ctx context.Context, id uuid.UUID) (mode
 }
 
 func (s *superAdminService) CreateTerminal(ctx context.Context, req models.CreateBusTerminalRequest) (models.BusTerminal, error) {
-	if req.PostalCode == "" || req.Name == "" {
-		return models.BusTerminal{}, ErrMissingFields
-	}
-	if req.ExternalTerminalID == uuid.Nil {
-		return models.BusTerminal{}, ErrExternalTerminalIDRequired
+	if err := validators.ValidateCreateBusTerminalRequest(req); err != nil {
+		return models.BusTerminal{}, err
 	}
 
 	if _, err := s.busTerminalRepo.GetByExternalTerminalID(ctx, req.ExternalTerminalID); err == nil {
@@ -111,6 +109,10 @@ func (s *superAdminService) CreateTerminal(ctx context.Context, req models.Creat
 }
 
 func (s *superAdminService) UpdateTerminal(ctx context.Context, id uuid.UUID, req models.UpdateBusTerminalRequest) (models.BusTerminal, error) {
+	if err := validators.ValidateUpdateBusTerminalRequest(req); err != nil {
+		return models.BusTerminal{}, err
+	}
+
 	terminal, err := s.busTerminalRepo.GetByUUID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
@@ -134,10 +136,6 @@ func (s *superAdminService) UpdateTerminal(ctx context.Context, id uuid.UUID, re
 
 	if req.ExternalTerminalID != nil {
 		newExt := *req.ExternalTerminalID
-		if newExt == uuid.Nil {
-			return models.BusTerminal{}, ErrExternalTerminalIDRequired
-		}
-
 		sameAsCurrent := terminal.ExternalTerminalID != nil && *terminal.ExternalTerminalID == newExt
 		if !sameAsCurrent {
 			if existing, err := s.busTerminalRepo.GetByExternalTerminalID(ctx, newExt); err == nil {
@@ -180,8 +178,8 @@ func (s *superAdminService) DeleteTerminal(ctx context.Context, id uuid.UUID) er
 // --- User management (super-only) ---
 
 func (s *superAdminService) PromoteToSuper(ctx context.Context, req models.PromoteSuperRequest) (models.UserResponse, error) {
-	if req.Email == "" {
-		return models.UserResponse{}, ErrMissingFields
+	if err := validators.ValidatePromoteSuperRequest(req); err != nil {
+		return models.UserResponse{}, err
 	}
 
 	user, err := s.userRepo.GetByEmail(ctx, req.Email)
@@ -218,8 +216,8 @@ func (s *superAdminService) PromoteToSuper(ctx context.Context, req models.Promo
 }
 
 func (s *superAdminService) DemoteSuper(ctx context.Context, req models.DemoteSuperRequest) (models.UserResponse, error) {
-	if req.Email == "" {
-		return models.UserResponse{}, ErrMissingFields
+	if err := validators.ValidateDemoteSuperRequest(req); err != nil {
+		return models.UserResponse{}, err
 	}
 
 	user, err := s.userRepo.GetByEmail(ctx, req.Email)

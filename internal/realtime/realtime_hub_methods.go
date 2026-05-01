@@ -1,4 +1,4 @@
-package service
+package realtime
 
 const (
 	hubMethodSendToFrontend        = "SendToFrontend"

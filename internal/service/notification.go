@@ -39,7 +39,7 @@ type notificationService struct {
 	busTerminalRepo      repository.BusTerminalRepository
 	notificationRepo     repository.NotificationRepository
 	notifier             RealtimeNotifier
-	hubMethods           RealtimeHubMethods
+	hubMethods           realtime.RealtimeHubMethods
 	BusTicketSvc         BusTicketService
 }
 
@@ -49,7 +49,7 @@ func NewNotificationService(
 	busTerminalRepo repository.BusTerminalRepository,
 	notificationRepo repository.NotificationRepository,
 	notifier RealtimeNotifier,
-	hubMethods RealtimeHubMethods,
+	hubMethods realtime.RealtimeHubMethods,
 	BusTicketSvc BusTicketService,
 ) *notificationService {
 	return &notificationService{

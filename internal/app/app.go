@@ -11,6 +11,7 @@ import (
 	"tesina/backend/internal/mail"
 	"tesina/backend/internal/repository"
 	"tesina/backend/internal/service"
+	realtimeHubMethods  "tesina/backend/internal/realtime"
 	"tesina/backend/pkg/realtime"
 )
 
@@ -41,7 +42,7 @@ func New(cfg config.Config, db *gorm.DB) *App {
 	BusTicketSvc := service.NewBusTicketService(httpClient, cfg.ExternalTerminalUpstreamURL)
 
 	signalRClient := realtime.NewClient(cfg.RealtimeURL, cfg.RealtimeAPIKey)
-	notificationSvc := service.NewNotificationService(platformRepo, userTerminalRepo, busTerminalRepo, notificationRepo, signalRClient, service.DefaultRealtimeHubMethods(), BusTicketSvc)
+	notificationSvc := service.NewNotificationService(platformRepo, userTerminalRepo, busTerminalRepo, notificationRepo, signalRClient, realtimeHubMethods.DefaultRealtimeHubMethods(), BusTicketSvc)
 
 	authSvc := service.NewAuthService(userRepo, rolRepo, refreshTokenRepo, cfg.JWTSecret)
 

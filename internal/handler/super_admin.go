@@ -9,6 +9,7 @@ import (
 
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/service"
+	errorsService "tesina/backend/internal/errors"
 )
 
 type SuperAdminHandler struct {
@@ -115,25 +116,25 @@ func (h *SuperAdminHandler) DemoteSuper(c echo.Context) error {
 
 func mapSuperAdminError(err error) error {
 	switch {
-	case errors.Is(err, service.ErrMissingFields):
+	case errors.Is(err, errorsService.ErrMissingFields):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	case errors.Is(err, service.ErrExternalTerminalIDRequired):
+	case errors.Is(err, errorsService.ErrExternalTerminalIDRequired):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	case errors.Is(err, service.ErrInvalidExternalTerminalID):
+	case errors.Is(err, errorsService.ErrInvalidExternalTerminalID):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	case errors.Is(err, service.ErrExternalTerminalIDAlreadyUsed):
+	case errors.Is(err, errorsService.ErrExternalTerminalIDAlreadyUsed):
 		return echo.NewHTTPError(http.StatusConflict, err.Error())
-	case errors.Is(err, service.ErrUpstreamRequest), errors.Is(err, service.ErrUpstreamResponse):
+	case errors.Is(err, errorsService.ErrUpstreamRequest), errors.Is(err, errorsService.ErrUpstreamResponse):
 		return echo.NewHTTPError(http.StatusBadGateway, err.Error())
-	case errors.Is(err, service.ErrTerminalNotFound):
+	case errors.Is(err, errorsService.ErrTerminalNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, err.Error())
-	case errors.Is(err, service.ErrCityNotFound):
+	case errors.Is(err, errorsService.ErrCityNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, err.Error())
-	case errors.Is(err, service.ErrUserNotFound):
+	case errors.Is(err, errorsService.ErrUserNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, err.Error())
-	case errors.Is(err, service.ErrAlreadySuperAdmin):
+	case errors.Is(err, errorsService.ErrAlreadySuperAdmin):
 		return echo.NewHTTPError(http.StatusConflict, err.Error())
-	case errors.Is(err, service.ErrNotSuperAdmin):
+	case errors.Is(err, errorsService.ErrNotSuperAdmin):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	default:
 		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")

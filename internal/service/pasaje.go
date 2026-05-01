@@ -14,6 +14,7 @@ import (
 
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/validators"
+	errorsService "tesina/backend/internal/errors"
 )
 
 type BusTicketService interface {
@@ -36,25 +37,25 @@ func NewBusTicketService(httpClient *http.Client, upstreamURL string) *busTicket
 
 func (s *busTicketService) GetBusTicket(ctx context.Context, req models.GetBusTicketRequest) (models.BusTicketResponse, error) {
 	if req.TicketString == "" {
-		return models.BusTicketResponse{}, ErrTicketStringEmpty
+		return models.BusTicketResponse{}, errorsService.ErrTicketStringEmpty
 	}
 
 	url := fmt.Sprintf("%s/bus_tickets/%s", s.upstreamURL, req.TicketString)
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return models.BusTicketResponse{}, fmt.Errorf("%w: %w", ErrUpstreamRequest, err)
+		return models.BusTicketResponse{}, fmt.Errorf("%w: %w", errorsService.ErrUpstreamRequest, err)
 	}
 
 	resp, err := s.httpClient.Do(httpReq)
 	if err != nil {
-		return models.BusTicketResponse{}, fmt.Errorf("%w: %w", ErrUpstreamRequest, err)
+		return models.BusTicketResponse{}, fmt.Errorf("%w: %w", errorsService.ErrUpstreamRequest, err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return models.BusTicketResponse{}, fmt.Errorf("%w: %w", ErrUpstreamResponse, err)
+		return models.BusTicketResponse{}, fmt.Errorf("%w: %w", errorsService.ErrUpstreamResponse, err)
 	}
 
 	if resp.StatusCode == http.StatusOK {
@@ -73,7 +74,7 @@ func (s *busTicketService) GetBusTicket(ctx context.Context, req models.GetBusTi
 func normalizeBusTicket(raw []byte) ([]byte, error) {
 	var p models.BusTicket
 	if err := json.Unmarshal(raw, &p); err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrUpstreamResponse, err)
+		return nil, fmt.Errorf("%w: %w", errorsService.ErrUpstreamResponse, err)
 	}
 
 	p.BusTerminalName = strings.ToUpper(p.BusTerminalName)
@@ -91,12 +92,12 @@ func normalizeBusTicket(raw []byte) ([]byte, error) {
 
 func (s *busTicketService) ExternalTerminalExists(ctx context.Context, externalTerminalUUID uuid.UUID) (bool, error) {
 	if externalTerminalUUID == uuid.Nil {
-		return false, ErrExternalTerminalIDRequired
+		return false, errorsService.ErrExternalTerminalIDRequired
 	}
 
 	u, err := url.Parse(s.upstreamURL)
 	if err != nil {
-		return false, fmt.Errorf("%w: %w", ErrUpstreamRequest, err)
+		return false, fmt.Errorf("%w: %w", errorsService.ErrUpstreamRequest, err)
 	}
 	u = u.JoinPath("terminal", "exist")
 	q := u.Query()
@@ -105,22 +106,22 @@ func (s *busTicketService) ExternalTerminalExists(ctx context.Context, externalT
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
-		return false, fmt.Errorf("%w: %w", ErrUpstreamRequest, err)
+		return false, fmt.Errorf("%w: %w", errorsService.ErrUpstreamRequest, err)
 	}
 
 	resp, err := s.httpClient.Do(httpReq)
 	if err != nil {
-		return false, fmt.Errorf("%w: %w", ErrUpstreamRequest, err)
+		return false, fmt.Errorf("%w: %w", errorsService.ErrUpstreamRequest, err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return false, fmt.Errorf("%w: %w", ErrUpstreamResponse, err)
+		return false, fmt.Errorf("%w: %w", errorsService.ErrUpstreamResponse, err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return false, fmt.Errorf("%w: status %d", ErrUpstreamResponse, resp.StatusCode)
+		return false, fmt.Errorf("%w: status %d", errorsService.ErrUpstreamResponse, resp.StatusCode)
 	}
 
 	return parseUpstreamBoolBody(body)
@@ -128,7 +129,7 @@ func (s *busTicketService) ExternalTerminalExists(ctx context.Context, externalT
 
 func (s *busTicketService) TripExists(ctx context.Context, externalTerminalUUID uuid.UUID, startDate, licensePlate string) (bool, error) {
 	if externalTerminalUUID == uuid.Nil {
-		return false, ErrExternalTerminalIDRequired
+		return false, errorsService.ErrExternalTerminalIDRequired
 	}
 	if strings.TrimSpace(startDate) == "" {
 		return false, validators.ErrBusDelayStartDateRequired
@@ -139,7 +140,7 @@ func (s *busTicketService) TripExists(ctx context.Context, externalTerminalUUID 
 
 	u, err := url.Parse(s.upstreamURL)
 	if err != nil {
-		return false, fmt.Errorf("%w: %w", ErrUpstreamRequest, err)
+		return false, fmt.Errorf("%w: %w", errorsService.ErrUpstreamRequest, err)
 	}
 	u = u.JoinPath("terminal", "trip", "exist")
 	q := u.Query()
@@ -150,22 +151,22 @@ func (s *busTicketService) TripExists(ctx context.Context, externalTerminalUUID 
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
-		return false, fmt.Errorf("%w: %w", ErrUpstreamRequest, err)
+		return false, fmt.Errorf("%w: %w", errorsService.ErrUpstreamRequest, err)
 	}
 
 	resp, err := s.httpClient.Do(httpReq)
 	if err != nil {
-		return false, fmt.Errorf("%w: %w", ErrUpstreamRequest, err)
+		return false, fmt.Errorf("%w: %w", errorsService.ErrUpstreamRequest, err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return false, fmt.Errorf("%w: %w", ErrUpstreamResponse, err)
+		return false, fmt.Errorf("%w: %w", errorsService.ErrUpstreamResponse, err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return false, fmt.Errorf("%w: status %d", ErrUpstreamResponse, resp.StatusCode)
+		return false, fmt.Errorf("%w: status %d", errorsService.ErrUpstreamResponse, resp.StatusCode)
 	}
 
 	return parseUpstreamBoolBody(body)
@@ -195,6 +196,6 @@ func parseUpstreamBoolBody(body []byte) (bool, error) {
 	case "false":
 		return false, nil
 	default:
-		return false, fmt.Errorf("%w: unexpected body %q", ErrUpstreamResponse, trimmed)
+		return false, fmt.Errorf("%w: unexpected body %q", errorsService.ErrUpstreamResponse, trimmed)
 	}
 }

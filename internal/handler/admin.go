@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-
+	errorsService "tesina/backend/internal/errors"
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/service"
 	"tesina/backend/internal/validators"
@@ -291,25 +291,25 @@ func mapAdminError(err error) error {
 		errors.Is(err, validators.ErrAndenRequired),
 		errors.Is(err, validators.ErrEmailRequired):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	case errors.Is(err, service.ErrCityNotFound):
+	case errors.Is(err, errorsService.ErrCityNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, err.Error())
-	case errors.Is(err, service.ErrCityAlreadyExists):
+	case errors.Is(err, errorsService.ErrCityAlreadyExists):
 		return echo.NewHTTPError(http.StatusConflict, err.Error())
-	case errors.Is(err, service.ErrPlatformNotFound):
+	case errors.Is(err, errorsService.ErrPlatformNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, err.Error())
-	case errors.Is(err, service.ErrTerminalNotFound):
+	case errors.Is(err, errorsService.ErrTerminalNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, err.Error())
-	case errors.Is(err, service.ErrTerminalNotOwned):
+	case errors.Is(err, errorsService.ErrTerminalNotOwned):
 		return echo.NewHTTPError(http.StatusForbidden, err.Error())
-	case errors.Is(err, service.ErrUserNotFound):
+	case errors.Is(err, errorsService.ErrUserNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, err.Error())
-	case errors.Is(err, service.ErrAlreadyAdmin):
+	case errors.Is(err, errorsService.ErrAlreadyAdmin):
 		return echo.NewHTTPError(http.StatusConflict, err.Error())
-	case errors.Is(err, service.ErrAlreadySuperAdmin):
+	case errors.Is(err, errorsService.ErrAlreadySuperAdmin):
 		return echo.NewHTTPError(http.StatusConflict, err.Error())
-	case errors.Is(err, service.ErrNotAdmin):
+	case errors.Is(err, errorsService.ErrNotAdmin):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	case errors.Is(err, service.ErrCannotDemoteSelf):
+	case errors.Is(err, errorsService.ErrCannotDemoteSelf):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	default:
 		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")

@@ -10,6 +10,7 @@ import (
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/repository"
 	"tesina/backend/internal/validators"
+	errorsService "tesina/backend/internal/errors"
 )
 
 type SuperAdminService interface {
@@ -62,7 +63,7 @@ func (s *superAdminService) GetTerminal(ctx context.Context, id uuid.UUID) (mode
 	terminal, err := s.busTerminalRepo.GetByUUID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.BusTerminal{}, ErrTerminalNotFound
+			return models.BusTerminal{}, errorsService.ErrTerminalNotFound
 		}
 		return models.BusTerminal{}, err
 	}
@@ -75,7 +76,7 @@ func (s *superAdminService) CreateTerminal(ctx context.Context, req models.Creat
 	}
 
 	if _, err := s.busTerminalRepo.GetByExternalTerminalID(ctx, req.ExternalTerminalID); err == nil {
-		return models.BusTerminal{}, ErrExternalTerminalIDAlreadyUsed
+		return models.BusTerminal{}, errorsService.ErrExternalTerminalIDAlreadyUsed
 	} else if !errors.Is(err, repository.ErrNotFound) {
 		return models.BusTerminal{}, err
 	}
@@ -85,12 +86,12 @@ func (s *superAdminService) CreateTerminal(ctx context.Context, req models.Creat
 		return models.BusTerminal{}, err
 	}
 	if !exists {
-		return models.BusTerminal{}, ErrInvalidExternalTerminalID
+		return models.BusTerminal{}, errorsService.ErrInvalidExternalTerminalID
 	}
 
 	if _, err := s.cityRepo.GetByPostalCode(ctx, req.PostalCode); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.BusTerminal{}, ErrCityNotFound
+			return models.BusTerminal{}, errorsService.ErrCityNotFound
 		}
 		return models.BusTerminal{}, err
 	}
@@ -116,7 +117,7 @@ func (s *superAdminService) UpdateTerminal(ctx context.Context, id uuid.UUID, re
 	terminal, err := s.busTerminalRepo.GetByUUID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.BusTerminal{}, ErrTerminalNotFound
+			return models.BusTerminal{}, errorsService.ErrTerminalNotFound
 		}
 		return models.BusTerminal{}, err
 	}
@@ -124,7 +125,7 @@ func (s *superAdminService) UpdateTerminal(ctx context.Context, id uuid.UUID, re
 	if req.PostalCode != nil {
 		if _, err := s.cityRepo.GetByPostalCode(ctx, *req.PostalCode); err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
-				return models.BusTerminal{}, ErrCityNotFound
+				return models.BusTerminal{}, errorsService.ErrCityNotFound
 			}
 			return models.BusTerminal{}, err
 		}
@@ -140,7 +141,7 @@ func (s *superAdminService) UpdateTerminal(ctx context.Context, id uuid.UUID, re
 		if !sameAsCurrent {
 			if existing, err := s.busTerminalRepo.GetByExternalTerminalID(ctx, newExt); err == nil {
 				if existing.UUID != terminal.UUID {
-					return models.BusTerminal{}, ErrExternalTerminalIDAlreadyUsed
+					return models.BusTerminal{}, errorsService.ErrExternalTerminalIDAlreadyUsed
 				}
 			} else if !errors.Is(err, repository.ErrNotFound) {
 				return models.BusTerminal{}, err
@@ -151,7 +152,7 @@ func (s *superAdminService) UpdateTerminal(ctx context.Context, id uuid.UUID, re
 				return models.BusTerminal{}, err
 			}
 			if !exists {
-				return models.BusTerminal{}, ErrInvalidExternalTerminalID
+				return models.BusTerminal{}, errorsService.ErrInvalidExternalTerminalID
 			}
 		}
 
@@ -168,7 +169,7 @@ func (s *superAdminService) UpdateTerminal(ctx context.Context, id uuid.UUID, re
 func (s *superAdminService) DeleteTerminal(ctx context.Context, id uuid.UUID) error {
 	if _, err := s.busTerminalRepo.GetByUUID(ctx, id); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return ErrTerminalNotFound
+			return errorsService.ErrTerminalNotFound
 		}
 		return err
 	}
@@ -185,18 +186,18 @@ func (s *superAdminService) PromoteToSuper(ctx context.Context, req models.Promo
 	user, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.UserResponse{}, ErrUserNotFound
+			return models.UserResponse{}, errorsService.ErrUserNotFound
 		}
 		return models.UserResponse{}, err
 	}
 
 	if user.Rol != nil && user.Rol.Name == "super_admin" {
-		return models.UserResponse{}, ErrAlreadySuperAdmin
+		return models.UserResponse{}, errorsService.ErrAlreadySuperAdmin
 	}
 
 	superRol, err := s.rolRepo.GetByName(ctx, "super_admin")
 	if err != nil {
-		return models.UserResponse{}, fmt.Errorf("%w: %w", ErrRolNotFound, err)
+		return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
 	}
 
 	user.RolID = superRol.UUID
@@ -223,18 +224,18 @@ func (s *superAdminService) DemoteSuper(ctx context.Context, req models.DemoteSu
 	user, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.UserResponse{}, ErrUserNotFound
+			return models.UserResponse{}, errorsService.ErrUserNotFound
 		}
 		return models.UserResponse{}, err
 	}
 
 	if user.Rol == nil || user.Rol.Name != "super_admin" {
-		return models.UserResponse{}, ErrNotSuperAdmin
+		return models.UserResponse{}, errorsService.ErrNotSuperAdmin
 	}
 
 	userRol, err := s.rolRepo.GetByName(ctx, "user")
 	if err != nil {
-		return models.UserResponse{}, fmt.Errorf("%w: %w", ErrRolNotFound, err)
+		return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
 	}
 
 	user.RolID = userRol.UUID

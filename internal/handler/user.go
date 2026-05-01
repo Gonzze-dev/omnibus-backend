@@ -10,6 +10,7 @@ import (
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/service"
 	"tesina/backend/internal/validators"
+	errorsService "tesina/backend/internal/errors"
 )
 
 type UserHandler struct {
@@ -84,13 +85,13 @@ func getUserID(c echo.Context) (uuid.UUID, error) {
 
 func mapUserError(err error) error {
 	switch {
-	case errors.Is(err, service.ErrUserNotFound):
+	case errors.Is(err, errorsService.ErrUserNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, err.Error())
-	case errors.Is(err, service.ErrEmailAlreadyExists):
+	case errors.Is(err, errorsService.ErrEmailAlreadyExists):
 		return echo.NewHTTPError(http.StatusConflict, err.Error())
-	case errors.Is(err, service.ErrDNIAlreadyExists):
+	case errors.Is(err, errorsService.ErrDNIAlreadyExists):
 		return echo.NewHTTPError(http.StatusConflict, err.Error())
-	case errors.Is(err, service.ErrMissingFields),
+	case errors.Is(err, errorsService.ErrMissingFields),
 		errors.Is(err, validators.ErrNoFieldsToUpdate),
 		errors.Is(err, validators.ErrFirstNameEmpty),
 		errors.Is(err, validators.ErrLastNameEmpty),

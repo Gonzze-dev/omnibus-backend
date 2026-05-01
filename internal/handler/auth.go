@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-
+	errorsService "tesina/backend/internal/errors"
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/service"
 )
@@ -117,15 +117,15 @@ func clearRefreshTokenCookie(c echo.Context) {
 
 func mapAuthError(err error) error {
 	switch {
-	case errors.Is(err, service.ErrMissingFields):
+	case errors.Is(err, errorsService.ErrMissingFields):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	case errors.Is(err, service.ErrEmailAlreadyExists):
+	case errors.Is(err, errorsService.ErrEmailAlreadyExists):
 		return echo.NewHTTPError(http.StatusConflict, err.Error())
-	case errors.Is(err, service.ErrDNIAlreadyExists):
+	case errors.Is(err, errorsService.ErrDNIAlreadyExists):
 		return echo.NewHTTPError(http.StatusConflict, err.Error())
-	case errors.Is(err, service.ErrInvalidCredentials):
+	case errors.Is(err, errorsService.ErrInvalidCredentials):
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
-	case errors.Is(err, service.ErrInvalidRefreshToken):
+	case errors.Is(err, errorsService.ErrInvalidRefreshToken):
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	default:
 		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")

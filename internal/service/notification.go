@@ -15,6 +15,7 @@ import (
 	"tesina/backend/internal/realtime"
 	"tesina/backend/internal/repository"
 	"tesina/backend/internal/validators"
+	errorsService "tesina/backend/internal/errors"
 )
 
 type RealtimeNotifier interface {
@@ -92,10 +93,10 @@ func (s *notificationService) NotifyPassengers(ctx context.Context, req models.N
 
 	platform, err := s.platformRepo.GetByCode(ctx, code)
 	if err != nil {
-		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", ErrPlatformLookup, err)
+		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", errorsService.ErrPlatformLookup, err)
 	}
 	if platform.BusTerminalID == uuid.Nil {
-		return models.NotifyPassengersResponse{}, ErrPlatformMissingTerminal
+		return models.NotifyPassengersResponse{}, errorsService.ErrPlatformMissingTerminal
 	}
 
 	notifID := uuid.New()
@@ -108,7 +109,7 @@ func (s *notificationService) NotifyPassengers(ctx context.Context, req models.N
 
 	payload, err := json.Marshal(platformInfo)
 	if err != nil {
-		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 
 	msg := models.PassengerNotificationMessage{
@@ -121,7 +122,7 @@ func (s *notificationService) NotifyPassengers(ctx context.Context, req models.N
 
 	msgJSON, err := json.Marshal(msg)
 	if err != nil {
-		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 	if err := s.notificationRepo.Insert(ctx, models.Notification{
 		ID:         notifID,
@@ -131,11 +132,11 @@ func (s *notificationService) NotifyPassengers(ctx context.Context, req models.N
 		Date:       time.Now().UTC(),
 		Payload:    msgJSON,
 	}); err != nil {
-		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 
 	if err := s.notifier.Invoke(ctx, s.hubMethods.SendToFrontend, groupName, msg); err != nil {
-		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 
 	return models.NotifyPassengersResponse{
@@ -176,7 +177,7 @@ func (s *notificationService) sendAdminNotificationGlobal(
 		"id": notifID.String(),
 	})
 	if err != nil {
-		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 
 	msg := models.PassengerNotificationMessage{
@@ -188,7 +189,7 @@ func (s *notificationService) sendAdminNotificationGlobal(
 
 	msgJSON, err := json.Marshal(msg)
 	if err != nil {
-		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 	if err := s.notificationRepo.Insert(ctx, models.Notification{
 		ID:         notifID,
@@ -198,11 +199,11 @@ func (s *notificationService) sendAdminNotificationGlobal(
 		Date:       time.Now().UTC(),
 		Payload:    msgJSON,
 	}); err != nil {
-		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 
 	if err := s.notifier.Invoke(ctx, s.hubMethods.SendToFrontendGlobal, groupName, msg); err != nil {
-		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 
 	return models.AdminSendNotificationResponse{Message: "notification sent"}, nil
@@ -233,15 +234,15 @@ func (s *notificationService) sendAdminNotificationLocal(
 		}
 		switch len(uts) {
 		case 0:
-			return models.AdminSendNotificationResponse{}, ErrAdminNoTerminal
+			return models.AdminSendNotificationResponse{}, errorsService.ErrAdminNoTerminal
 		case 1:
 			if queryTerminalUUID != "" {
 				id, perr := uuid.Parse(queryTerminalUUID)
 				if perr != nil {
-					return models.AdminSendNotificationResponse{}, ErrInvalidTerminalUUID
+					return models.AdminSendNotificationResponse{}, errorsService.ErrInvalidTerminalUUID
 				}
 				if id != uts[0].BusTerminalID {
-					return models.AdminSendNotificationResponse{}, ErrTerminalNotOwned
+					return models.AdminSendNotificationResponse{}, errorsService.ErrTerminalNotOwned
 				}
 				terminalID = id
 			} else {
@@ -249,22 +250,22 @@ func (s *notificationService) sendAdminNotificationLocal(
 			}
 		default:
 			if queryTerminalUUID == "" {
-				return models.AdminSendNotificationResponse{}, ErrTerminalUUIDRequiredMultiAdmin
+				return models.AdminSendNotificationResponse{}, errorsService.ErrTerminalUUIDRequiredMultiAdmin
 			}
 			id, perr := uuid.Parse(queryTerminalUUID)
 			if perr != nil {
-				return models.AdminSendNotificationResponse{}, ErrInvalidTerminalUUID
+				return models.AdminSendNotificationResponse{}, errorsService.ErrInvalidTerminalUUID
 			}
 			owned, exErr := s.userTerminalRepo.Exists(ctx, userID, id)
 			if exErr != nil {
 				return models.AdminSendNotificationResponse{}, exErr
 			}
 			if !owned {
-				return models.AdminSendNotificationResponse{}, ErrTerminalNotOwned
+				return models.AdminSendNotificationResponse{}, errorsService.ErrTerminalNotOwned
 			}
 			if _, err := s.busTerminalRepo.GetByUUID(ctx, id); err != nil {
 				if errors.Is(err, repository.ErrNotFound) {
-					return models.AdminSendNotificationResponse{}, ErrTerminalNotFound
+					return models.AdminSendNotificationResponse{}, errorsService.ErrTerminalNotFound
 				}
 				return models.AdminSendNotificationResponse{}, err
 			}
@@ -272,15 +273,15 @@ func (s *notificationService) sendAdminNotificationLocal(
 		}
 	case "super_admin":
 		if queryTerminalUUID == "" {
-			return models.AdminSendNotificationResponse{}, ErrTerminalUUIDRequired
+			return models.AdminSendNotificationResponse{}, errorsService.ErrTerminalUUIDRequired
 		}
 		id, err := uuid.Parse(queryTerminalUUID)
 		if err != nil {
-			return models.AdminSendNotificationResponse{}, ErrInvalidTerminalUUID
+			return models.AdminSendNotificationResponse{}, errorsService.ErrInvalidTerminalUUID
 		}
 		if _, err := s.busTerminalRepo.GetByUUID(ctx, id); err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
-				return models.AdminSendNotificationResponse{}, ErrTerminalNotFound
+				return models.AdminSendNotificationResponse{}, errorsService.ErrTerminalNotFound
 			}
 			return models.AdminSendNotificationResponse{}, err
 		}
@@ -291,7 +292,7 @@ func (s *notificationService) sendAdminNotificationLocal(
 
 	inner, err := json.Marshal(localPayload)
 	if err != nil {
-		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 
 	msg := models.PassengerNotificationMessage{
@@ -304,7 +305,7 @@ func (s *notificationService) sendAdminNotificationLocal(
 
 	msgJSON, err := json.Marshal(msg)
 	if err != nil {
-		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 	if err := s.notificationRepo.Insert(ctx, models.Notification{
 		ID:         notifID,
@@ -314,11 +315,11 @@ func (s *notificationService) sendAdminNotificationLocal(
 		Date:       time.Now().UTC(),
 		Payload:    msgJSON,
 	}); err != nil {
-		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 
 	if err := s.notifier.Invoke(ctx, s.hubMethods.SendToFrontend, groupName, msg); err != nil {
-		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+		return models.AdminSendNotificationResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 
 	return models.AdminSendNotificationResponse{Message: "notification sent"}, nil
@@ -342,12 +343,12 @@ func (s *notificationService) NotifyBusDelay(
 	terminal, err := s.busTerminalRepo.GetByUUID(ctx, terminalID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.NotifyBusDelayResponse{}, ErrTerminalNotFound
+			return models.NotifyBusDelayResponse{}, errorsService.ErrTerminalNotFound
 		}
 		return models.NotifyBusDelayResponse{}, err
 	}
 	if terminal.ExternalTerminalID == nil || *terminal.ExternalTerminalID == uuid.Nil {
-		return models.NotifyBusDelayResponse{}, ErrExternalTerminalNotConfigured
+		return models.NotifyBusDelayResponse{}, errorsService.ErrExternalTerminalNotConfigured
 	}
 
 	exists, err := s.BusTicketSvc.TripExists(ctx, *terminal.ExternalTerminalID, req.StartDate, req.LicensePatent)
@@ -356,7 +357,7 @@ func (s *notificationService) NotifyBusDelay(
 		return models.NotifyBusDelayResponse{}, err
 	}
 	if !exists {
-		return models.NotifyBusDelayResponse{}, ErrTripNotRegistered
+		return models.NotifyBusDelayResponse{}, errorsService.ErrTripNotRegistered
 	}
 
 	notifID := uuid.New()
@@ -367,7 +368,7 @@ func (s *notificationService) NotifyBusDelay(
 		TimeLife:      req.Payload.TimeLife,
 	})
 	if err != nil {
-		return models.NotifyBusDelayResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+		return models.NotifyBusDelayResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 
 	msg := models.PassengerNotificationMessage{
@@ -382,7 +383,7 @@ func (s *notificationService) NotifyBusDelay(
 
 	msgJSON, err := json.Marshal(msg)
 	if err != nil {
-		return models.NotifyBusDelayResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+		return models.NotifyBusDelayResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 	if err := s.notificationRepo.Insert(ctx, models.Notification{
 		ID:         notifID,
@@ -392,11 +393,11 @@ func (s *notificationService) NotifyBusDelay(
 		Date:       time.Now().UTC(),
 		Payload:    msgJSON,
 	}); err != nil {
-		return models.NotifyBusDelayResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+		return models.NotifyBusDelayResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 
 	if err := s.notifier.Invoke(ctx, s.hubMethods.NotifyDelayBus, groupName, msg); err != nil {
-		return models.NotifyBusDelayResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+		return models.NotifyBusDelayResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 
 	return models.NotifyBusDelayResponse{Message: "bus delay notification sent"}, nil
@@ -417,10 +418,10 @@ func (s *notificationService) NotifyAdminCameraError(
 
 	platform, err := s.platformRepo.GetByCode(ctx, code)
 	if err != nil {
-		return models.CameraErrorNotifyResponse{}, fmt.Errorf("%w: %w", ErrPlatformLookup, err)
+		return models.CameraErrorNotifyResponse{}, fmt.Errorf("%w: %w", errorsService.ErrPlatformLookup, err)
 	}
 	if platform.BusTerminalID == uuid.Nil {
-		return models.CameraErrorNotifyResponse{}, ErrPlatformMissingTerminal
+		return models.CameraErrorNotifyResponse{}, errorsService.ErrPlatformMissingTerminal
 	}
 
 	notifID := uuid.New()
@@ -431,7 +432,7 @@ func (s *notificationService) NotifyAdminCameraError(
 	}
 	inner, err := json.Marshal(cameraPayload)
 	if err != nil {
-		return models.CameraErrorNotifyResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+		return models.CameraErrorNotifyResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 
 	msg := models.PassengerNotificationMessage{
@@ -444,7 +445,7 @@ func (s *notificationService) NotifyAdminCameraError(
 
 	msgJSON, err := json.Marshal(msg)
 	if err != nil {
-		return models.CameraErrorNotifyResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+		return models.CameraErrorNotifyResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 	if err := s.notificationRepo.Insert(ctx, models.Notification{
 		ID:         notifID,
@@ -454,11 +455,11 @@ func (s *notificationService) NotifyAdminCameraError(
 		Date:       time.Now().UTC(),
 		Payload:    msgJSON,
 	}); err != nil {
-		return models.CameraErrorNotifyResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+		return models.CameraErrorNotifyResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 
 	if err := s.notifier.Invoke(ctx, s.hubMethods.NotifyAdminFromCamera, groupName, msg); err != nil {
-		return models.CameraErrorNotifyResponse{}, fmt.Errorf("%w: %w", ErrNotification, err)
+		return models.CameraErrorNotifyResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 
 	return models.CameraErrorNotifyResponse{
@@ -474,18 +475,18 @@ func (s *notificationService) ListNotifications(ctx context.Context) ([]models.N
 func (s *notificationService) DeleteNotification(ctx context.Context, userID uuid.UUID, role string, notificationID uuid.UUID) error {
 	switch role {
 	case "user":
-		return ErrUserCannotDeleteNotification
+		return errorsService.ErrUserCannotDeleteNotification
 
 	case "super_admin":
 		n, err := s.notificationRepo.GetByID(ctx, notificationID)
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
-				return ErrNotificationNotFound
+				return errorsService.ErrNotificationNotFound
 			}
 			return err
 		}
 		if err := s.notifier.Invoke(ctx, s.hubMethods.DeleteNotification, notificationID.String(), n.GroupName); err != nil {
-			return fmt.Errorf("%w: %w", ErrNotification, err)
+			return fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 		}
 		return s.notificationRepo.Delete(ctx, notificationID)
 
@@ -493,33 +494,33 @@ func (s *notificationService) DeleteNotification(ctx context.Context, userID uui
 		n, err := s.notificationRepo.GetByID(ctx, notificationID)
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
-				return ErrNotificationNotFound
+				return errorsService.ErrNotificationNotFound
 			}
 			return err
 		}
 		// Global notifications (null group_key) are super_admin-only
 		if n.GroupKey == nil {
-			return ErrNotificationDeleteForbidden
+			return errorsService.ErrNotificationDeleteForbidden
 		}
 		uts, err := s.userTerminalRepo.GetByUserID(ctx, userID)
 		if err != nil {
 			return err
 		}
 		if len(uts) == 0 {
-			return ErrAdminNoTerminal
+			return errorsService.ErrAdminNoTerminal
 		}
 		for _, ut := range uts {
 			if strings.Contains(*n.GroupKey, ut.BusTerminalID.String()) {
 				if err := s.notifier.Invoke(ctx, s.hubMethods.DeleteNotification, notificationID.String(), n.GroupName); err != nil {
-					return fmt.Errorf("%w: %w", ErrNotification, err)
+					return fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 				}
 				return s.notificationRepo.Delete(ctx, notificationID)
 			}
 		}
-		return ErrNotificationDeleteForbidden
+		return errorsService.ErrNotificationDeleteForbidden
 
 	default:
-		return ErrNotificationDeleteForbidden
+		return errorsService.ErrNotificationDeleteForbidden
 	}
 }
 
@@ -555,7 +556,7 @@ func (s *notificationService) GetNotifications(
 			return models.GetNotificationsResponse{}, err
 		}
 		if len(uts) == 0 {
-			return models.GetNotificationsResponse{}, ErrAdminNoTerminal
+			return models.GetNotificationsResponse{}, errorsService.ErrAdminNoTerminal
 		}
 		tids := make([]string, len(uts))
 		for i, ut := range uts {
@@ -710,37 +711,37 @@ func (s *notificationService) resolveTerminalForBusDelay(
 		}
 		switch len(uts) {
 		case 0:
-			return uuid.Nil, ErrAdminNoTerminal
+			return uuid.Nil, errorsService.ErrAdminNoTerminal
 		case 1:
 			if uuidTerminal != "" {
 				id, perr := uuid.Parse(uuidTerminal)
 				if perr != nil {
-					return uuid.Nil, ErrInvalidTerminalUUID
+					return uuid.Nil, errorsService.ErrInvalidTerminalUUID
 				}
 				if id != uts[0].BusTerminalID {
-					return uuid.Nil, ErrTerminalNotOwned
+					return uuid.Nil, errorsService.ErrTerminalNotOwned
 				}
 				return id, nil
 			}
 			return uts[0].BusTerminalID, nil
 		default:
 			if uuidTerminal == "" {
-				return uuid.Nil, ErrBusDelayTerminalUUIDRequired
+				return uuid.Nil, errorsService.ErrBusDelayTerminalUUIDRequired
 			}
 			id, perr := uuid.Parse(uuidTerminal)
 			if perr != nil {
-				return uuid.Nil, ErrInvalidTerminalUUID
+				return uuid.Nil, errorsService.ErrInvalidTerminalUUID
 			}
 			owned, exErr := s.userTerminalRepo.Exists(ctx, userID, id)
 			if exErr != nil {
 				return uuid.Nil, exErr
 			}
 			if !owned {
-				return uuid.Nil, ErrTerminalNotOwned
+				return uuid.Nil, errorsService.ErrTerminalNotOwned
 			}
 			if _, err := s.busTerminalRepo.GetByUUID(ctx, id); err != nil {
 				if errors.Is(err, repository.ErrNotFound) {
-					return uuid.Nil, ErrTerminalNotFound
+					return uuid.Nil, errorsService.ErrTerminalNotFound
 				}
 				return uuid.Nil, err
 			}
@@ -748,15 +749,15 @@ func (s *notificationService) resolveTerminalForBusDelay(
 		}
 	case "super_admin":
 		if uuidTerminal == "" {
-			return uuid.Nil, ErrBusDelayTerminalUUIDRequired
+			return uuid.Nil, errorsService.ErrBusDelayTerminalUUIDRequired
 		}
 		id, err := uuid.Parse(uuidTerminal)
 		if err != nil {
-			return uuid.Nil, ErrInvalidTerminalUUID
+			return uuid.Nil, errorsService.ErrInvalidTerminalUUID
 		}
 		if _, err := s.busTerminalRepo.GetByUUID(ctx, id); err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
-				return uuid.Nil, ErrTerminalNotFound
+				return uuid.Nil, errorsService.ErrTerminalNotFound
 			}
 			return uuid.Nil, err
 		}

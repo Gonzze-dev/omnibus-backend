@@ -17,6 +17,7 @@ import (
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/repository"
 	"tesina/backend/internal/validators"
+	errorsService "tesina/backend/internal/errors"
 )
 
 const (
@@ -144,7 +145,7 @@ func (s *passwordRecoveryService) ResetPasswordWithToken(ctx context.Context, to
 	user, err := s.userRepo.GetByUUID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return ErrInvalidPasswordResetToken
+			return errorsService.ErrInvalidPasswordResetToken
 		}
 		return err
 	}
@@ -180,7 +181,7 @@ func signPasswordResetToken(userID uuid.UUID, secret string) (string, error) {
 
 func parsePasswordResetToken(tokenString, secret string) (uuid.UUID, time.Time, error) {
 	if secret == "" {
-		return uuid.Nil, time.Time{}, ErrInvalidPasswordResetToken
+		return uuid.Nil, time.Time{}, errorsService.ErrInvalidPasswordResetToken
 	}
 	claims := &PasswordResetClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (any, error) {
@@ -190,13 +191,13 @@ func parsePasswordResetToken(tokenString, secret string) (uuid.UUID, time.Time, 
 		return []byte(secret), nil
 	})
 	if err != nil || !token.Valid {
-		return uuid.Nil, time.Time{}, ErrInvalidPasswordResetToken
+		return uuid.Nil, time.Time{}, errorsService.ErrInvalidPasswordResetToken
 	}
 	if claims.UserID == uuid.Nil {
-		return uuid.Nil, time.Time{}, ErrInvalidPasswordResetToken
+		return uuid.Nil, time.Time{}, errorsService.ErrInvalidPasswordResetToken
 	}
 	if claims.ExpiresAt == nil || time.Now().After(claims.ExpiresAt.Time) {
-		return uuid.Nil, time.Time{}, ErrInvalidPasswordResetToken
+		return uuid.Nil, time.Time{}, errorsService.ErrInvalidPasswordResetToken
 	}
 	return claims.UserID, claims.ExpiresAt.Time, nil
 }

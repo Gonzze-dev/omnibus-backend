@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-
+	errorsService "tesina/backend/internal/errors"
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/repository"
 	"tesina/backend/internal/validators"
@@ -77,7 +77,7 @@ func (s *adminService) GetCity(ctx context.Context, postalCode string) (models.C
 	city, err := s.cityRepo.GetByPostalCode(ctx, postalCode)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.City{}, ErrCityNotFound
+			return models.City{}, errorsService.ErrCityNotFound
 		}
 		return models.City{}, err
 	}
@@ -90,7 +90,7 @@ func (s *adminService) CreateCity(ctx context.Context, req models.CreateCityRequ
 	}
 
 	if _, err := s.cityRepo.GetByPostalCode(ctx, req.PostalCode); err == nil {
-		return models.City{}, ErrCityAlreadyExists
+		return models.City{}, errorsService.ErrCityAlreadyExists
 	}
 
 	city := models.City{
@@ -107,7 +107,7 @@ func (s *adminService) UpdateCity(ctx context.Context, postalCode string, req mo
 	city, err := s.cityRepo.GetByPostalCode(ctx, postalCode)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.City{}, ErrCityNotFound
+			return models.City{}, errorsService.ErrCityNotFound
 		}
 		return models.City{}, err
 	}
@@ -118,7 +118,7 @@ func (s *adminService) UpdateCity(ctx context.Context, postalCode string, req mo
 
 	if req.PostalCode != nil && *req.PostalCode != postalCode {
 		if _, err := s.cityRepo.GetByPostalCode(ctx, *req.PostalCode); err == nil {
-			return models.City{}, ErrCityAlreadyExists
+			return models.City{}, errorsService.ErrCityAlreadyExists
 		}
 
 		if err := s.cityRepo.Update(ctx, &city); err != nil {
@@ -141,7 +141,7 @@ func (s *adminService) UpdateCity(ctx context.Context, postalCode string, req mo
 func (s *adminService) DeleteCity(ctx context.Context, postalCode string) error {
 	if _, err := s.cityRepo.GetByPostalCode(ctx, postalCode); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return ErrCityNotFound
+			return errorsService.ErrCityNotFound
 		}
 		return err
 	}
@@ -156,7 +156,7 @@ func (s *adminService) verifyTerminalOwnership(ctx context.Context, adminID, bus
 		return err
 	}
 	if !exists {
-		return ErrTerminalNotOwned
+		return errorsService.ErrTerminalNotOwned
 	}
 	return nil
 }
@@ -166,7 +166,7 @@ func (s *adminService) ListAllPlatforms(ctx context.Context, busTerminalID *uuid
 		bt, err := s.busTerminalRepo.GetByUUIDWithPlatforms(ctx, *busTerminalID)
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
-				return nil, ErrTerminalNotFound
+				return nil, errorsService.ErrTerminalNotFound
 			}
 			return nil, err
 		}
@@ -189,7 +189,7 @@ func (s *adminService) ListPlatforms(ctx context.Context, adminID uuid.UUID, bus
 		bt, err := s.busTerminalRepo.GetByUUIDWithPlatforms(ctx, *busTerminalID)
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
-				return nil, ErrTerminalNotFound
+				return nil, errorsService.ErrTerminalNotFound
 			}
 			return nil, err
 		}
@@ -217,7 +217,7 @@ func (s *adminService) GetPlatformByCode(ctx context.Context, code int) (models.
 	platform, err := s.platformRepo.GetByCode(ctx, code)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.BusTerminalWithPlatformsResponse{}, ErrPlatformNotFound
+			return models.BusTerminalWithPlatformsResponse{}, errorsService.ErrPlatformNotFound
 		}
 		return models.BusTerminalWithPlatformsResponse{}, err
 	}
@@ -235,7 +235,7 @@ func (s *adminService) GetPlatform(ctx context.Context, adminID uuid.UUID, code 
 	platform, err := s.platformRepo.GetByCode(ctx, code)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.BusTerminalWithPlatformsResponse{}, ErrPlatformNotFound
+			return models.BusTerminalWithPlatformsResponse{}, errorsService.ErrPlatformNotFound
 		}
 		return models.BusTerminalWithPlatformsResponse{}, err
 	}
@@ -260,7 +260,7 @@ func (s *adminService) CreatePlatformDirect(ctx context.Context, req models.Crea
 
 	if _, err := s.busTerminalRepo.GetByUUID(ctx, req.BusTerminalID); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.Platform{}, ErrTerminalNotFound
+			return models.Platform{}, errorsService.ErrTerminalNotFound
 		}
 		return models.Platform{}, err
 	}
@@ -300,7 +300,7 @@ func (s *adminService) UpdatePlatformByCode(ctx context.Context, code int, req m
 	platform, err := s.platformRepo.GetByCode(ctx, code)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.Platform{}, ErrPlatformNotFound
+			return models.Platform{}, errorsService.ErrPlatformNotFound
 		}
 		return models.Platform{}, err
 	}
@@ -322,7 +322,7 @@ func (s *adminService) UpdatePlatform(ctx context.Context, adminID uuid.UUID, co
 	platform, err := s.platformRepo.GetByCode(ctx, code)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.Platform{}, ErrPlatformNotFound
+			return models.Platform{}, errorsService.ErrPlatformNotFound
 		}
 		return models.Platform{}, err
 	}
@@ -347,7 +347,7 @@ func (s *adminService) UpdatePlatform(ctx context.Context, adminID uuid.UUID, co
 func (s *adminService) DeletePlatformByCode(ctx context.Context, code int) error {
 	if _, err := s.platformRepo.GetByCode(ctx, code); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return ErrPlatformNotFound
+			return errorsService.ErrPlatformNotFound
 		}
 		return err
 	}
@@ -358,7 +358,7 @@ func (s *adminService) DeletePlatform(ctx context.Context, adminID uuid.UUID, co
 	platform, err := s.platformRepo.GetByCode(ctx, code)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return ErrPlatformNotFound
+			return errorsService.ErrPlatformNotFound
 		}
 		return err
 	}
@@ -382,7 +382,7 @@ func (s *adminService) GetUserByEmail(ctx context.Context, email string) (models
 	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.AdminUserByEmailResponse{}, ErrUserNotFound
+			return models.AdminUserByEmailResponse{}, errorsService.ErrUserNotFound
 		}
 		return models.AdminUserByEmailResponse{}, err
 	}
@@ -419,7 +419,7 @@ func (s *adminService) PromoteToAdminDirect(ctx context.Context, req models.Prom
 
 	if _, err := s.busTerminalRepo.GetByUUID(ctx, req.BusTerminalID); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.UserResponse{}, ErrTerminalNotFound
+			return models.UserResponse{}, errorsService.ErrTerminalNotFound
 		}
 		return models.UserResponse{}, err
 	}
@@ -427,18 +427,18 @@ func (s *adminService) PromoteToAdminDirect(ctx context.Context, req models.Prom
 	user, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.UserResponse{}, ErrUserNotFound
+			return models.UserResponse{}, errorsService.ErrUserNotFound
 		}
 		return models.UserResponse{}, err
 	}
 
 	if user.Rol != nil && user.Rol.Name == "super_admin" {
-		return models.UserResponse{}, ErrAlreadySuperAdmin
+		return models.UserResponse{}, errorsService.ErrAlreadySuperAdmin
 	}
 
 	adminRol, err := s.rolRepo.GetByName(ctx, "admin")
 	if err != nil {
-		return models.UserResponse{}, fmt.Errorf("%w: %w", ErrRolNotFound, err)
+		return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
 	}
 
 	user.RolID = adminRol.UUID
@@ -473,18 +473,18 @@ func (s *adminService) PromoteToAdmin(ctx context.Context, adminID uuid.UUID, re
 	user, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.UserResponse{}, ErrUserNotFound
+			return models.UserResponse{}, errorsService.ErrUserNotFound
 		}
 		return models.UserResponse{}, err
 	}
 
 	adminRol, err := s.rolRepo.GetByName(ctx, "admin")
 	if err != nil {
-		return models.UserResponse{}, fmt.Errorf("%w: %w", ErrRolNotFound, err)
+		return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
 	}
 
 	if user.Rol != nil && user.Rol.Name == "super_admin" {
-		return models.UserResponse{}, ErrAlreadySuperAdmin
+		return models.UserResponse{}, errorsService.ErrAlreadySuperAdmin
 	}
 
 	user.RolID = adminRol.UUID
@@ -515,13 +515,13 @@ func (s *adminService) DemoteAdminDirect(ctx context.Context, req models.DemoteA
 	user, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.UserResponse{}, ErrUserNotFound
+			return models.UserResponse{}, errorsService.ErrUserNotFound
 		}
 		return models.UserResponse{}, err
 	}
 
 	if user.Rol == nil || user.Rol.Name != "admin" {
-		return models.UserResponse{}, ErrNotAdmin
+		return models.UserResponse{}, errorsService.ErrNotAdmin
 	}
 
 	if err := s.userTerminalRepo.Delete(ctx, user.UUID, req.BusTerminalID); err != nil {
@@ -536,7 +536,7 @@ func (s *adminService) DemoteAdminDirect(ctx context.Context, req models.DemoteA
 	if len(remaining) == 0 {
 		userRol, err := s.rolRepo.GetByName(ctx, "user")
 		if err != nil {
-			return models.UserResponse{}, fmt.Errorf("%w: %w", ErrRolNotFound, err)
+			return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
 		}
 		user.RolID = userRol.UUID
 		user.Rol = &userRol
@@ -560,17 +560,17 @@ func (s *adminService) DemoteAdmin(ctx context.Context, adminID uuid.UUID, req m
 	user, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.UserResponse{}, ErrUserNotFound
+			return models.UserResponse{}, errorsService.ErrUserNotFound
 		}
 		return models.UserResponse{}, err
 	}
 
 	if user.UUID == adminID {
-		return models.UserResponse{}, ErrCannotDemoteSelf
+		return models.UserResponse{}, errorsService.ErrCannotDemoteSelf
 	}
 
 	if user.Rol == nil || user.Rol.Name != "admin" {
-		return models.UserResponse{}, ErrNotAdmin
+		return models.UserResponse{}, errorsService.ErrNotAdmin
 	}
 
 	if err := s.userTerminalRepo.Delete(ctx, user.UUID, req.BusTerminalID); err != nil {
@@ -585,7 +585,7 @@ func (s *adminService) DemoteAdmin(ctx context.Context, adminID uuid.UUID, req m
 	if len(remaining) == 0 {
 		userRol, err := s.rolRepo.GetByName(ctx, "user")
 		if err != nil {
-			return models.UserResponse{}, fmt.Errorf("%w: %w", ErrRolNotFound, err)
+			return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
 		}
 		user.RolID = userRol.UUID
 		user.Rol = &userRol

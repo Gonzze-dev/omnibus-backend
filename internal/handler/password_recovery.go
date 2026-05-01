@@ -10,6 +10,7 @@ import (
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/service"
 	"tesina/backend/internal/validators"
+	errorsService "tesina/backend/internal/errors"
 )
 
 type PasswordRecoveryHandler struct {
@@ -81,7 +82,7 @@ func mapPasswordRecoveryError(err error) error {
 		errors.Is(err, validators.ErrPasswordRequired),
 		errors.Is(err, validators.ErrTokenRequired):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	case errors.Is(err, service.ErrInvalidPasswordResetToken):
+	case errors.Is(err, errorsService.ErrInvalidPasswordResetToken):
 		return echo.NewHTTPError(http.StatusUnauthorized, "invalid or expired token")
 	default:
 		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")

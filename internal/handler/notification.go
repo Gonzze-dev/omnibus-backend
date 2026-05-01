@@ -12,6 +12,7 @@ import (
 	"tesina/backend/internal/repository"
 	"tesina/backend/internal/service"
 	"tesina/backend/internal/validators"
+	errorsService "tesina/backend/internal/errors"
 )
 
 type NotificationHandler struct {
@@ -131,7 +132,7 @@ func mapGetNotificationsError(err error) error {
 		errors.Is(err, validators.ErrInvalidStartDate),
 		errors.Is(err, validators.ErrInvalidEndDate),
 		errors.Is(err, validators.ErrEndDateBeforeStart),
-		errors.Is(err, service.ErrAdminNoTerminal):
+		errors.Is(err, errorsService.ErrAdminNoTerminal):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	default:
 		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
@@ -167,9 +168,9 @@ func mapNotificationError(err error) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case errors.Is(err, repository.ErrNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, "platform not found")
-	case errors.Is(err, service.ErrPlatformMissingTerminal):
+	case errors.Is(err, errorsService.ErrPlatformMissingTerminal):
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-	case errors.Is(err, service.ErrNotification):
+	case errors.Is(err, errorsService.ErrNotification):
 		return echo.NewHTTPError(http.StatusBadGateway, "failed to notify passengers")
 	default:
 		return err
@@ -180,22 +181,22 @@ func mapAdminLocalNotificationError(err error) error {
 	switch {
 	case errors.Is(err, validators.ErrNotificationTypeInvalid),
 		errors.Is(err, validators.ErrNotificationMessageEmpty),
-		errors.Is(err, service.ErrTerminalUUIDRequired),
-		errors.Is(err, service.ErrTerminalUUIDRequiredMultiAdmin),
-		errors.Is(err, service.ErrInvalidTerminalUUID),
+		errors.Is(err, errorsService.ErrTerminalUUIDRequired),
+		errors.Is(err, errorsService.ErrTerminalUUIDRequiredMultiAdmin),
+		errors.Is(err, errorsService.ErrInvalidTerminalUUID),
 		errors.Is(err, validators.ErrNotificationPayloadInvalidJSON),
 		errors.Is(err, validators.ErrNotificationPayloadEmpty),
 		errors.Is(err, validators.ErrNotificationTimeLifeInvalid):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case errors.Is(err, validators.ErrNotificationGlobalSuperAdminOnly):
 		return echo.NewHTTPError(http.StatusForbidden, err.Error())
-	case errors.Is(err, service.ErrTerminalNotOwned):
+	case errors.Is(err, errorsService.ErrTerminalNotOwned):
 		return echo.NewHTTPError(http.StatusForbidden, err.Error())
-	case errors.Is(err, service.ErrTerminalNotFound):
+	case errors.Is(err, errorsService.ErrTerminalNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, err.Error())
-	case errors.Is(err, service.ErrAdminNoTerminal):
+	case errors.Is(err, errorsService.ErrAdminNoTerminal):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	case errors.Is(err, service.ErrNotification):
+	case errors.Is(err, errorsService.ErrNotification):
 		return echo.NewHTTPError(http.StatusBadGateway, "failed to send notification")
 	default:
 		return err
@@ -212,9 +213,9 @@ func mapCameraErrorNotifyError(err error) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case errors.Is(err, repository.ErrNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, "platform not found")
-	case errors.Is(err, service.ErrPlatformMissingTerminal):
+	case errors.Is(err, errorsService.ErrPlatformMissingTerminal):
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-	case errors.Is(err, service.ErrNotification):
+	case errors.Is(err, errorsService.ErrNotification):
 		return echo.NewHTTPError(http.StatusBadGateway, "failed to notify admins")
 	default:
 		return err
@@ -245,12 +246,12 @@ func (h *NotificationHandler) DeleteNotification(c echo.Context) error {
 
 func mapDeleteNotificationError(err error) error {
 	switch {
-	case errors.Is(err, service.ErrUserCannotDeleteNotification),
-		errors.Is(err, service.ErrNotificationDeleteForbidden):
+	case errors.Is(err, errorsService.ErrUserCannotDeleteNotification),
+		errors.Is(err, errorsService.ErrNotificationDeleteForbidden):
 		return echo.NewHTTPError(http.StatusForbidden, err.Error())
-	case errors.Is(err, service.ErrNotificationNotFound):
+	case errors.Is(err, errorsService.ErrNotificationNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, err.Error())
-	case errors.Is(err, service.ErrAdminNoTerminal):
+	case errors.Is(err, errorsService.ErrAdminNoTerminal):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	default:
 		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
@@ -263,24 +264,24 @@ func mapNotifyBusDelayError(err error) error {
 		errors.Is(err, validators.ErrBusDelayLicensePatentRequired),
 		errors.Is(err, validators.ErrBusDelayStartDateRequired),
 		errors.Is(err, validators.ErrBusDelayTimeDelayInvalid),
-		errors.Is(err, service.ErrBusDelayTerminalUUIDRequired),
-		errors.Is(err, service.ErrInvalidTerminalUUID),
+		errors.Is(err, errorsService.ErrBusDelayTerminalUUIDRequired),
+		errors.Is(err, errorsService.ErrInvalidTerminalUUID),
 		errors.Is(err, validators.ErrNotificationTimeLifeInvalid):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	case errors.Is(err, service.ErrTerminalNotOwned):
+	case errors.Is(err, errorsService.ErrTerminalNotOwned):
 		return echo.NewHTTPError(http.StatusForbidden, err.Error())
-	case errors.Is(err, service.ErrTerminalNotFound):
+	case errors.Is(err, errorsService.ErrTerminalNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, err.Error())
-	case errors.Is(err, service.ErrAdminNoTerminal):
+	case errors.Is(err, errorsService.ErrAdminNoTerminal):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	case errors.Is(err, service.ErrExternalTerminalNotConfigured),
-		errors.Is(err, service.ErrTripNotRegistered):
+	case errors.Is(err, errorsService.ErrExternalTerminalNotConfigured),
+		errors.Is(err, errorsService.ErrTripNotRegistered):
 		return echo.NewHTTPError(http.StatusConflict, err.Error())
-	case errors.Is(err, service.ErrExternalTerminalIDRequired),
-		errors.Is(err, service.ErrUpstreamRequest),
-		errors.Is(err, service.ErrUpstreamResponse):
+	case errors.Is(err, errorsService.ErrExternalTerminalIDRequired),
+		errors.Is(err, errorsService.ErrUpstreamRequest),
+		errors.Is(err, errorsService.ErrUpstreamResponse):
 		return echo.NewHTTPError(http.StatusBadGateway, err.Error())
-	case errors.Is(err, service.ErrNotification):
+	case errors.Is(err, errorsService.ErrNotification):
 		return echo.NewHTTPError(http.StatusBadGateway, "failed to send bus delay notification")
 	default:
 		return err

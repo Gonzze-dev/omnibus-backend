@@ -15,6 +15,7 @@ import (
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/repository"
 	"tesina/backend/internal/validators"
+	errorsService "tesina/backend/internal/errors"
 )
 
 const (
@@ -56,16 +57,16 @@ func (s *authService) Register(ctx context.Context, req models.CreateUserRequest
 	}
 
 	if _, err := s.userRepo.GetByEmail(ctx, req.Email); err == nil {
-		return models.UserResponse{}, ErrEmailAlreadyExists
+		return models.UserResponse{}, errorsService.ErrEmailAlreadyExists
 	}
 
 	if _, err := s.userRepo.GetByDNI(ctx, req.DNI); err == nil {
-		return models.UserResponse{}, ErrDNIAlreadyExists
+		return models.UserResponse{}, errorsService.ErrDNIAlreadyExists
 	}
 
 	rol, err := s.rolRepo.GetByName(ctx, "user")
 	if err != nil {
-		return models.UserResponse{}, fmt.Errorf("%w: %w", ErrRolNotFound, err)
+		return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
@@ -100,13 +101,13 @@ func (s *authService) Login(ctx context.Context, req models.LoginRequest) (model
 	user, err := s.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.LoginResponse{}, ErrInvalidCredentials
+			return models.LoginResponse{}, errorsService.ErrInvalidCredentials
 		}
 		return models.LoginResponse{}, err
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		return models.LoginResponse{}, ErrInvalidCredentials
+		return models.LoginResponse{}, errorsService.ErrInvalidCredentials
 	}
 
 	roleName := ""
@@ -149,17 +150,17 @@ func (s *authService) RefreshToken(ctx context.Context, req models.RefreshTokenR
 
 	stored, err := s.refreshTokenRepo.GetByToken(ctx, hashedIncoming)
 	if err != nil {
-		return models.RefreshTokenResponse{}, ErrInvalidRefreshToken
+		return models.RefreshTokenResponse{}, errorsService.ErrInvalidRefreshToken
 	}
 
 	if time.Now().After(stored.ExpiryDate) {
 		_ = s.refreshTokenRepo.DeleteByUserID(ctx, stored.UserID)
-		return models.RefreshTokenResponse{}, ErrInvalidRefreshToken
+		return models.RefreshTokenResponse{}, errorsService.ErrInvalidRefreshToken
 	}
 
 	user, err := s.userRepo.GetByUUID(ctx, stored.UserID)
 	if err != nil {
-		return models.RefreshTokenResponse{}, ErrUserNotFound
+		return models.RefreshTokenResponse{}, errorsService.ErrUserNotFound
 	}
 
 	roleName := ""
@@ -201,7 +202,7 @@ func (s *authService) Logout(ctx context.Context, req models.LogoutRequest) erro
 
 	stored, err := s.refreshTokenRepo.GetByToken(ctx, hashedIncoming)
 	if err != nil {
-		return ErrInvalidRefreshToken
+		return errorsService.ErrInvalidRefreshToken
 	}
 
 	return s.refreshTokenRepo.DeleteByUserID(ctx, stored.UserID)

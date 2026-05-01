@@ -11,6 +11,7 @@ import (
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/repository"
 	"tesina/backend/internal/validators"
+	errorsService "tesina/backend/internal/errors"
 )
 
 type UserService interface {
@@ -45,7 +46,7 @@ func (s *userService) GetProfile(ctx context.Context, userID uuid.UUID) (models.
 	user, err := s.userRepo.GetByUUID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.UserResponse{}, ErrUserNotFound
+			return models.UserResponse{},errorsService.ErrUserNotFound
 		}
 		return models.UserResponse{}, err
 	}
@@ -85,7 +86,7 @@ func (s *userService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 	user, err := s.userRepo.GetByUUID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return models.UserResponse{}, ErrUserNotFound
+			return models.UserResponse{}, errorsService.ErrUserNotFound
 		}
 		return models.UserResponse{}, err
 	}
@@ -99,14 +100,14 @@ func (s *userService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 	if req.Email != nil {
 		existing, err := s.userRepo.GetByEmail(ctx, *req.Email)
 		if err == nil && existing.UUID != userID {
-			return models.UserResponse{}, ErrEmailAlreadyExists
+			return models.UserResponse{}, errorsService.ErrEmailAlreadyExists
 		}
 		user.Email = *req.Email
 	}
 	if req.DNI != nil {
 		existing, err := s.userRepo.GetByDNI(ctx, *req.DNI)
 		if err == nil && existing.UUID != userID {
-			return models.UserResponse{}, ErrDNIAlreadyExists
+			return models.UserResponse{}, errorsService.ErrDNIAlreadyExists
 		}
 		user.DNI = *req.DNI
 	}
@@ -129,7 +130,7 @@ func (s *userService) DeleteAccount(ctx context.Context, userID uuid.UUID) error
 	_, err := s.userRepo.GetByUUID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return ErrUserNotFound
+			return errorsService.ErrUserNotFound
 		}
 		return err
 	}

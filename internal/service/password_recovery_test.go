@@ -13,6 +13,7 @@ import (
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/repository"
 	"tesina/backend/internal/validators"
+	errorsService "tesina/backend/internal/errors"
 )
 
 func Test_parsePasswordResetToken_roundTrip(t *testing.T) {
@@ -44,8 +45,8 @@ func Test_parsePasswordResetToken_wrongSecret(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, _, err = parsePasswordResetToken(tok, "secret-b")
-	if err != ErrInvalidPasswordResetToken {
-		t.Fatalf("got err %v want ErrInvalidPasswordResetToken", err)
+	if err != errorsService.ErrInvalidPasswordResetToken {
+		t.Fatalf("got err %v want errorsService.ErrInvalidPasswordResetToken", err)
 	}
 }
 
@@ -69,8 +70,8 @@ func Test_parsePasswordResetToken_rejectsSessionJWT(t *testing.T) {
 	}
 
 	_, _, err = parsePasswordResetToken(signed, resetSecret)
-	if err != ErrInvalidPasswordResetToken {
-		t.Fatalf("got %v want ErrInvalidPasswordResetToken", err)
+	if err != errorsService.ErrInvalidPasswordResetToken {
+		t.Fatalf("got %v want errorsService.ErrInvalidPasswordResetToken", err)
 	}
 }
 

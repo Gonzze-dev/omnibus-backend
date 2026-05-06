@@ -45,4 +45,9 @@ var (
 	ErrNotificationNotFound        = errors.New("notification not found")
 	ErrNotificationDeleteForbidden = errors.New("you do not have permission to delete this notification")
 	ErrUserCannotDeleteNotification = errors.New("users cannot delete notifications")
+
+	ErrTripNotFound       = errors.New("trip not found")
+	ErrTerminalIDRequired = errors.New("terminalId is required")
+	ErrTerminalIDInvalid  = errors.New("terminalId must be a valid UUID")
+	ErrTicketRequired     = errors.New("ticket is required")
 )

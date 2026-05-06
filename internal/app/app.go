@@ -23,11 +23,13 @@ type App struct {
 	User             *handler.UserHandler
 	Admin            *handler.AdminHandler
 	SuperAdmin       *handler.SuperAdminHandler
+	Bus              *handler.BusHandler
 }
 
 func New(cfg config.Config, db *gorm.DB) *App {
 	cityRepo := repository.NewCityRepository(db)
 	busTerminalRepo := repository.NewBusTerminalRepository(db)
+	awaitedTripRepo := repository.NewAwaitedTripRepository(db)
 	platformRepo := repository.NewPlatformRepository(db)
 	userRepo := repository.NewUserRepository(db)
 	rolRepo := repository.NewRolRepository(db)
@@ -71,6 +73,8 @@ func New(cfg config.Config, db *gorm.DB) *App {
 		cfg.MailSiteName,
 	)
 
+	busSvc := service.NewBusService(busTerminalRepo, awaitedTripRepo, BusTicketSvc)
+
 	userSvc := service.NewUserService(userRepo, refreshTokenRepo, busTerminalRepo, userTerminalRepo)
 
 	adminSvc := service.NewAdminService(cityRepo, platformRepo, busTerminalRepo, userRepo, rolRepo, userTerminalRepo)
@@ -78,6 +82,7 @@ func New(cfg config.Config, db *gorm.DB) *App {
 
 	return &App{
 		BusTicket:        handler.NewBusTicketHandler(BusTicketSvc),
+		Bus:              handler.NewBusHandler(busSvc),
 		Notification:     handler.NewNotificationHandler(notificationSvc),
 		Auth:             handler.NewAuthHandler(authSvc),
 		PasswordRecovery: handler.NewPasswordRecoveryHandler(recoverySvc),

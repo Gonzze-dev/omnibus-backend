@@ -13,4 +13,7 @@ func registerUser(e *echo.Echo, a *app.App, jwtSecret string) {
 	users.PUT("/me", a.User.UpdateProfile)
 	users.DELETE("/me", a.User.DeleteAccount)
 	users.GET("/terminals", a.User.ListTerminals)
+
+	buses := e.Group("/api/buses", middleware.Auth(jwtSecret))
+	buses.POST("/join", a.Bus.JoinBus)
 }

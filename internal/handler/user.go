@@ -89,15 +89,12 @@ func mapUserError(err error) error {
 		return echo.NewHTTPError(http.StatusNotFound, err.Error())
 	case errors.Is(err, errorsService.ErrEmailAlreadyExists):
 		return echo.NewHTTPError(http.StatusConflict, err.Error())
-	case errors.Is(err, errorsService.ErrDNIAlreadyExists):
-		return echo.NewHTTPError(http.StatusConflict, err.Error())
 	case errors.Is(err, errorsService.ErrMissingFields),
 		errors.Is(err, validators.ErrNoFieldsToUpdate),
 		errors.Is(err, validators.ErrFirstNameEmpty),
 		errors.Is(err, validators.ErrLastNameEmpty),
 		errors.Is(err, validators.ErrEmailEmpty),
-		errors.Is(err, validators.ErrPasswordEmpty),
-		errors.Is(err, validators.ErrDNIEmpty):
+		errors.Is(err, validators.ErrPasswordEmpty):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	default:
 		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")

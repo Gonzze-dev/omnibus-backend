@@ -186,10 +186,6 @@ func (s stubUserRepo) GetByEmail(context.Context, string) (models.User, error) {
 	return s.getByEmailUser, nil
 }
 
-func (s stubUserRepo) GetByDNI(context.Context, string) (models.User, error) {
-	return models.User{}, repository.ErrNotFound
-}
-
 func (s stubUserRepo) Update(_ context.Context, user *models.User) error {
 	if s.updateFn != nil {
 		return s.updateFn(user)

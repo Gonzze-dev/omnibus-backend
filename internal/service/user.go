@@ -104,13 +104,6 @@ func (s *userService) UpdateProfile(ctx context.Context, userID uuid.UUID, req m
 		}
 		user.Email = *req.Email
 	}
-	if req.DNI != nil {
-		existing, err := s.userRepo.GetByDNI(ctx, *req.DNI)
-		if err == nil && existing.UUID != userID {
-			return models.UserResponse{}, errorsService.ErrDNIAlreadyExists
-		}
-		user.DNI = *req.DNI
-	}
 	if req.Password != nil {
 		hashed, err := bcrypt.GenerateFromPassword([]byte(*req.Password), bcrypt.DefaultCost)
 		if err != nil {

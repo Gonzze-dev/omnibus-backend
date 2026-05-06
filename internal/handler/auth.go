@@ -121,8 +121,6 @@ func mapAuthError(err error) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case errors.Is(err, errorsService.ErrEmailAlreadyExists):
 		return echo.NewHTTPError(http.StatusConflict, err.Error())
-	case errors.Is(err, errorsService.ErrDNIAlreadyExists):
-		return echo.NewHTTPError(http.StatusConflict, err.Error())
 	case errors.Is(err, errorsService.ErrInvalidCredentials):
 		return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 	case errors.Is(err, errorsService.ErrInvalidRefreshToken):

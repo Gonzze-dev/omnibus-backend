@@ -12,11 +12,10 @@ var (
 	ErrLastNameEmpty     = errors.New("last_name cannot be empty")
 	ErrEmailEmpty        = errors.New("email cannot be empty")
 	ErrPasswordEmpty     = errors.New("password cannot be empty")
-	ErrDNIEmpty          = errors.New("dni cannot be empty")
 )
 
 func ValidateUpdateUserRequest(req models.UpdateUserRequest) error {
-	if req.FirstName == nil && req.LastName == nil && req.Email == nil && req.Password == nil && req.DNI == nil {
+	if req.FirstName == nil && req.LastName == nil && req.Email == nil && req.Password == nil {
 		return ErrNoFieldsToUpdate
 	}
 	if req.FirstName != nil && *req.FirstName == "" {
@@ -30,9 +29,6 @@ func ValidateUpdateUserRequest(req models.UpdateUserRequest) error {
 	}
 	if req.Password != nil && *req.Password == "" {
 		return ErrPasswordEmpty
-	}
-	if req.DNI != nil && *req.DNI == "" {
-		return ErrDNIEmpty
 	}
 	return nil
 }

@@ -14,7 +14,6 @@ type UserRepository interface {
 	Create(ctx context.Context, user *models.User) error
 	GetByUUID(ctx context.Context, id uuid.UUID) (models.User, error)
 	GetByEmail(ctx context.Context, email string) (models.User, error)
-	GetByDNI(ctx context.Context, dni string) (models.User, error)
 	Update(ctx context.Context, user *models.User) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
@@ -46,18 +45,6 @@ func (r *userRepository) GetByUUID(ctx context.Context, id uuid.UUID) (models.Us
 func (r *userRepository) GetByEmail(ctx context.Context, email string) (models.User, error) {
 	var user models.User
 	err := r.db.WithContext(ctx).Preload("Rol").Where("email = ?", email).First(&user).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return models.User{}, ErrNotFound
-		}
-		return models.User{}, err
-	}
-	return user, nil
-}
-
-func (r *userRepository) GetByDNI(ctx context.Context, dni string) (models.User, error) {
-	var user models.User
-	err := r.db.WithContext(ctx).Preload("Rol").Where("dni = ?", dni).First(&user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return models.User{}, ErrNotFound

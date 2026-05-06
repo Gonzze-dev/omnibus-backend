@@ -60,10 +60,6 @@ func (s *authService) Register(ctx context.Context, req models.CreateUserRequest
 		return models.UserResponse{}, errorsService.ErrEmailAlreadyExists
 	}
 
-	if _, err := s.userRepo.GetByDNI(ctx, req.DNI); err == nil {
-		return models.UserResponse{}, errorsService.ErrDNIAlreadyExists
-	}
-
 	rol, err := s.rolRepo.GetByName(ctx, "user")
 	if err != nil {
 		return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
@@ -80,7 +76,6 @@ func (s *authService) Register(ctx context.Context, req models.CreateUserRequest
 		LastName:  req.LastName,
 		Email:     req.Email,
 		Password:  string(hashedPassword),
-		DNI:       req.DNI,
 		RolID:     rol.UUID,
 	}
 

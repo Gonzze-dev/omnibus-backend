@@ -10,7 +10,6 @@ var (
 	ErrPasswordRequired     = errors.New("password is required")
 	ErrFirstNameRequired    = errors.New("first_name is required")
 	ErrLastNameRequired     = errors.New("last_name is required")
-	ErrDNIRequired          = errors.New("dni is required")
 	ErrRefreshTokenRequired = errors.New("refresh_token is required")
 )
 
@@ -26,9 +25,6 @@ func ValidateCreateUserRequest(req models.CreateUserRequest) error {
 	}
 	if req.LastName == "" {
 		return ErrLastNameRequired
-	}
-	if req.DNI == "" {
-		return ErrDNIRequired
 	}
 	return nil
 }

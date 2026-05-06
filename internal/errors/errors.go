@@ -12,7 +12,6 @@ var (
 	ErrNotification            = errors.New("failed to send notification")
 
 	ErrEmailAlreadyExists        = errors.New("email already exists")
-	ErrDNIAlreadyExists          = errors.New("dni already exists")
 	ErrInvalidCredentials        = errors.New("invalid email or password")
 	ErrInvalidRefreshToken       = errors.New("invalid or expired refresh token")
 	ErrInvalidPasswordResetToken = errors.New("invalid or expired password reset token")

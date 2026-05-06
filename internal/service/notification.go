@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 
+	"tesina/backend/internal/mail"
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/realtime"
 	"tesina/backend/internal/repository"
@@ -38,9 +40,12 @@ type notificationService struct {
 	userTerminalRepo     repository.UserTerminalRepository
 	busTerminalRepo      repository.BusTerminalRepository
 	notificationRepo     repository.NotificationRepository
+	awaitedTripRepo      repository.AwaitedTripRepository
 	notifier             RealtimeNotifier
 	hubMethods           realtime.RealtimeHubMethods
 	BusTicketSvc         BusTicketService
+	mailer               *mail.Mailer
+	mailSiteName         string
 }
 
 func NewNotificationService(
@@ -48,18 +53,24 @@ func NewNotificationService(
 	userTerminalRepo repository.UserTerminalRepository,
 	busTerminalRepo repository.BusTerminalRepository,
 	notificationRepo repository.NotificationRepository,
+	awaitedTripRepo repository.AwaitedTripRepository,
 	notifier RealtimeNotifier,
 	hubMethods realtime.RealtimeHubMethods,
 	BusTicketSvc BusTicketService,
+	mailer *mail.Mailer,
+	mailSiteName string,
 ) *notificationService {
 	return &notificationService{
 		platformRepo:         platformRepo,
 		userTerminalRepo:     userTerminalRepo,
 		busTerminalRepo:      busTerminalRepo,
 		notificationRepo:     notificationRepo,
+		awaitedTripRepo:      awaitedTripRepo,
 		notifier:             notifier,
 		hubMethods:           hubMethods,
 		BusTicketSvc:         BusTicketSvc,
+		mailer:               mailer,
+		mailSiteName:         mailSiteName,
 	}
 }
 
@@ -139,9 +150,67 @@ func (s *notificationService) NotifyPassengers(ctx context.Context, req models.N
 		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 
+	if s.mailer != nil {
+		go s.sendBusArrivalEmails(groupKey, req.LicensePatent, platform.Anden, platform.Coordinates)
+	}
+
 	return models.NotifyPassengersResponse{
 		Message: "passengers notified successfully",
 	}, nil
+}
+
+func (s *notificationService) sendBusArrivalEmails(groupKey, licensePatent, anden string, coordinates json.RawMessage) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	emails, err := s.awaitedTripRepo.GetEmailsByGroupKey(ctx, groupKey)
+	if err != nil {
+		log.Printf("bus arrival email: query emails for group %q: %v", groupKey, err)
+		return
+	}
+	if len(emails) == 0 {
+		return
+	}
+
+	if err := s.awaitedTripRepo.DeleteByGroupKey(ctx, groupKey); err != nil {
+		log.Printf("bus arrival email: delete awaited_trip for group %q: %v", groupKey, err)
+	}
+
+	body, err := mail.RenderBusArrivalHTML(mail.BusArrivalEmailData{
+		SiteName:      s.mailSiteName,
+		LicensePatent: licensePatent,
+		Anden:         anden,
+		MapsURL:       mapsURLFromCoords(coordinates),
+	})
+	if err != nil {
+		log.Printf("bus arrival email: render template: %v", err)
+		return
+	}
+
+	for _, email := range emails {
+		if err := s.mailer.Send(mail.SendOptions{
+			To:      []string{email},
+			Subject: "Tu bus ha llegado",
+			Body:    body,
+			IsHTML:  true,
+		}); err != nil {
+			log.Printf("bus arrival email: send to %s: %v", email, err)
+		}
+	}
+}
+
+func mapsURLFromCoords(coordinates json.RawMessage) string {
+	if len(coordinates) == 0 {
+		return ""
+	}
+	var c struct {
+		Lat float64 `json:"lat"`
+		Lng float64 `json:"lng"`
+	}
+	if err := json.Unmarshal(coordinates, &c); err != nil || (c.Lat == 0 && c.Lng == 0) {
+		return ""
+	}
+	return fmt.Sprintf("https://www.google.com/maps?q=%.6f,%.6f", c.Lat, c.Lng)
 }
 
 func (s *notificationService) SendAdminNotification(

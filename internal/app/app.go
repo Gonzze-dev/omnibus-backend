@@ -43,11 +43,6 @@ func New(cfg config.Config, db *gorm.DB) *App {
 	}
 	BusTicketSvc := service.NewBusTicketService(httpClient, cfg.ExternalTerminalUpstreamURL)
 
-	signalRClient := realtime.NewClient(cfg.RealtimeURL, cfg.RealtimeAPIKey)
-	notificationSvc := service.NewNotificationService(platformRepo, userTerminalRepo, busTerminalRepo, notificationRepo, signalRClient, realtimeHubMethods.DefaultRealtimeHubMethods(), BusTicketSvc)
-
-	authSvc := service.NewAuthService(userRepo, rolRepo, refreshTokenRepo, cfg.JWTSecret)
-
 	var smtpMailer *mail.Mailer
 	if cfg.SMTPHost != "" {
 		m, err := mail.New(mail.Config{
@@ -63,6 +58,11 @@ func New(cfg config.Config, db *gorm.DB) *App {
 			smtpMailer = m
 		}
 	}
+
+	signalRClient := realtime.NewClient(cfg.RealtimeURL, cfg.RealtimeAPIKey)
+	notificationSvc := service.NewNotificationService(platformRepo, userTerminalRepo, busTerminalRepo, notificationRepo, awaitedTripRepo, signalRClient, realtimeHubMethods.DefaultRealtimeHubMethods(), BusTicketSvc, smtpMailer, cfg.MailSiteName)
+
+	authSvc := service.NewAuthService(userRepo, rolRepo, refreshTokenRepo, cfg.JWTSecret)
 
 	recoverySvc := service.NewPasswordRecoveryService(
 		userRepo,

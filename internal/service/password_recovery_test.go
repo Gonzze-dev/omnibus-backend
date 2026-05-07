@@ -12,6 +12,7 @@ import (
 	"tesina/backend/internal/middleware"
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/repository"
+	"tesina/backend/internal/roles"
 	"tesina/backend/internal/validators"
 	errorsService "tesina/backend/internal/errors"
 )
@@ -57,7 +58,7 @@ func Test_parsePasswordResetToken_rejectsSessionJWT(t *testing.T) {
 
 	claims := middleware.JWTClaims{
 		UserID: uuid.New(),
-		Role:   "user",
+		Role:   roles.User,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

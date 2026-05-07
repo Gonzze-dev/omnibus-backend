@@ -14,6 +14,7 @@ import (
 	"tesina/backend/internal/middleware"
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/repository"
+	"tesina/backend/internal/roles"
 	"tesina/backend/internal/validators"
 	errorsService "tesina/backend/internal/errors"
 )
@@ -60,7 +61,7 @@ func (s *authService) Register(ctx context.Context, req models.CreateUserRequest
 		return models.UserResponse{}, errorsService.ErrEmailAlreadyExists
 	}
 
-	rol, err := s.rolRepo.GetByName(ctx, "user")
+	rol, err := s.rolRepo.GetByName(ctx, roles.User)
 	if err != nil {
 		return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
 	}

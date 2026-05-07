@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"tesina/backend/internal/models"
+	"tesina/backend/internal/roles"
 )
 
 var (
@@ -60,7 +61,7 @@ func ValidateNotifyPassengersRequest(req models.NotifyPassengersRequest) (int, e
 // ValidateAdminGlobalNotification validates the role and payload for a global notification.
 // Returns the parsed time_life on success.
 func ValidateAdminGlobalNotification(role string, payloadRaw json.RawMessage) (int, error) {
-	if role != "super_admin" {
+	if role != roles.SuperAdmin {
 		return 0, ErrNotificationGlobalSuperAdminOnly
 	}
 	trimmed := bytes.TrimSpace(payloadRaw)

@@ -10,6 +10,7 @@ import (
 
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/repository"
+	"tesina/backend/internal/roles"
 	"tesina/backend/internal/validators"
 	errorsService "tesina/backend/internal/errors"
 )
@@ -51,7 +52,7 @@ func (s *userService) GetProfile(ctx context.Context, userID uuid.UUID) (models.
 		return models.UserResponse{}, err
 	}
 	resp := models.ToUserResponse(user)
-	if user.Rol != nil && user.Rol.Name == "admin" {
+	if user.Rol != nil && user.Rol.Name == roles.Admin {
 		uts, err := s.userTerminalRepo.GetByUserID(ctx, userID)
 		if err != nil {
 			return models.UserResponse{}, err

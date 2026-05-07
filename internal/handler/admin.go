@@ -9,6 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 	errorsService "tesina/backend/internal/errors"
 	"tesina/backend/internal/models"
+	"tesina/backend/internal/roles"
 	"tesina/backend/internal/service"
 	"tesina/backend/internal/validators"
 )
@@ -88,7 +89,7 @@ func (h *AdminHandler) ListPlatforms(c echo.Context) error {
 	}
 
 	role, _ := c.Get("role").(string)
-	if role == "super_admin" {
+	if role == roles.SuperAdmin {
 		terminals, err := h.svc.ListAllPlatforms(c.Request().Context(), busTerminalID)
 		if err != nil {
 			return mapAdminError(err)
@@ -115,7 +116,7 @@ func (h *AdminHandler) GetPlatform(c echo.Context) error {
 	}
 
 	role, _ := c.Get("role").(string)
-	if role == "super_admin" {
+	if role == roles.SuperAdmin {
 		platform, err := h.svc.GetPlatformByCode(c.Request().Context(), code)
 		if err != nil {
 			return mapAdminError(err)
@@ -142,7 +143,7 @@ func (h *AdminHandler) CreatePlatform(c echo.Context) error {
 	}
 
 	role, _ := c.Get("role").(string)
-	if role == "super_admin" {
+	if role == roles.SuperAdmin {
 		platform, err := h.svc.CreatePlatformDirect(c.Request().Context(), req)
 		if err != nil {
 			return mapAdminError(err)
@@ -174,7 +175,7 @@ func (h *AdminHandler) UpdatePlatform(c echo.Context) error {
 	}
 
 	role, _ := c.Get("role").(string)
-	if role == "super_admin" {
+	if role == roles.SuperAdmin {
 		platform, err := h.svc.UpdatePlatformByCode(c.Request().Context(), code, req)
 		if err != nil {
 			return mapAdminError(err)
@@ -201,7 +202,7 @@ func (h *AdminHandler) DeletePlatform(c echo.Context) error {
 	}
 
 	role, _ := c.Get("role").(string)
-	if role == "super_admin" {
+	if role == roles.SuperAdmin {
 		if err := h.svc.DeletePlatformByCode(c.Request().Context(), code); err != nil {
 			return mapAdminError(err)
 		}
@@ -237,7 +238,7 @@ func (h *AdminHandler) PromoteToAdmin(c echo.Context) error {
 	}
 
 	role, _ := c.Get("role").(string)
-	if role == "super_admin" {
+	if role == roles.SuperAdmin {
 		resp, err := h.svc.PromoteToAdminDirect(c.Request().Context(), req)
 		if err != nil {
 			return mapAdminError(err)
@@ -264,7 +265,7 @@ func (h *AdminHandler) DemoteAdmin(c echo.Context) error {
 	}
 
 	role, _ := c.Get("role").(string)
-	if role == "super_admin" {
+	if role == roles.SuperAdmin {
 		resp, err := h.svc.DemoteAdminDirect(c.Request().Context(), req)
 		if err != nil {
 			return mapAdminError(err)

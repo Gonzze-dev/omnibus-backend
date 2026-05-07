@@ -9,9 +9,11 @@ import (
 
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/repository"
+	"tesina/backend/internal/roles"
 	"tesina/backend/internal/validators"
 	errorsService "tesina/backend/internal/errors"
 )
+
 
 type SuperAdminService interface {
 	// Terminals
@@ -191,11 +193,11 @@ func (s *superAdminService) PromoteToSuper(ctx context.Context, req models.Promo
 		return models.UserResponse{}, err
 	}
 
-	if user.Rol != nil && user.Rol.Name == "super_admin" {
+	if user.Rol != nil && user.Rol.Name == roles.SuperAdmin {
 		return models.UserResponse{}, errorsService.ErrAlreadySuperAdmin
 	}
 
-	superRol, err := s.rolRepo.GetByName(ctx, "super_admin")
+	superRol, err := s.rolRepo.GetByName(ctx, roles.SuperAdmin)
 	if err != nil {
 		return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
 	}
@@ -229,11 +231,11 @@ func (s *superAdminService) DemoteSuper(ctx context.Context, req models.DemoteSu
 		return models.UserResponse{}, err
 	}
 
-	if user.Rol == nil || user.Rol.Name != "super_admin" {
+	if user.Rol == nil || user.Rol.Name != roles.SuperAdmin {
 		return models.UserResponse{}, errorsService.ErrNotSuperAdmin
 	}
 
-	userRol, err := s.rolRepo.GetByName(ctx, "user")
+	userRol, err := s.rolRepo.GetByName(ctx, roles.User)
 	if err != nil {
 		return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
 	}

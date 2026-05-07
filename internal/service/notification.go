@@ -16,6 +16,7 @@ import (
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/realtime"
 	"tesina/backend/internal/repository"
+	"tesina/backend/internal/roles"
 	"tesina/backend/internal/validators"
 	errorsService "tesina/backend/internal/errors"
 )
@@ -76,7 +77,7 @@ func NewNotificationService(
 
 func (s *notificationService) ListAdminSelectableNotificationTypes(_ context.Context, role string) (models.AdminNotificationTypesResponse, error) {
 	switch role {
-	case "super_admin":
+	case roles.SuperAdmin:
 		return models.AdminNotificationTypesResponse{
 			Types: []models.PassengerNotificationType{
 				models.PassengerNotificationLocal,
@@ -84,7 +85,7 @@ func (s *notificationService) ListAdminSelectableNotificationTypes(_ context.Con
 				models.PassengerNotificationBUSDelay,
 			},
 		}, nil
-	case "admin":
+	case roles.Admin:
 		return models.AdminNotificationTypesResponse{
 			Types: []models.PassengerNotificationType{
 				models.PassengerNotificationLocal,
@@ -296,7 +297,7 @@ func (s *notificationService) sendAdminNotificationLocal(
 	var terminalID uuid.UUID
 
 	switch role {
-	case "admin":
+	case roles.Admin:
 		uts, err := s.userTerminalRepo.GetByUserID(ctx, userID)
 		if err != nil {
 			return models.AdminSendNotificationResponse{}, err
@@ -340,7 +341,7 @@ func (s *notificationService) sendAdminNotificationLocal(
 			}
 			terminalID = id
 		}
-	case "super_admin":
+	case roles.SuperAdmin:
 		if queryTerminalUUID == "" {
 			return models.AdminSendNotificationResponse{}, errorsService.ErrTerminalUUIDRequired
 		}
@@ -543,10 +544,10 @@ func (s *notificationService) ListNotifications(ctx context.Context) ([]models.N
 
 func (s *notificationService) DeleteNotification(ctx context.Context, userID uuid.UUID, role string, notificationID uuid.UUID) error {
 	switch role {
-	case "user":
+	case roles.User:
 		return errorsService.ErrUserCannotDeleteNotification
 
-	case "super_admin":
+	case roles.SuperAdmin:
 		n, err := s.notificationRepo.GetByID(ctx, notificationID)
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
@@ -559,7 +560,7 @@ func (s *notificationService) DeleteNotification(ctx context.Context, userID uui
 		}
 		return s.notificationRepo.Delete(ctx, notificationID)
 
-	case "admin":
+	case roles.Admin:
 		n, err := s.notificationRepo.GetByID(ctx, notificationID)
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
@@ -613,13 +614,13 @@ func (s *notificationService) GetNotifications(
 	var f models.NotificationFilters
 
 	switch role {
-	case "super_admin":
+	case roles.SuperAdmin:
 		if params.LicensePlate != "" {
 			plate := normalizeLicensePlateForDelay(params.LicensePlate)
 			f.GroupKeyLike = []string{plate + ":%"}
 		}
 
-	case "admin":
+	case roles.Admin:
 		uts, err := s.userTerminalRepo.GetByUserID(ctx, userID)
 		if err != nil {
 			return models.GetNotificationsResponse{}, err
@@ -773,7 +774,7 @@ func (s *notificationService) resolveTerminalForBusDelay(
 	uuidTerminal string,
 ) (uuid.UUID, error) {
 	switch role {
-	case "admin":
+	case roles.Admin:
 		uts, err := s.userTerminalRepo.GetByUserID(ctx, userID)
 		if err != nil {
 			return uuid.Nil, err
@@ -816,7 +817,7 @@ func (s *notificationService) resolveTerminalForBusDelay(
 			}
 			return id, nil
 		}
-	case "super_admin":
+	case roles.SuperAdmin:
 		if uuidTerminal == "" {
 			return uuid.Nil, errorsService.ErrBusDelayTerminalUUIDRequired
 		}

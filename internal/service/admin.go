@@ -9,6 +9,7 @@ import (
 	errorsService "tesina/backend/internal/errors"
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/repository"
+	"tesina/backend/internal/roles"
 	"tesina/backend/internal/validators"
 )
 
@@ -388,7 +389,7 @@ func (s *adminService) GetUserByEmail(ctx context.Context, email string) (models
 	}
 
 	var terminals []string
-	if user.Rol != nil && user.Rol.Name == "admin" {
+	if user.Rol != nil && user.Rol.Name == roles.Admin {
 		userTerminals, err := s.userTerminalRepo.GetByUserID(ctx, user.UUID)
 		if err != nil {
 			return models.AdminUserByEmailResponse{}, err
@@ -432,11 +433,11 @@ func (s *adminService) PromoteToAdminDirect(ctx context.Context, req models.Prom
 		return models.UserResponse{}, err
 	}
 
-	if user.Rol != nil && user.Rol.Name == "super_admin" {
+	if user.Rol != nil && user.Rol.Name == roles.SuperAdmin {
 		return models.UserResponse{}, errorsService.ErrAlreadySuperAdmin
 	}
 
-	adminRol, err := s.rolRepo.GetByName(ctx, "admin")
+	adminRol, err := s.rolRepo.GetByName(ctx, roles.Admin)
 	if err != nil {
 		return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
 	}
@@ -478,12 +479,12 @@ func (s *adminService) PromoteToAdmin(ctx context.Context, adminID uuid.UUID, re
 		return models.UserResponse{}, err
 	}
 
-	adminRol, err := s.rolRepo.GetByName(ctx, "admin")
+	adminRol, err := s.rolRepo.GetByName(ctx, roles.Admin)
 	if err != nil {
 		return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
 	}
 
-	if user.Rol != nil && user.Rol.Name == "super_admin" {
+	if user.Rol != nil && user.Rol.Name == roles.SuperAdmin {
 		return models.UserResponse{}, errorsService.ErrAlreadySuperAdmin
 	}
 
@@ -520,7 +521,7 @@ func (s *adminService) DemoteAdminDirect(ctx context.Context, req models.DemoteA
 		return models.UserResponse{}, err
 	}
 
-	if user.Rol == nil || user.Rol.Name != "admin" {
+	if user.Rol == nil || user.Rol.Name != roles.Admin {
 		return models.UserResponse{}, errorsService.ErrNotAdmin
 	}
 
@@ -534,7 +535,7 @@ func (s *adminService) DemoteAdminDirect(ctx context.Context, req models.DemoteA
 	}
 
 	if len(remaining) == 0 {
-		userRol, err := s.rolRepo.GetByName(ctx, "user")
+		userRol, err := s.rolRepo.GetByName(ctx, roles.User)
 		if err != nil {
 			return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
 		}
@@ -569,7 +570,7 @@ func (s *adminService) DemoteAdmin(ctx context.Context, adminID uuid.UUID, req m
 		return models.UserResponse{}, errorsService.ErrCannotDemoteSelf
 	}
 
-	if user.Rol == nil || user.Rol.Name != "admin" {
+	if user.Rol == nil || user.Rol.Name != roles.Admin {
 		return models.UserResponse{}, errorsService.ErrNotAdmin
 	}
 
@@ -583,7 +584,7 @@ func (s *adminService) DemoteAdmin(ctx context.Context, adminID uuid.UUID, req m
 	}
 
 	if len(remaining) == 0 {
-		userRol, err := s.rolRepo.GetByName(ctx, "user")
+		userRol, err := s.rolRepo.GetByName(ctx, roles.User)
 		if err != nil {
 			return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
 		}

@@ -8,3 +8,4 @@ migrate-up:
 	psql $(DATABASE_URL) -f ./migrations/004_bus_terminal_external_id.up.sql
 	psql $(DATABASE_URL) -f ./migrations/005_remove_dni.up.sql
 	psql $(DATABASE_URL) -f ./migrations/006_awaited_trip.up.sql
+	psql $(DATABASE_URL) -f ./migrations/007_drop_permissions.up.sql

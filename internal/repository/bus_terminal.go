@@ -20,6 +20,9 @@ type BusTerminalRepository interface {
 	Count(ctx context.Context) (int64, error)
 	ListWithPlatforms(ctx context.Context) ([]models.BusTerminal, error)
 	ListByUUIDs(ctx context.Context, ids []uuid.UUID) ([]models.BusTerminal, error)
+	ListWithPlatformsPaginated(ctx context.Context, limit, offset int, order string) ([]models.BusTerminal, error)
+	ListByUUIDsPaginated(ctx context.Context, ids []uuid.UUID, limit, offset int, order string) ([]models.BusTerminal, error)
+	CountByUUIDs(ctx context.Context, ids []uuid.UUID) (int64, error)
 	Create(ctx context.Context, terminal *models.BusTerminal) error
 	Update(ctx context.Context, terminal *models.BusTerminal) error
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -126,6 +129,48 @@ func (r *busTerminalRepository) ListByUUIDs(ctx context.Context, ids []uuid.UUID
 		Order("name").
 		Find(&terminals).Error
 	return terminals, err
+}
+
+func (r *busTerminalRepository) ListWithPlatformsPaginated(ctx context.Context, limit, offset int, order string) ([]models.BusTerminal, error) {
+	var terminals []models.BusTerminal
+	err := r.db.WithContext(ctx).
+		Preload("Platforms", func(db *gorm.DB) *gorm.DB {
+			return db.Order("anden")
+		}).
+		Order("name " + order).
+		Limit(limit).
+		Offset(offset).
+		Find(&terminals).Error
+	return terminals, err
+}
+
+func (r *busTerminalRepository) ListByUUIDsPaginated(ctx context.Context, ids []uuid.UUID, limit, offset int, order string) ([]models.BusTerminal, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var terminals []models.BusTerminal
+	err := r.db.WithContext(ctx).
+		Where("uuid IN ?", ids).
+		Preload("Platforms", func(db *gorm.DB) *gorm.DB {
+			return db.Order("anden")
+		}).
+		Order("name " + order).
+		Limit(limit).
+		Offset(offset).
+		Find(&terminals).Error
+	return terminals, err
+}
+
+func (r *busTerminalRepository) CountByUUIDs(ctx context.Context, ids []uuid.UUID) (int64, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	var total int64
+	err := r.db.WithContext(ctx).
+		Model(&models.BusTerminal{}).
+		Where("uuid IN ?", ids).
+		Count(&total).Error
+	return total, err
 }
 
 func (r *busTerminalRepository) Create(ctx context.Context, terminal *models.BusTerminal) error {

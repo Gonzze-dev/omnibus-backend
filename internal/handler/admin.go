@@ -106,22 +106,37 @@ func (h *AdminHandler) DeleteCity(c echo.Context) error {
 // --- Platforms ---
 
 func (h *AdminHandler) ListPlatforms(c echo.Context) error {
-	var busTerminalID *uuid.UUID
-	if raw := c.QueryParam("bus_terminal_id"); raw != "" {
-		id, err := uuid.Parse(raw)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusBadRequest, "invalid bus_terminal_id")
+	busTerminalID, err := platformTerminalFilter(c)
+	if err != nil {
+		return err
+	}
+
+	params := models.ListPlatformsParams{
+		Page:  1,
+		Limit: 10,
+		Order: "DESC",
+	}
+	if raw := c.QueryParam("page"); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v > 0 {
+			params.Page = v
 		}
-		busTerminalID = &id
+	}
+	if raw := c.QueryParam("limit"); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v > 0 {
+			params.Limit = v
+		}
+	}
+	if raw := c.QueryParam("order"); raw != "" {
+		params.Order = raw
 	}
 
 	role, _ := c.Get("role").(string)
 	if role == roles.SuperAdmin {
-		terminals, err := h.svc.ListAllPlatforms(c.Request().Context(), busTerminalID)
+		res, err := h.svc.ListAllPlatforms(c.Request().Context(), busTerminalID, params)
 		if err != nil {
 			return mapAdminError(err)
 		}
-		return c.JSON(http.StatusOK, terminals)
+		return c.JSON(http.StatusOK, res)
 	}
 
 	adminID, err := getUserID(c)
@@ -129,11 +144,51 @@ func (h *AdminHandler) ListPlatforms(c echo.Context) error {
 		return err
 	}
 
-	terminals, err := h.svc.ListPlatforms(c.Request().Context(), adminID, busTerminalID)
+	res, err := h.svc.ListPlatforms(c.Request().Context(), adminID, busTerminalID, params)
 	if err != nil {
 		return mapAdminError(err)
 	}
-	return c.JSON(http.StatusOK, terminals)
+	return c.JSON(http.StatusOK, res)
+}
+
+func (h *AdminHandler) CountPlatforms(c echo.Context) error {
+	busTerminalID, err := platformTerminalFilter(c)
+	if err != nil {
+		return err
+	}
+
+	role, _ := c.Get("role").(string)
+	if role == roles.SuperAdmin {
+		total, err := h.svc.CountAllPlatforms(c.Request().Context(), busTerminalID)
+		if err != nil {
+			return mapAdminError(err)
+		}
+		return c.JSON(http.StatusOK, models.CountPlatformsResponse{Total: total})
+	}
+
+	adminID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
+
+	total, err := h.svc.CountPlatforms(c.Request().Context(), adminID, busTerminalID)
+	if err != nil {
+		return mapAdminError(err)
+	}
+	return c.JSON(http.StatusOK, models.CountPlatformsResponse{Total: total})
+}
+
+// platformTerminalFilter lee el query param opcional bus_terminal_id.
+func platformTerminalFilter(c echo.Context) (*uuid.UUID, error) {
+	raw := c.QueryParam("bus_terminal_id")
+	if raw == "" {
+		return nil, nil
+	}
+	id, err := uuid.Parse(raw)
+	if err != nil {
+		return nil, echo.NewHTTPError(http.StatusBadRequest, "invalid bus_terminal_id")
+	}
+	return &id, nil
 }
 
 func (h *AdminHandler) GetPlatform(c echo.Context) error {

@@ -17,6 +17,7 @@ func registerAdmin(e *echo.Echo, a *app.App, jwtSecret string) {
 	admin.PUT("/cities/:postal_code", a.Admin.UpdateCity)
 	admin.DELETE("/cities/:postal_code", a.Admin.DeleteCity)
 	admin.GET("/platforms", a.Admin.ListPlatforms)
+	admin.GET("/platforms/count", a.Admin.CountPlatforms)
 	admin.GET("/platforms/:code", a.Admin.GetPlatform)
 	admin.POST("/platforms", a.Admin.CreatePlatform)
 	admin.PUT("/platforms/:code", a.Admin.UpdatePlatform)

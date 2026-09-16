@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/google/uuid"
 
@@ -65,21 +64,7 @@ func NewSuperAdminService(
 // --- Terminals ---
 
 func (s *superAdminService) ListTerminals(ctx context.Context, params models.ListTerminalsParams) (models.ListTerminalsResponse, error) {
-	page := params.Page
-	if page < 1 {
-		page = 1
-	}
-	limit := params.Limit
-	if limit < 1 {
-		limit = defaultTerminalsLimit
-	}
-	if limit > maxTerminalsLimit {
-		limit = maxTerminalsLimit
-	}
-	order := strings.ToUpper(strings.TrimSpace(params.Order))
-	if order != "ASC" {
-		order = "DESC"
-	}
+	page, limit, order := normalizePagination(params.Page, params.Limit, params.Order, defaultTerminalsLimit, maxTerminalsLimit)
 
 	total, err := s.busTerminalRepo.Count(ctx)
 	if err != nil {
@@ -94,20 +79,7 @@ func (s *superAdminService) ListTerminals(ctx context.Context, params models.Lis
 		terminals = []models.BusTerminal{}
 	}
 
-	lastPage := int((total + int64(limit) - 1) / int64(limit))
-	if lastPage < 1 {
-		lastPage = 1
-	}
-
-	var next, prev *int
-	if page > 1 {
-		p := page - 1
-		prev = &p
-	}
-	if page < lastPage {
-		n := page + 1
-		next = &n
-	}
+	next, prev := pageLinks(total, page, limit)
 
 	return models.ListTerminalsResponse{
 		Terminals:     terminals,

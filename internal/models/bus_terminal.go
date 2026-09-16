@@ -149,3 +149,25 @@ type ListTerminalsResponse struct {
 type CountTerminalsResponse struct {
 	Total int64 `json:"total"`
 }
+
+// ListPlatformsParams son los parámetros de GET /api/admin/platforms.
+type ListPlatformsParams struct {
+	Page  int    // default 1
+	Limit int    // default 10
+	Order string // "ASC" o "DESC", default "DESC"
+}
+
+// ListPlatformsResponse es el payload paginado de plataformas agrupadas por terminal.
+type ListPlatformsResponse struct {
+	Platforms     []BusTerminalWithPlatformsResponse `json:"platforms"`
+	Page          int                                `json:"page"`
+	Next          *int                               `json:"next"`
+	Prev          *int                               `json:"prev"`
+	Elements      int                                `json:"elements"`
+	TotalElements int64                              `json:"total_elements"`
+}
+
+// CountPlatformsResponse es el payload de GET /api/admin/platforms/count.
+type CountPlatformsResponse struct {
+	Total int64 `json:"total"`
+}

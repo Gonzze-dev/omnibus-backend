@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/google/uuid"
 	errorsService "tesina/backend/internal/errors"
@@ -17,6 +16,9 @@ import (
 const (
 	defaultCitiesLimit = 10
 	maxCitiesLimit     = 100
+
+	defaultPlatformsLimit = 10
+	maxPlatformsLimit     = 100
 )
 
 type AdminService interface {
@@ -29,8 +31,10 @@ type AdminService interface {
 	DeleteCity(ctx context.Context, postalCode string) error
 
 	// Platforms (only admin's terminals)
-	ListAllPlatforms(ctx context.Context, busTerminalID *uuid.UUID) ([]models.BusTerminalWithPlatformsResponse, error)
-	ListPlatforms(ctx context.Context, adminID uuid.UUID, busTerminalID *uuid.UUID) ([]models.BusTerminalWithPlatformsResponse, error)
+	ListAllPlatforms(ctx context.Context, busTerminalID *uuid.UUID, params models.ListPlatformsParams) (models.ListPlatformsResponse, error)
+	ListPlatforms(ctx context.Context, adminID uuid.UUID, busTerminalID *uuid.UUID, params models.ListPlatformsParams) (models.ListPlatformsResponse, error)
+	CountAllPlatforms(ctx context.Context, busTerminalID *uuid.UUID) (int64, error)
+	CountPlatforms(ctx context.Context, adminID uuid.UUID, busTerminalID *uuid.UUID) (int64, error)
 	GetPlatformByCode(ctx context.Context, code int) (models.BusTerminalWithPlatformsResponse, error)
 	GetPlatform(ctx context.Context, adminID uuid.UUID, code int) (models.BusTerminalWithPlatformsResponse, error)
 	CreatePlatformDirect(ctx context.Context, req models.CreatePlatformRequest) (models.Platform, error)
@@ -78,21 +82,7 @@ func NewAdminService(
 // --- Cities ---
 
 func (s *adminService) ListCities(ctx context.Context, params models.ListCitiesParams) (models.ListCitiesResponse, error) {
-	page := params.Page
-	if page < 1 {
-		page = 1
-	}
-	limit := params.Limit
-	if limit < 1 {
-		limit = defaultCitiesLimit
-	}
-	if limit > maxCitiesLimit {
-		limit = maxCitiesLimit
-	}
-	order := strings.ToUpper(strings.TrimSpace(params.Order))
-	if order != "ASC" {
-		order = "DESC"
-	}
+	page, limit, order := normalizePagination(params.Page, params.Limit, params.Order, defaultCitiesLimit, maxCitiesLimit)
 
 	total, err := s.cityRepo.Count(ctx)
 	if err != nil {
@@ -107,20 +97,7 @@ func (s *adminService) ListCities(ctx context.Context, params models.ListCitiesP
 		cities = []models.City{}
 	}
 
-	lastPage := int((total + int64(limit) - 1) / int64(limit))
-	if lastPage < 1 {
-		lastPage = 1
-	}
-
-	var next, prev *int
-	if page > 1 {
-		p := page - 1
-		prev = &p
-	}
-	if page < lastPage {
-		n := page + 1
-		next = &n
-	}
+	next, prev := pageLinks(total, page, limit)
 
 	return models.ListCitiesResponse{
 		Cities:        cities,
@@ -228,41 +205,109 @@ func (s *adminService) verifyTerminalOwnership(ctx context.Context, adminID, bus
 	return nil
 }
 
-func (s *adminService) ListAllPlatforms(ctx context.Context, busTerminalID *uuid.UUID) ([]models.BusTerminalWithPlatformsResponse, error) {
+func (s *adminService) ListAllPlatforms(ctx context.Context, busTerminalID *uuid.UUID, params models.ListPlatformsParams) (models.ListPlatformsResponse, error) {
+	page, limit, order := normalizePagination(params.Page, params.Limit, params.Order, defaultPlatformsLimit, maxPlatformsLimit)
+
 	if busTerminalID != nil {
 		bt, err := s.busTerminalRepo.GetByUUIDWithPlatforms(ctx, *busTerminalID)
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
-				return nil, errorsService.ErrTerminalNotFound
+				return models.ListPlatformsResponse{}, errorsService.ErrTerminalNotFound
 			}
-			return nil, err
+			return models.ListPlatformsResponse{}, err
 		}
-		return models.ToBusTerminalWithPlatformsResponse([]models.BusTerminal{bt}), nil
+		return singleTerminalPlatformsPage(bt, page, limit), nil
 	}
 
-	terminals, err := s.busTerminalRepo.ListWithPlatforms(ctx)
+	total, err := s.busTerminalRepo.Count(ctx)
 	if err != nil {
-		return nil, err
+		return models.ListPlatformsResponse{}, fmt.Errorf("failed to count platforms: %w", err)
 	}
-	return models.ToBusTerminalWithPlatformsResponse(terminals), nil
+
+	terminals, err := s.busTerminalRepo.ListWithPlatformsPaginated(ctx, limit, (page-1)*limit, order)
+	if err != nil {
+		return models.ListPlatformsResponse{}, fmt.Errorf("failed to list platforms: %w", err)
+	}
+
+	return platformsPage(terminals, total, page, limit), nil
 }
 
-func (s *adminService) ListPlatforms(ctx context.Context, adminID uuid.UUID, busTerminalID *uuid.UUID) ([]models.BusTerminalWithPlatformsResponse, error) {
+func (s *adminService) CountAllPlatforms(ctx context.Context, busTerminalID *uuid.UUID) (int64, error) {
+	if busTerminalID != nil {
+		if _, err := s.busTerminalRepo.GetByUUID(ctx, *busTerminalID); err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return 0, errorsService.ErrTerminalNotFound
+			}
+			return 0, err
+		}
+		return 1, nil
+	}
+
+	total, err := s.busTerminalRepo.Count(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count platforms: %w", err)
+	}
+	return total, nil
+}
+
+func (s *adminService) ListPlatforms(ctx context.Context, adminID uuid.UUID, busTerminalID *uuid.UUID, params models.ListPlatformsParams) (models.ListPlatformsResponse, error) {
+	page, limit, order := normalizePagination(params.Page, params.Limit, params.Order, defaultPlatformsLimit, maxPlatformsLimit)
+
 	if busTerminalID != nil {
 		if err := s.verifyTerminalOwnership(ctx, adminID, *busTerminalID); err != nil {
-			return nil, err
+			return models.ListPlatformsResponse{}, err
 		}
 
 		bt, err := s.busTerminalRepo.GetByUUIDWithPlatforms(ctx, *busTerminalID)
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
-				return nil, errorsService.ErrTerminalNotFound
+				return models.ListPlatformsResponse{}, errorsService.ErrTerminalNotFound
 			}
-			return nil, err
+			return models.ListPlatformsResponse{}, err
 		}
-		return models.ToBusTerminalWithPlatformsResponse([]models.BusTerminal{bt}), nil
+		return singleTerminalPlatformsPage(bt, page, limit), nil
 	}
 
+	ids, err := s.adminTerminalIDs(ctx, adminID)
+	if err != nil {
+		return models.ListPlatformsResponse{}, err
+	}
+
+	total, err := s.busTerminalRepo.CountByUUIDs(ctx, ids)
+	if err != nil {
+		return models.ListPlatformsResponse{}, fmt.Errorf("failed to count platforms: %w", err)
+	}
+
+	terminals, err := s.busTerminalRepo.ListByUUIDsPaginated(ctx, ids, limit, (page-1)*limit, order)
+	if err != nil {
+		return models.ListPlatformsResponse{}, fmt.Errorf("failed to list platforms: %w", err)
+	}
+
+	return platformsPage(terminals, total, page, limit), nil
+}
+
+func (s *adminService) CountPlatforms(ctx context.Context, adminID uuid.UUID, busTerminalID *uuid.UUID) (int64, error) {
+	if busTerminalID != nil {
+		if err := s.verifyTerminalOwnership(ctx, adminID, *busTerminalID); err != nil {
+			return 0, err
+		}
+		return 1, nil
+	}
+
+	ids, err := s.adminTerminalIDs(ctx, adminID)
+	if err != nil {
+		return 0, err
+	}
+
+	total, err := s.busTerminalRepo.CountByUUIDs(ctx, ids)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count platforms: %w", err)
+	}
+	return total, nil
+}
+
+// adminTerminalIDs devuelve los UUIDs de las terminales asignadas al admin.
+func (s *adminService) adminTerminalIDs(ctx context.Context, adminID uuid.UUID) ([]uuid.UUID, error) {
 	uts, err := s.userTerminalRepo.GetByUserID(ctx, adminID)
 	if err != nil {
 		return nil, err
@@ -272,12 +317,34 @@ func (s *adminService) ListPlatforms(ctx context.Context, adminID uuid.UUID, bus
 	for i, ut := range uts {
 		ids[i] = ut.BusTerminalID
 	}
+	return ids, nil
+}
 
-	terminals, err := s.busTerminalRepo.ListByUUIDs(ctx, ids)
-	if err != nil {
-		return nil, err
+// platformsPage arma el payload paginado a partir de la página ya consultada.
+func platformsPage(terminals []models.BusTerminal, total int64, page, limit int) models.ListPlatformsResponse {
+	items := models.ToBusTerminalWithPlatformsResponse(terminals)
+	if items == nil {
+		items = []models.BusTerminalWithPlatformsResponse{}
 	}
-	return models.ToBusTerminalWithPlatformsResponse(terminals), nil
+	next, prev := pageLinks(total, page, limit)
+
+	return models.ListPlatformsResponse{
+		Platforms:     items,
+		Page:          page,
+		Next:          next,
+		Prev:          prev,
+		Elements:      len(items),
+		TotalElements: total,
+	}
+}
+
+// singleTerminalPlatformsPage arma el payload cuando se filtra por bus_terminal_id,
+// caso en el que el resultado es siempre una única terminal.
+func singleTerminalPlatformsPage(bt models.BusTerminal, page, limit int) models.ListPlatformsResponse {
+	if page > 1 {
+		return platformsPage(nil, 1, page, limit)
+	}
+	return platformsPage([]models.BusTerminal{bt}, 1, page, limit)
 }
 
 func (s *adminService) GetPlatformByCode(ctx context.Context, code int) (models.BusTerminalWithPlatformsResponse, error) {

@@ -12,6 +12,8 @@ import (
 type CityRepository interface {
 	GetByPostalCode(ctx context.Context, postalCode string) (models.City, error)
 	List(ctx context.Context) ([]models.City, error)
+	ListPaginated(ctx context.Context, limit, offset int, order string) ([]models.City, error)
+	Count(ctx context.Context) (int64, error)
 	Create(ctx context.Context, city *models.City) error
 	Update(ctx context.Context, city *models.City) error
 	UpdatePostalCode(ctx context.Context, oldPostalCode, newPostalCode string) error
@@ -42,6 +44,22 @@ func (r *cityRepository) List(ctx context.Context) ([]models.City, error) {
 	var cities []models.City
 	err := r.db.WithContext(ctx).Order("name").Find(&cities).Error
 	return cities, err
+}
+
+func (r *cityRepository) ListPaginated(ctx context.Context, limit, offset int, order string) ([]models.City, error) {
+	var cities []models.City
+	err := r.db.WithContext(ctx).
+		Order("name " + order).
+		Limit(limit).
+		Offset(offset).
+		Find(&cities).Error
+	return cities, err
+}
+
+func (r *cityRepository) Count(ctx context.Context) (int64, error) {
+	var total int64
+	err := r.db.WithContext(ctx).Model(&models.City{}).Count(&total).Error
+	return total, err
 }
 
 func (r *cityRepository) Create(ctx context.Context, city *models.City) error {

@@ -11,6 +11,7 @@ import (
 func registerAdmin(e *echo.Echo, a *app.App, jwtSecret string) {
 	admin := e.Group("/api/admin", middleware.Auth(jwtSecret), middleware.RequireRole(roles.Admin, roles.SuperAdmin))
 	admin.GET("/cities", a.Admin.ListCities)
+	admin.GET("/cities/count", a.Admin.CountCities)
 	admin.GET("/cities/:postal_code", a.Admin.GetCity)
 	admin.POST("/cities", a.Admin.CreateCity)
 	admin.PUT("/cities/:postal_code", a.Admin.UpdateCity)

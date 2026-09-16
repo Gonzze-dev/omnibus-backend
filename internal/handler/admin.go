@@ -25,11 +25,38 @@ func NewAdminHandler(svc service.AdminService) *AdminHandler {
 // --- Cities ---
 
 func (h *AdminHandler) ListCities(c echo.Context) error {
-	cities, err := h.svc.ListCities(c.Request().Context())
+	params := models.ListCitiesParams{
+		Page:  1,
+		Limit: 10,
+		Order: "DESC",
+	}
+	if raw := c.QueryParam("page"); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v > 0 {
+			params.Page = v
+		}
+	}
+	if raw := c.QueryParam("limit"); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v > 0 {
+			params.Limit = v
+		}
+	}
+	if raw := c.QueryParam("order"); raw != "" {
+		params.Order = raw
+	}
+
+	res, err := h.svc.ListCities(c.Request().Context(), params)
 	if err != nil {
 		return mapAdminError(err)
 	}
-	return c.JSON(http.StatusOK, cities)
+	return c.JSON(http.StatusOK, res)
+}
+
+func (h *AdminHandler) CountCities(c echo.Context) error {
+	total, err := h.svc.CountCities(c.Request().Context())
+	if err != nil {
+		return mapAdminError(err)
+	}
+	return c.JSON(http.StatusOK, models.CountCitiesResponse{Total: total})
 }
 
 func (h *AdminHandler) GetCity(c echo.Context) error {

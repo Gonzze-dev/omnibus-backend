@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	errorsService "tesina/backend/internal/errors"
@@ -13,9 +14,15 @@ import (
 	"tesina/backend/internal/validators"
 )
 
+const (
+	defaultCitiesLimit = 10
+	maxCitiesLimit     = 100
+)
+
 type AdminService interface {
 	// Cities
-	ListCities(ctx context.Context) ([]models.City, error)
+	ListCities(ctx context.Context, params models.ListCitiesParams) (models.ListCitiesResponse, error)
+	CountCities(ctx context.Context) (int64, error)
 	GetCity(ctx context.Context, postalCode string) (models.City, error)
 	CreateCity(ctx context.Context, req models.CreateCityRequest) (models.City, error)
 	UpdateCity(ctx context.Context, postalCode string, req models.UpdateCityRequest) (models.City, error)
@@ -70,8 +77,67 @@ func NewAdminService(
 
 // --- Cities ---
 
-func (s *adminService) ListCities(ctx context.Context) ([]models.City, error) {
-	return s.cityRepo.List(ctx)
+func (s *adminService) ListCities(ctx context.Context, params models.ListCitiesParams) (models.ListCitiesResponse, error) {
+	page := params.Page
+	if page < 1 {
+		page = 1
+	}
+	limit := params.Limit
+	if limit < 1 {
+		limit = defaultCitiesLimit
+	}
+	if limit > maxCitiesLimit {
+		limit = maxCitiesLimit
+	}
+	order := strings.ToUpper(strings.TrimSpace(params.Order))
+	if order != "ASC" {
+		order = "DESC"
+	}
+
+	total, err := s.cityRepo.Count(ctx)
+	if err != nil {
+		return models.ListCitiesResponse{}, fmt.Errorf("failed to count cities: %w", err)
+	}
+
+	cities, err := s.cityRepo.ListPaginated(ctx, limit, (page-1)*limit, order)
+	if err != nil {
+		return models.ListCitiesResponse{}, fmt.Errorf("failed to list cities: %w", err)
+	}
+	if cities == nil {
+		cities = []models.City{}
+	}
+
+	lastPage := int((total + int64(limit) - 1) / int64(limit))
+	if lastPage < 1 {
+		lastPage = 1
+	}
+
+	var next, prev *int
+	if page > 1 {
+		p := page - 1
+		prev = &p
+	}
+	if page < lastPage {
+		n := page + 1
+		next = &n
+	}
+
+	return models.ListCitiesResponse{
+		Cities:        cities,
+		Page:          page,
+		Next:          next,
+		Prev:          prev,
+		Elements:      len(cities),
+		TotalElements: total,
+	}, nil
+}
+
+func (s *adminService) CountCities(ctx context.Context) (int64, error) {
+	total, err := s.cityRepo.Count(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count cities: %w", err)
+	}
+	return total, nil
 }
 
 func (s *adminService) GetCity(ctx context.Context, postalCode string) (models.City, error) {

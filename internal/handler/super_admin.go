@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -23,11 +24,38 @@ func NewSuperAdminHandler(svc service.SuperAdminService) *SuperAdminHandler {
 // --- Terminals ---
 
 func (h *SuperAdminHandler) ListTerminals(c echo.Context) error {
-	terminals, err := h.svc.ListTerminals(c.Request().Context())
+	params := models.ListTerminalsParams{
+		Page:  1,
+		Limit: 10,
+		Order: "DESC",
+	}
+	if raw := c.QueryParam("page"); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v > 0 {
+			params.Page = v
+		}
+	}
+	if raw := c.QueryParam("limit"); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v > 0 {
+			params.Limit = v
+		}
+	}
+	if raw := c.QueryParam("order"); raw != "" {
+		params.Order = raw
+	}
+
+	res, err := h.svc.ListTerminals(c.Request().Context(), params)
 	if err != nil {
 		return mapSuperAdminError(err)
 	}
-	return c.JSON(http.StatusOK, terminals)
+	return c.JSON(http.StatusOK, res)
+}
+
+func (h *SuperAdminHandler) CountTerminals(c echo.Context) error {
+	total, err := h.svc.CountTerminals(c.Request().Context())
+	if err != nil {
+		return mapSuperAdminError(err)
+	}
+	return c.JSON(http.StatusOK, models.CountTerminalsResponse{Total: total})
 }
 
 func (h *SuperAdminHandler) GetTerminal(c echo.Context) error {

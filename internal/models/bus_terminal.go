@@ -127,3 +127,25 @@ type PromoteSuperRequest struct {
 type DemoteSuperRequest struct {
 	Email string `json:"email"`
 }
+
+// ListTerminalsParams son los parámetros de paginación de GET /api/super/terminals.
+type ListTerminalsParams struct {
+	Page  int    // default 1
+	Limit int    // default 10
+	Order string // "ASC" o "DESC", default "DESC"
+}
+
+// ListTerminalsResponse es el payload paginado de terminales.
+type ListTerminalsResponse struct {
+	Terminals     []BusTerminal `json:"terminals"`
+	Page          int           `json:"page"`
+	Next          *int          `json:"next"`
+	Prev          *int          `json:"prev"`
+	Elements      int           `json:"elements"`
+	TotalElements int64         `json:"total_elements"`
+}
+
+// CountTerminalsResponse es el payload de GET /api/super/terminals/count.
+type CountTerminalsResponse struct {
+	Total int64 `json:"total"`
+}

@@ -16,6 +16,8 @@ type BusTerminalRepository interface {
 	GetByUUIDWithPlatforms(ctx context.Context, id uuid.UUID) (models.BusTerminal, error)
 	ListByPostalCode(ctx context.Context, postalCode string) ([]models.BusTerminal, error)
 	List(ctx context.Context) ([]models.BusTerminal, error)
+	ListPaginated(ctx context.Context, limit, offset int, order string) ([]models.BusTerminal, error)
+	Count(ctx context.Context) (int64, error)
 	ListWithPlatforms(ctx context.Context) ([]models.BusTerminal, error)
 	ListByUUIDs(ctx context.Context, ids []uuid.UUID) ([]models.BusTerminal, error)
 	Create(ctx context.Context, terminal *models.BusTerminal) error
@@ -82,6 +84,22 @@ func (r *busTerminalRepository) List(ctx context.Context) ([]models.BusTerminal,
 	var terminals []models.BusTerminal
 	err := r.db.WithContext(ctx).Order("name").Find(&terminals).Error
 	return terminals, err
+}
+
+func (r *busTerminalRepository) ListPaginated(ctx context.Context, limit, offset int, order string) ([]models.BusTerminal, error) {
+	var terminals []models.BusTerminal
+	err := r.db.WithContext(ctx).
+		Order("name " + order).
+		Limit(limit).
+		Offset(offset).
+		Find(&terminals).Error
+	return terminals, err
+}
+
+func (r *busTerminalRepository) Count(ctx context.Context) (int64, error) {
+	var total int64
+	err := r.db.WithContext(ctx).Model(&models.BusTerminal{}).Count(&total).Error
+	return total, err
 }
 
 func (r *busTerminalRepository) ListWithPlatforms(ctx context.Context) ([]models.BusTerminal, error) {

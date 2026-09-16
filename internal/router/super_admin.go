@@ -11,6 +11,7 @@ import (
 func registerSuperAdmin(e *echo.Echo, a *app.App, jwtSecret string) {
 	superAdmin := e.Group("/api/super", middleware.Auth(jwtSecret), middleware.RequireRole(roles.SuperAdmin))
 	superAdmin.GET("/terminals", a.SuperAdmin.ListTerminals)
+	superAdmin.GET("/terminals/count", a.SuperAdmin.CountTerminals)
 	superAdmin.GET("/terminals/:uuid", a.SuperAdmin.GetTerminal)
 	superAdmin.POST("/terminals", a.SuperAdmin.CreateTerminal)
 	superAdmin.PUT("/terminals/:uuid", a.SuperAdmin.UpdateTerminal)

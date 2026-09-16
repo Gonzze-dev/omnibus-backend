@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 
@@ -15,9 +16,15 @@ import (
 )
 
 
+const (
+	defaultTerminalsLimit = 10
+	maxTerminalsLimit     = 100
+)
+
 type SuperAdminService interface {
 	// Terminals
-	ListTerminals(ctx context.Context) ([]models.BusTerminal, error)
+	ListTerminals(ctx context.Context, params models.ListTerminalsParams) (models.ListTerminalsResponse, error)
+	CountTerminals(ctx context.Context) (int64, error)
 	GetTerminal(ctx context.Context, id uuid.UUID) (models.BusTerminal, error)
 	CreateTerminal(ctx context.Context, req models.CreateBusTerminalRequest) (models.BusTerminal, error)
 	UpdateTerminal(ctx context.Context, id uuid.UUID, req models.UpdateBusTerminalRequest) (models.BusTerminal, error)
@@ -57,8 +64,67 @@ func NewSuperAdminService(
 
 // --- Terminals ---
 
-func (s *superAdminService) ListTerminals(ctx context.Context) ([]models.BusTerminal, error) {
-	return s.busTerminalRepo.List(ctx)
+func (s *superAdminService) ListTerminals(ctx context.Context, params models.ListTerminalsParams) (models.ListTerminalsResponse, error) {
+	page := params.Page
+	if page < 1 {
+		page = 1
+	}
+	limit := params.Limit
+	if limit < 1 {
+		limit = defaultTerminalsLimit
+	}
+	if limit > maxTerminalsLimit {
+		limit = maxTerminalsLimit
+	}
+	order := strings.ToUpper(strings.TrimSpace(params.Order))
+	if order != "ASC" {
+		order = "DESC"
+	}
+
+	total, err := s.busTerminalRepo.Count(ctx)
+	if err != nil {
+		return models.ListTerminalsResponse{}, fmt.Errorf("failed to count terminals: %w", err)
+	}
+
+	terminals, err := s.busTerminalRepo.ListPaginated(ctx, limit, (page-1)*limit, order)
+	if err != nil {
+		return models.ListTerminalsResponse{}, fmt.Errorf("failed to list terminals: %w", err)
+	}
+	if terminals == nil {
+		terminals = []models.BusTerminal{}
+	}
+
+	lastPage := int((total + int64(limit) - 1) / int64(limit))
+	if lastPage < 1 {
+		lastPage = 1
+	}
+
+	var next, prev *int
+	if page > 1 {
+		p := page - 1
+		prev = &p
+	}
+	if page < lastPage {
+		n := page + 1
+		next = &n
+	}
+
+	return models.ListTerminalsResponse{
+		Terminals:     terminals,
+		Page:          page,
+		Next:          next,
+		Prev:          prev,
+		Elements:      len(terminals),
+		TotalElements: total,
+	}, nil
+}
+
+func (s *superAdminService) CountTerminals(ctx context.Context) (int64, error) {
+	total, err := s.busTerminalRepo.Count(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count terminals: %w", err)
+	}
+	return total, nil
 }
 
 func (s *superAdminService) GetTerminal(ctx context.Context, id uuid.UUID) (models.BusTerminal, error) {

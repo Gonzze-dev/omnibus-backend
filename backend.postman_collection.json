@@ -1,0 +1,1521 @@
+{
+  "info": {
+    "_postman_id": "49e75f15-76d3-422b-a791-cc9789376400",
+    "name": "backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "23291900"
+  },
+  "item": [
+    {
+      "name": "PUBLIC",
+      "item": [
+        {
+          "name": "LOGIN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json()\r",
+                  "\r",
+                  "const token = response.access_token;\r",
+                  "\r",
+                  "if (token) {\r",
+                  "    pm.collectionVariables.set(\"token\", token);\r",
+                  "} else {\r",
+                  "    console.error(\"No se encontró el token en la respuesta\");\r",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": {{super_admin_email}},\r\n    \"password\": {{super_admin_pass}}\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/auth/login",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Autentica a un usuario y devuelve un access token JWT y un refresh token.\n\n**Autenticación:** No requerida.\n\n**Body (JSON):**  \n| Campo | Tipo | Requerido | Descripción |  \n|---|---|---|---|  \n| `email` | string | Sí | Email del usuario |  \n| `password` | string | Sí | Contraseña en texto plano |\n\n**Comportamiento interno:**\n\n1. Valida que email y password estén presentes.\n    \n2. Busca al usuario por email; si no existe devuelve `401`.\n    \n3. Compara la contraseña con el hash bcrypt almacenado.\n    \n4. Genera un **access token** JWT (HS256) con duración de **15 minutos** que incluye el UUID y el rol del usuario.\n    \n5. Genera un **refresh token** (UUID), lo hashea con SHA-256 y lo persiste en la base de datos (upsert) con expiración de **7 días**.\n    \n6. Setea el refresh token como cookie `HttpOnly` (`refresh_token`) con path `/api/auth`.\n    \n\n**Respuesta exitosa** **`200 OK`****:**\n\n``` json\n{\n  \"access_token\": \"<JWT>\",\n  \"refresh_token\": \"<UUID>\",\n  \"user\": {\n    \"uuid\": \"...\",\n    \"first_name\": \"...\",\n    \"last_name\": \"...\",\n    \"email\": \"...\",\n    \"dni\": \"...\",\n    \"rol\": { ... }\n  }\n}\n\n ```\n\n**Errores:**  \n| Código | Causa |  \n|---|---|  \n| `400 Bad Request` | Body malformado o campos faltantes |  \n| `401 Unauthorized` | Email no registrado o contraseña incorrecta |  \n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "REGISTER",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"first_name\": \"Gonzalo2\",\r\n    \"last_name\": \"Errandonea\",\r\n    \"email\": \"errandoneagonzalo19@gmail.com\",\r\n    \"password\": \"1234\",\r\n    \"dni\": \"42464435\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/auth/register",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Registra un nuevo usuario con rol `user`.\n\n**Autenticación:** No requerida.\n\n**Body (JSON):**  \n| Campo | Tipo | Requerido | Descripción |  \n|---|---|---|---|  \n| `first_name` | string | Sí | Nombre |  \n| `last_name` | string | Sí | Apellido |  \n| `email` | string | Sí | Email único |  \n| `password` | string | Sí | Contraseña (se hashea con bcrypt) |\n\n**Comportamiento interno:**\n\n1. Valida que todos los campos estén presentes.\n    \n2. Verifica que el email no esté registrado; si ya existe devuelve `409`.\n    \n3. Obtiene el rol `user` de la base de datos.\n    \n4. Hashea la contraseña con bcrypt (costo por defecto).\n    \n5. Crea el usuario con un UUID nuevo y persiste en la base de datos.\n    \n\n**Respuesta exitosa** **`201 Created`****:**\n\n``` json\n{\n  \"uuid\": \"...\",\n  \"first_name\": \"...\",\n  \"last_name\": \"...\",\n  \"email\": \"...\",\n  \"rol\": { ... }\n}\n\n ```\n\n**Errores:**  \n| Código | Causa |  \n|---|---|  \n| `400 Bad Request` | Campos faltantes o inválidos |  \n| `409 Conflict` | El email o el DNI ya están registrados |  \n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "REFRESH",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json()\r",
+                  "\r",
+                  "const token = response.access_token;\r",
+                  "\r",
+                  "if (token) {\r",
+                  "    pm.collectionVariables.set(\"token\", token);\r",
+                  "} else {\r",
+                  "    console.error(\"No se encontró el token en la respuesta\");\r",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/auth/refresh",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Renueva el access token usando el refresh token almacenado en cookie. No requiere body ni header de autorización.\n\n**Autenticación:** Cookie `refresh_token` (seteada automáticamente por `/login` o una llamada previa a este mismo endpoint).\n\n**Body:** Ninguno.\n\n**Comportamiento interno:**\n1. Lee el refresh token de la cookie `refresh_token`. Si no existe devuelve `401`.\n2. Hashea el token con SHA-256 y lo busca en la base de datos.\n3. Verifica que no haya expirado (duración: **7 días**). Si expiró, elimina el registro y devuelve `401`.\n4. Genera un nuevo **access token** JWT (15 min) y un nuevo **refresh token** (rotación de token).\n5. Actualiza el registro en la base de datos (upsert) y renueva la cookie `refresh_token`.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"access_token\": \"<nuevo JWT>\",\n  \"refresh_token\": \"<nuevo UUID>\"\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `401 Unauthorized` | Cookie ausente, token inválido o expirado |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "LOGOUT",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/api/auth/logout",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Cierra la sesión del usuario invalidando su refresh token. No requiere body ni header de autorización.\n\n**Autenticación:** Cookie `refresh_token`.\n\n**Body:** Ninguno.\n\n**Comportamiento interno:**\n1. Lee el refresh token de la cookie `refresh_token`. Si no existe devuelve `401`.\n2. Hashea el token con SHA-256 y busca el registro en la base de datos.\n3. Elimina el refresh token del usuario de la base de datos (invalida la sesión).\n4. Limpia la cookie `refresh_token` del cliente (MaxAge = -1).\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"message\": \"logged out successfully\"\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `401 Unauthorized` | Cookie ausente o refresh token inválido |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "GET TRIP",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/bus_tickets/{{ticket}}",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "bus_tickets",
+                "{{ticket}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "HEALTH",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BASE_URL}}/health",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Verifica que el servidor esté levantado y respondiendo correctamente.\n\n**Autenticación:** No requerida.\n\n**Body:** Ninguno.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"status\": \"ok\"\n}\n```"
+          },
+          "response": []
+        },
+        {
+          "name": "VALIDATE TOKEN FOR RESET PASS",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{TOKEN_RECOVER_PASS}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/auth/validate-recovery-token",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "validate-recovery-token"
+              ]
+            },
+            "description": "Valida si un token de recuperación de contraseña es válido y no ha expirado. Este token se obtiene a través del flujo de `/api/auth/forgot-password`, que envía un email con el link de recuperación.\n\n**Autenticación:** `Authorization: Bearer <TOKEN_RECOVER_PASS>` — JWT especial firmado con `PASSWORD_RESET_JWT_SECRET`.\n\n**Body:** Ninguno.\n\n**Comportamiento interno:**\n1. Extrae el token del header `Authorization` (esquema Bearer).\n2. Parsea el JWT usando `PASSWORD_RESET_JWT_SECRET` con algoritmo HS256.\n3. Verifica que la firma sea válida, que el `user_id` no sea nulo y que el token no haya expirado (duración: **30 minutos** desde su emisión).\n4. Si todo es válido, devuelve la fecha de expiración.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"valid\": true,\n  \"expires_at\": \"2026-05-04T15:30:00Z\"\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `400 Bad Request` | Header `Authorization` ausente o vacío |\n| `401 Unauthorized` | Token inválido, firma incorrecta o expirado |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "USER",
+      "item": [
+        {
+          "name": "GET INFO ACC",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/users/me",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            },
+            "description": "Devuelve la información del perfil del usuario autenticado. Si el usuario es `admin`, incluye además la lista de terminales que administra.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (cualquier rol).\n\n**Body:** Ninguno.\n\n**Comportamiento interno:**\n1. Obtiene el UUID del usuario desde el contexto JWT.\n2. Busca el usuario en la base de datos; si no existe devuelve `404`.\n3. Si el rol es `admin`, consulta las terminales asociadas al usuario y las incluye en la respuesta.\n\n**Respuesta exitosa `200 OK` — rol `user` o `super_admin`:**\n```json\n{\n  \"uuid\": \"...\",\n  \"first_name\": \"...\",\n  \"last_name\": \"...\",\n  \"email\": \"...\",\n  \"rol\": { \"name\": \"user\" }\n}\n```\n\n**Respuesta exitosa `200 OK` — rol `admin`:**\n```json\n{\n  \"uuid\": \"...\",\n  \"first_name\": \"...\",\n  \"last_name\": \"...\",\n  \"email\": \"...\",\n  \"rol\": { \"name\": \"admin\" },\n  \"terminals\": [\n    { \"uuid\": \"a0000000-0000-0000-0000-000000000001\", \"name\": \"Terminal Retiro BS AS\" }\n  ]\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `401 Unauthorized` | Token ausente o inválido |\n| `404 Not Found` | Usuario no encontrado |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "UPDATE PROFILE",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \r\n    \"first_name\": \"Papa\",\r\n    \"last_name\": \"Test1\",\r\n    \"email\": \"testigo@gmail.com\",\r\n    \"password\": \"23710900\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/users/me",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            },
+            "description": "Actualiza los datos del perfil del usuario autenticado. Todos los campos son opcionales, pero al menos uno debe enviarse.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (cualquier rol).\n\n**Body (JSON):**\n| Campo | Tipo | Requerido | Descripción |\n|---|---|---|---|\n| `first_name` | string | No | Nuevo nombre |\n| `last_name` | string | No | Nuevo apellido |\n| `email` | string | No | Nuevo email (debe ser único) |\n| `password` | string | No | Nueva contraseña (se hashea con bcrypt) |\n\n**Ejemplo:**\n```json\n{\n  \"first_name\": \"Juan\",\n  \"last_name\": \"Pérez\",\n  \"email\": \"nuevo@gmail.com\",\n  \"password\": \"nuevaPass123\"\n}\n```\n\n**Comportamiento interno:**\n1. Valida que al menos un campo esté presente; si no devuelve `400`.\n2. Busca al usuario en la base de datos por UUID del token; si no existe devuelve `404`.\n3. Aplica solo los campos presentes (patch parcial).\n4. Si se cambia `email`, verifica que no esté en uso por otro usuario; si existe devuelve `409`.\n5. Si se cambia `password`, la hashea con bcrypt antes de guardar.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"uuid\": \"...\",\n  \"first_name\": \"Juan\",\n  \"last_name\": \"Pérez\",\n  \"email\": \"nuevo@gmail.com\",\n  \"rol\": { ... }\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `400 Bad Request` | Body vacío, o algún campo enviado está vacío |\n| `401 Unauthorized` | Token ausente o inválido |\n| `404 Not Found` | Usuario no encontrado |\n| `409 Conflict` | El email ya está en uso por otro usuario |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "DEL PROFILE",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"testMail@gmail.com\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/users/me",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "me"
+              ]
+            },
+            "description": "Elimina la cuenta del usuario autenticado de forma permanente.\n\n**Autenticación:** `Authorization: Bearer {{token}}`.\n\n**Body:** Ninguno (el body que figura en Postman no es utilizado por el endpoint).\n\n**Comportamiento interno:**\n1. Obtiene el UUID del usuario desde el contexto JWT.\n2. Verifica que el usuario exista en la base de datos; si no existe devuelve `404`.\n3. Elimina todos los refresh tokens del usuario (cierra todas las sesiones activas).\n4. Elimina el registro del usuario de la base de datos.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"message\": \"account deleted successfully\"\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `401 Unauthorized` | Token ausente o inválido |\n| `404 Not Found` | El usuario no existe |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "LIST TERMINALS",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "value": "Bearer {{token}}",
+                "key": "Authorization"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/users/terminals",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "terminals"
+              ]
+            },
+            "description": "Devuelve la lista de todas las terminales de colectivo disponibles en el sistema.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (cualquier rol).\n\n**Body:** Ninguno.\n\n**Query params:** Ninguno.\n\n**Comportamiento interno:**\n\n1. Obtiene todas las terminales de la base de datos sin filtrar por usuario.\n    \n2. Convierte los registros al modelo de respuesta `BusTerminalResponse`.\n    \n\n**Respuesta exitosa** **`200 OK`****:**\n\n``` json\n[\n  {\n    \"uuid\": \"a0000000-0000-0000-0000-000000000001\",\n    \"name\": \"Terminal Retiro BS AS\",\n    \"postal_code\": \"2820\",\n    \"external_terminal_id\": \"...\"\n  },\n  ...\n]\n\n ```\n\n**Errores:**  \n| Código | Causa |  \n|---|---|  \n| `401 Unauthorized` | Token ausente o inválido |  \n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "GET NOTIFICATIONS",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/notifications?terminalID=a0000000-0000-0000-0000-000000000001&expirated_notifications=FALSE&license_plate=&start_date=&end_date=&limit=10&offset=0&notification_type=",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "terminalID",
+                  "value": "a0000000-0000-0000-0000-000000000001"
+                },
+                {
+                  "key": "expirated_notifications",
+                  "value": "FALSE"
+                },
+                {
+                  "key": "license_plate",
+                  "value": ""
+                },
+                {
+                  "key": "start_date",
+                  "value": ""
+                },
+                {
+                  "key": "end_date",
+                  "value": ""
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "notification_type",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Devuelve las notificaciones visibles para el usuario autenticado, con soporte de filtros y paginación. La visibilidad varía según el rol del usuario.\n\n**Autenticación:** `Authorization: Bearer {{token}}`.\n\n**Body:** Ninguno.\n\n**Query params:**\n\n| Param | Tipo | Requerido | Descripción |\n| --- | --- | --- | --- |\n| `terminalID` | UUID | Sí (para rol `user`) | UUID de la terminal a consultar |\n| `expirated_notifications` | string | No | `true` para traer solo las expiradas; omitir para las vigentes |\n| `license_plate` | string | No | Filtra por patente de colectivo (se normaliza: mayúsculas, sin espacios) |\n| `start_date` | string | No | Fecha inicio en formato `YYYY-MM-DD` |\n| `end_date` | string | No | Fecha fin en formato `YYYY-MM-DD` (debe ser >= `start_date`) |\n| `limit` | int | No | Cantidad de resultados por página (default: 10) |\n| `offset` | int | No | Desplazamiento para paginación (default: 0) |\n| `notification_type` | string | No | Tipo de notificación: `BUS_ARRIVAL`, `BUS_DELAY`, `LOCAL`, `GLOBAL`, `CAMERA` |\n\n**Comportamiento interno según rol:**\n\n- **`user`****:** Requiere `terminalID`. Devuelve notificaciones `GLOBAL` (group_key nulo), de esa terminal (`LOCAL`, `BUS_ARRIVAL`), y de esa terminal + patente (`BUS_DELAY`) si se provee `license_plate`. Excluye notificaciones de grupos admin.\n    \n- **`admin`****:** Devuelve notificaciones de las terminales que administra. Si se provee `license_plate`, filtra también por patente+terminal.\n    \n- **`super_admin`****:** Sin restricción de terminal. Si se provee `license_plate`, filtra globalmente por patente.\n    \n\n**Respuesta exitosa** **`200 OK`****:**\n\n``` json\n{\n  \"total_pages\": 3,\n  \"number_page\": 1,\n  \"notifications\": [\n    {\n      \"id\": \"uuid\",\n      \"expiration\": \"2026-05-04 15:30:00\",\n      \"date\": \"2026-05-04\",\n      \"data\": {\n        \"type\": \"BUS_DELAY\",\n        \"payload\": { ... }\n      }\n    }\n  ]\n}\n\n ```\n\n**Errores:**  \n| Código | Causa |  \n|---|---|  \n| `400 Bad Request` | `terminalID` faltante o inválido, tipo de notificación inválido, fechas con formato incorrecto o `end_date` anterior a `start_date` |  \n| `401 Unauthorized` | Token ausente o inválido |  \n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "JOIN BUS",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"terminalId\": \"a0000000-0000-0000-0000-000000000001\",\r\n    \"ticket\": \"FLE-002-2026\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/buses/join",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "buses",
+                "join"
+              ]
+            },
+            "description": "Registra al usuario autenticado como pasajero en espera para un viaje. La terminal y el pasaje deben ser válidos y existir en el sistema.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (cualquier rol).\n\n**Body (JSON):**  \n| Campo | Tipo | Requerido | Descripción |  \n|---|---|---|---|  \n| `terminalId` | string (UUID) | Sí | UUID de la terminal de bus desde donde parte el viaje |  \n| `ticket` | string | Sí | Identificador del pasaje (ej: `FLE-002-2026`) |\n\n**Ejemplo:**\n\n``` json\n{\n  \"terminalId\": \"a0000000-0000-0000-0000-000000000001\",\n  \"ticket\": \"FLE-002-2026\"\n}\n\n ```\n\n**Comportamiento interno:**\n\n1. Valida que `terminalId` no esté vacío y sea un UUID válido; si no, devuelve `400`.\n    \n2. Valida que `ticket` no esté vacío; si no, devuelve `400`.\n    \n3. Verifica que la terminal exista en la base de datos; si no, devuelve `404`.\n    \n4. Consulta al servicio externo de tickets para validar el pasaje; si no existe, devuelve `404`.\n    \n5. Construye el `groupKey` (`:`) y registra al usuario en el sistema de espera.\n    \n\n**Respuesta exitosa:** `201 Created` (sin body).\n\n**Errores:**  \n| Código | Causa |  \n|---|---|  \n| `400 Bad Request` | `terminalId` ausente o no es UUID válido, o `ticket` ausente |  \n| `401 Unauthorized` | Token ausente o inválido |  \n| `404 Not Found` | Terminal no encontrada o pasaje no encontrado en el sistema externo |  \n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "ADMIN - SUPER ADMIN",
+      "item": [
+        {
+          "name": "LIST CITIES",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/cities",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "cities"
+              ]
+            },
+            "description": "Devuelve la lista completa de ciudades registradas en el sistema.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Body:** Ninguno.\n\n**Query params:** Ninguno.\n\n**Comportamiento interno:**\n1. Obtiene todas las ciudades de la base de datos sin filtrado.\n\n**Respuesta exitosa `200 OK`:**\n```json\n[\n  {\n    \"postal_code\": \"2820\",\n    \"name\": \"Gualeguaychú\"\n  },\n  ...\n]\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `401 Unauthorized` | Token ausente o inválido |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "GET CITY",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/cities/:postal_code",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "cities",
+                ":postal_code"
+              ],
+              "variable": [
+                {
+                  "key": "postal_code",
+                  "value": "2820"
+                }
+              ]
+            },
+            "description": "Devuelve los datos de una ciudad específica identificada por su código postal.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Path param:**\n| Param | Tipo | Descripción |\n|---|---|---|\n| `postal_code` | string | Código postal de la ciudad |\n\n**Body:** Ninguno.\n\n**Comportamiento interno:**\n1. Busca la ciudad por `postal_code` en la base de datos.\n2. Si no existe devuelve `404`.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"postal_code\": \"2820\",\n  \"name\": \"Gualeguaychú\"\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `401 Unauthorized` | Token ausente o inválido |\n| `404 Not Found` | No existe una ciudad con ese código postal |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "CREATE CITY",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"postal_code\": \"1004\",\r\n    \"name\": \"Buenos Aires 1004\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/cities",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "cities"
+              ]
+            },
+            "description": "Crea una nueva ciudad en el sistema.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Body (JSON):**\n| Campo | Tipo | Requerido | Descripción |\n|---|---|---|---|\n| `postal_code` | string | Sí | Código postal único de la ciudad |\n| `name` | string | Sí | Nombre de la ciudad |\n\n**Ejemplo:**\n```json\n{\n  \"postal_code\": \"1004\",\n  \"name\": \"Buenos Aires 1004\"\n}\n```\n\n**Comportamiento interno:**\n1. Valida que `postal_code` y `name` estén presentes.\n2. Verifica que no exista ya una ciudad con ese `postal_code`; si existe devuelve `409`.\n3. Persiste la nueva ciudad en la base de datos.\n\n**Respuesta exitosa `201 Created`:**\n```json\n{\n  \"postal_code\": \"1004\",\n  \"name\": \"Buenos Aires 1004\"\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `400 Bad Request` | `postal_code` o `name` faltantes |\n| `401 Unauthorized` | Token ausente o inválido |\n| `409 Conflict` | Ya existe una ciudad con ese código postal |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "UPDATE CITY",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"postal_code\": \"2821\",\r\n    \"name\": \"Buenos aires - La plata\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/cities/:postal_code",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "cities",
+                ":postal_code"
+              ],
+              "variable": [
+                {
+                  "key": "postal_code",
+                  "value": "1004"
+                }
+              ]
+            },
+            "description": "Actualiza los datos de una ciudad existente. Ambos campos son opcionales (al menos uno debe enviarse).\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Path param:**  \n| Param | Tipo | Descripción |  \n|---|---|---|  \n| `postal_code` | string | Código postal actual de la ciudad a modificar |\n\n**Body (JSON):**  \n| Campo | Tipo | Requerido | Descripción |  \n|---|---|---|---|  \n| `postal_code` | string | No | Nuevo código postal (debe ser único) |  \n| `name` | string | No | Nuevo nombre de la ciudad |\n\n**Ejemplo:**\n\n``` json\n{\n  \"postal_code\": \"2821\",\n  \"name\": \"Buenos Aires - La Plata\"\n}\n\n ```\n\n**Comportamiento interno:**\n\n1. Busca la ciudad por el `postal_code` del path; si no existe devuelve `404`.\n    \n2. Aplica los campos presentes en el body (patch parcial).\n    \n3. Si se cambia el `postal_code`, verifica que el nuevo no esté en uso; si ya existe devuelve `409`. Luego actualiza nombre y código en dos pasos.\n    \n4. Si solo cambia el `name`, actualiza directamente.\n    \n\n**Respuesta exitosa** **`200 OK`****:**\n\n``` json\n{\n  \"postal_code\": \"2821\",\n  \"name\": \"Buenos Aires - La Plata\"\n}\n\n ```\n\n**Errores:**  \n| Código | Causa |  \n|---|---|  \n| `400 Bad Request` | Body malformado |  \n| `401 Unauthorized` | Token ausente o inválido |  \n| `404 Not Found` | No existe una ciudad con ese código postal |  \n| `409 Conflict` | El nuevo código postal ya está en uso |  \n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE CITY",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/cities/:postal_code",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "cities",
+                ":postal_code"
+              ],
+              "variable": [
+                {
+                  "key": "postal_code",
+                  "value": "1004"
+                }
+              ]
+            },
+            "description": "Elimina una ciudad del sistema identificada por su código postal.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Path param:**\n| Param | Tipo | Descripción |\n|---|---|---|\n| `postal_code` | string | Código postal de la ciudad a eliminar |\n\n**Body:** Ninguno.\n\n**Comportamiento interno:**\n1. Verifica que exista la ciudad con ese `postal_code`; si no existe devuelve `404`.\n2. Elimina el registro de la base de datos.\n\n**Respuesta exitosa `204 No Content`:** Sin cuerpo.\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `401 Unauthorized` | Token ausente o inválido |\n| `404 Not Found` | No existe una ciudad con ese código postal |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "LIST PLATFORMS",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/platforms?bus_terminal_id=a0000000-0000-0000-0000-000000000001",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "platforms"
+              ],
+              "query": [
+                {
+                  "key": "bus_terminal_id",
+                  "value": "a0000000-0000-0000-0000-000000000001"
+                }
+              ]
+            },
+            "description": "Devuelve las plataformas (andenes) agrupadas por terminal. La visibilidad depende del rol.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Query params:**\n| Param | Tipo | Requerido | Descripción |\n|---|---|---|---|\n| `bus_terminal_id` | UUID | No | Filtra por una terminal específica |\n\n**Comportamiento interno según rol:**\n- **`super_admin`:** Devuelve plataformas de todas las terminales (o de la terminal indicada si se pasa `bus_terminal_id`).\n- **`admin`:** Devuelve solo las plataformas de las terminales que administra. Si se pasa `bus_terminal_id`, verifica que esa terminal le pertenezca; si no, devuelve `403`.\n\n**Respuesta exitosa `200 OK`:**\n```json\n[\n  {\n    \"uuid\": \"a0000000-0000-0000-0000-000000000001\",\n    \"postal_code\": \"2820\",\n    \"name\": \"Terminal Retiro BS AS\",\n    \"platforms\": [\n      {\n        \"code\": 1,\n        \"anden\": \"A1\",\n        \"coordinates\": { \"lat\": -34.6037, \"lng\": -58.3816 }\n      }\n    ]\n  }\n]\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `400 Bad Request` | `bus_terminal_id` con formato inválido |\n| `401 Unauthorized` | Token ausente o inválido |\n| `403 Forbidden` | El admin no es dueño de esa terminal |\n| `404 Not Found` | Terminal no encontrada |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "GET PLATFORM",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/platforms/:code",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "platforms",
+                ":code"
+              ],
+              "variable": [
+                {
+                  "key": "code",
+                  "value": "16"
+                }
+              ]
+            },
+            "description": "Devuelve los datos de una plataforma (andén) específica por su código, junto con la información de su terminal.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Path param:**  \n| Param | Tipo | Descripción |  \n|---|---|---|  \n| `code` | integer | Código numérico de la plataforma |\n\n**Body:** Ninguno.\n\n**Comportamiento interno según rol:**\n\n- **`super_admin`****:** Obtiene la plataforma directamente sin restricción de terminal.\n    \n- **`admin`****:** Obtiene la plataforma y verifica que la terminal a la que pertenece sea administrada por el usuario; si no, devuelve `403`.\n    \n\n**Respuesta exitosa** **`200 OK`****:**\n\n``` json\n{\n  \"uuid\": \"a0000000-0000-0000-0000-000000000001\",\n  \"postal_code\": \"2820\",\n  \"name\": \"Terminal Retiro BS AS\",\n  \"platforms\": [\n    {\n      \"code\": 16,\n      \"anden\": \"B3\",\n      \"coordinates\": { \"lat\": -34.6037, \"lng\": -58.3816 }\n    }\n  ]\n}\n\n ```\n\n**Errores:**  \n| Código | Causa |  \n|---|---|  \n| `400 Bad Request` | El `code` no es un número válido |  \n| `401 Unauthorized` | Token ausente o inválido |  \n| `403 Forbidden` | El admin no es dueño de la terminal de esa plataforma |  \n| `404 Not Found` | Plataforma no encontrada |  \n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "CREATE PLATFORM",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"anden\": \"A20\", \r\n    \"coordinates\": {\"lat\": -34.6037, \"lng\": -58.3816}, \r\n    \"bus_terminal_id\": \"a0000000-0000-0000-0000-000000000001\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/platforms",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "platforms"
+              ]
+            },
+            "description": "Crea una nueva plataforma (andén) asociada a una terminal de colectivo.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Body (JSON):**\n| Campo | Tipo | Requerido | Descripción |\n|---|---|---|---|\n| `anden` | string | Sí | Identificador del andén (ej: `\"A20\"`) |\n| `coordinates` | object | Sí | Coordenadas geográficas `{ \"lat\": float, \"lng\": float }` |\n| `bus_terminal_id` | UUID | Sí | UUID de la terminal a la que pertenece el andén |\n\n**Ejemplo:**\n```json\n{\n  \"anden\": \"A20\",\n  \"coordinates\": { \"lat\": -34.6037, \"lng\": -58.3816 },\n  \"bus_terminal_id\": \"a0000000-0000-0000-0000-000000000001\"\n}\n```\n\n**Comportamiento interno según rol:**\n- **`super_admin`:** Verifica que la terminal exista y crea la plataforma directamente.\n- **`admin`:** Verifica que la terminal exista y que le pertenezca; si no, devuelve `403`.\n\n**Respuesta exitosa `201 Created`:**\n```json\n{\n  \"code\": 21,\n  \"anden\": \"A20\",\n  \"coordinates\": { \"lat\": -34.6037, \"lng\": -58.3816 },\n  \"bus_terminal_id\": \"a0000000-0000-0000-0000-000000000001\"\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `400 Bad Request` | Campos requeridos faltantes o inválidos |\n| `401 Unauthorized` | Token ausente o inválido |\n| `403 Forbidden` | El admin no es dueño de esa terminal |\n| `404 Not Found` | Terminal no encontrada |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "UPDATE PLATFORM",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"anden\": \"B2\",\r\n    \"coordinates\": {\"lat\": -34.6037, \"lng\": -58.3816}\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/platforms/:code",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "platforms",
+                ":code"
+              ],
+              "variable": [
+                {
+                  "key": "code",
+                  "value": "13"
+                }
+              ]
+            },
+            "description": "Actualiza los datos de una plataforma (andén) existente. Ambos campos son opcionales.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Path param:**\n| Param | Tipo | Descripción |\n|---|---|---|\n| `code` | integer | Código numérico de la plataforma a modificar |\n\n**Body (JSON):**\n| Campo | Tipo | Requerido | Descripción |\n|---|---|---|---|\n| `anden` | string | No | Nuevo identificador del andén |\n| `coordinates` | object | No | Nuevas coordenadas `{ \"lat\": float, \"lng\": float }` |\n\n**Ejemplo:**\n```json\n{\n  \"anden\": \"B2\",\n  \"coordinates\": { \"lat\": -34.6037, \"lng\": -58.3816 }\n}\n```\n\n**Comportamiento interno según rol:**\n- **`super_admin`:** Busca la plataforma por código y aplica los cambios directamente.\n- **`admin`:** Busca la plataforma, verifica que la terminal a la que pertenece sea del admin; si no, devuelve `403`. Luego aplica los cambios.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"code\": 13,\n  \"anden\": \"B2\",\n  \"coordinates\": { \"lat\": -34.6037, \"lng\": -58.3816 },\n  \"bus_terminal_id\": \"a0000000-0000-0000-0000-000000000001\"\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `400 Bad Request` | El `code` no es un número válido o body malformado |\n| `401 Unauthorized` | Token ausente o inválido |\n| `403 Forbidden` | El admin no es dueño de la terminal de esa plataforma |\n| `404 Not Found` | Plataforma no encontrada |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE PLATFORM",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/platforms/:code",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "platforms",
+                ":code"
+              ],
+              "variable": [
+                {
+                  "key": "code",
+                  "value": "15"
+                }
+              ]
+            },
+            "description": "Elimina una plataforma (andén) del sistema por su código numérico.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Path param:**\n| Param | Tipo | Descripción |\n|---|---|---|\n| `code` | integer | Código numérico de la plataforma a eliminar |\n\n**Body:** Ninguno.\n\n**Comportamiento interno según rol:**\n- **`super_admin`:** Verifica que la plataforma exista y la elimina directamente.\n- **`admin`:** Verifica que la plataforma exista y que la terminal a la que pertenece sea del admin; si no, devuelve `403`. Luego la elimina.\n\n**Respuesta exitosa `204 No Content`:** Sin cuerpo.\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `400 Bad Request` | El `code` no es un número válido |\n| `401 Unauthorized` | Token ausente o inválido |\n| `403 Forbidden` | El admin no es dueño de la terminal de esa plataforma |\n| `404 Not Found` | Plataforma no encontrada |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "PROMOTE TO ADMIN",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": {{admin_email}}, \r\n    \"bus_terminal_id\": \"a0000000-0000-0000-0000-000000000001\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/users/promote",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "promote"
+              ]
+            },
+            "description": "Promueve a un usuario al rol de `admin` y lo asocia a una terminal. Si el usuario ya era admin de otras terminales, se le agrega la nueva sin pisar las existentes.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Body (JSON):**\n| Campo | Tipo | Requerido | Descripción |\n|---|---|---|---|\n| `email` | string | Sí | Email del usuario a promover |\n| `bus_terminal_id` | UUID | Sí | Terminal a la que se lo asocia como admin |\n\n**Ejemplo:**\n```json\n{\n  \"email\": \"usuario@gmail.com\",\n  \"bus_terminal_id\": \"a0000000-0000-0000-0000-000000000001\"\n}\n```\n\n**Comportamiento interno según rol:**\n- **`super_admin`:** Verifica que la terminal exista. Puede promover a cualquier usuario.\n- **`admin`:** Verifica que la terminal a la que quiere asociar al nuevo admin sea una de las suyas; si no, devuelve `403`.\n\n**Lógica común:**\n1. Valida que `email` y `bus_terminal_id` estén presentes.\n2. Busca al usuario por email; si no existe devuelve `404`.\n3. Si el usuario ya es `super_admin`, devuelve `409`.\n4. Cambia el rol del usuario a `admin` en la base de datos.\n5. Si el usuario aún no está asociado a esa terminal, crea la relación `user_terminal`.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"uuid\": \"...\",\n  \"first_name\": \"...\",\n  \"last_name\": \"...\",\n  \"email\": \"...\",\n  \"dni\": \"...\",\n  \"rol\": { \"name\": \"admin\" }\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `400 Bad Request` | `email` o `bus_terminal_id` faltantes |\n| `401 Unauthorized` | Token ausente o inválido |\n| `403 Forbidden` | El admin no es dueño de esa terminal |\n| `404 Not Found` | Usuario o terminal no encontrados |\n| `409 Conflict` | El usuario ya es `super_admin` |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "DEMOTE ADMIN",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"mendozamauro@gmail.com\", \r\n    \"bus_terminal_id\": \"a0000000-0000-0000-0000-000000000002\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/users/demote",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "demote"
+              ]
+            },
+            "description": "Quita la asociación de un admin a una terminal. Si el admin ya no tiene ninguna terminal asignada, su rol vuelve a `user` automáticamente.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Body (JSON):**\n| Campo | Tipo | Requerido | Descripción |\n|---|---|---|---|\n| `email` | string | Sí | Email del admin a degradar |\n| `bus_terminal_id` | UUID | Sí | Terminal de la que se le quita la responsabilidad |\n\n**Ejemplo:**\n```json\n{\n  \"email\": \"admin@gmail.com\",\n  \"bus_terminal_id\": \"a0000000-0000-0000-0000-000000000002\"\n}\n```\n\n**Comportamiento interno según rol:**\n- **`super_admin`:** Puede degradar a cualquier admin de cualquier terminal.\n- **`admin`:** Solo puede degradar admins de sus propias terminales; si intenta hacerlo en una terminal que no le pertenece, devuelve `403`. Además, **no puede degradarse a sí mismo**.\n\n**Lógica común:**\n1. Valida que `email` y `bus_terminal_id` estén presentes.\n2. Busca al usuario por email; si no existe devuelve `404`.\n3. Verifica que el usuario tenga rol `admin`; si no devuelve `400`.\n4. Elimina la relación `user_terminal` para esa terminal.\n5. Si el usuario ya no tiene ninguna terminal asociada, cambia su rol a `user`.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"uuid\": \"...\",\n  \"first_name\": \"...\",\n  \"last_name\": \"...\",\n  \"email\": \"...\",\n  \"dni\": \"...\",\n  \"rol\": { \"name\": \"user\" }\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `400 Bad Request` | `email` o `bus_terminal_id` faltantes, o el usuario no es admin |\n| `401 Unauthorized` | Token ausente o inválido |\n| `403 Forbidden` | El admin intenta degradarse a sí mismo, o no es dueño de esa terminal |\n| `404 Not Found` | Usuario no encontrado |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "NOTIFY",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"type\": \"LOCAL\",\r\n  \"payload\": {\r\n    \"message\": \"Ejemplo de mensaje LOCAL\",\r\n    \"time_life\": 12\r\n  }\r\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/notifications?terminaluuid=a0000000-0000-0000-0000-000000000002",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "terminaluuid",
+                  "value": "a0000000-0000-0000-0000-000000000002"
+                }
+              ]
+            },
+            "description": "Envía una notificación manual a los pasajeros de una terminal. Soporta los tipos `LOCAL` (una terminal específica) y `GLOBAL` (todas las terminales, solo `super_admin`).\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Query params:**\n| Param | Tipo | Requerido | Descripción |\n|---|---|---|---|\n| `terminaluuid` | UUID | Condicional | UUID de la terminal destino. Requerido para `super_admin` y para `admin` con múltiples terminales |\n\n**Body (JSON) — tipo LOCAL:**\n```json\n{\n  \"type\": \"LOCAL\",\n  \"payload\": {\n    \"message\": \"Texto del mensaje\",\n    \"time_life\": 12\n  }\n}\n```\n\n**Body (JSON) — tipo GLOBAL** (solo `super_admin`):\n```json\n{\n  \"type\": \"GLOBAL\",\n  \"payload\": {\n    \"message\": \"Texto del mensaje\",\n    \"time_life\": 12\n  }\n}\n```\n\n| Campo | Tipo | Requerido | Descripción |\n|---|---|---|---|\n| `type` | string | Sí | `LOCAL` o `GLOBAL` |\n| `payload.message` | string | Sí | Texto de la notificación |\n| `payload.time_life` | integer | Sí | Minutos de vida de la notificación |\n\n**Comportamiento interno según tipo:**\n- **`LOCAL`:** Determina la terminal destino según el rol. Si el admin tiene una sola terminal y no se pasa `terminaluuid`, la usa por defecto. Si tiene varias, `terminaluuid` es obligatorio. Persiste la notificación en la BD y la envía por SignalR al grupo de esa terminal.\n- **`GLOBAL`:** Solo disponible para `super_admin`. Envía la notificación a todas las terminales a través del grupo global de SignalR.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"message\": \"notification sent\"\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `400 Bad Request` | Tipo inválido, mensaje vacío, `time_life` inválido, `terminaluuid` faltante en admin multi-terminal, admin sin terminal asignada |\n| `401 Unauthorized` | Token ausente o inválido |\n| `403 Forbidden` | Admin intenta enviar notificación `GLOBAL`, o `terminaluuid` no le pertenece |\n| `404 Not Found` | Terminal no encontrada |\n| `502 Bad Gateway` | Error al enviar la notificación por SignalR |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "NOTFY BUS DELAY",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 401) {\r",
+                  "    \r",
+                  "    if (pm.variables.get(\"isRetrying\")) {\r",
+                  "        pm.variables.unset(\"isRetrying\");\r",
+                  "        console.error(\"El reintento falló. La cookie refresh_token probablemente expiró y necesitas volver a loguearte.\");\r",
+                  "        return; \r",
+                  "    }\r",
+                  "\r",
+                  "    console.log(\"Token expirado (401). Intentando refrescar usando la cookie...\");\r",
+                  "\r",
+                  "    const refreshRequest = {\r",
+                  "        url: pm.collectionVariables.get(\"BASE_URL\") + '/api/auth/refresh',\r",
+                  "        method: 'POST'\r",
+                  "    };\r",
+                  "\r",
+                  "    // 4. Enviamos la petición asíncrona\r",
+                  "    pm.sendRequest(refreshRequest, function (err, res) {\r",
+                  "        if (err) {\r",
+                  "            console.error(\"Error en la petición de refresh token:\", err);\r",
+                  "        } else {\r",
+                  "            if (res.code === 200) {\r",
+                  "                const responseJson = res.json();\r",
+                  "                \r",
+                  "                const newToken = responseJson.access_token; \r",
+                  "                \r",
+                  "                if (newToken) {\r",
+                  "                    pm.collectionVariables.set(\"token\", newToken);\r",
+                  "                    console.log(\"Token actualizado correctamente. Reintentando la petición original...\");\r",
+                  "\r",
+                  "                    // Marcamos que estamos en un reintento\r",
+                  "                    pm.variables.set(\"isRetrying\", true);\r",
+                  "\r",
+                  "                    // 5. Reintentamos la petición original\r",
+                  "                    postman.setNextRequest(pm.info.requestName);\r",
+                  "                } else {\r",
+                  "                    console.error(\"La respuesta fue 200 pero no se encontró el access_token en el JSON.\");\r",
+                  "                }\r",
+                  "            } else {\r",
+                  "                console.error(\"Falló el refresco del token. Código HTTP:\", res.code);\r",
+                  "            }\r",
+                  "        }\r",
+                  "    });\r",
+                  "} else {\r",
+                  "    pm.variables.unset(\"isRetrying\"); // Si petición no es 401, limpiamos flag\r",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"type\": \"BUS_DELAY\",\r\n  \"license_patent\": \"AB 123 CD\",\r\n  \"uuid_terminal\": \"a0000000-0000-0000-0000-000000000001\",\r\n  \"start_date\": \"2026-04-27\",\r\n  \"payload\": { \r\n    \"time_delay\": 15,\r\n    \"time_life\": 12\r\n  }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/notify-bus-delay",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "notify-bus-delay"
+              ]
+            },
+            "description": "Notifica a los pasajeros de una terminal que un colectivo específico tiene un retraso. Antes de enviar, verifica con el servicio externo de tickets que el viaje esté registrado para esa fecha y patente.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Body (JSON):**\n\n``` json\n{\n  \"type\": \"BUS_DELAY\",\n  \"license_patent\": \"AB 123 CD\",\n  \"uuid_terminal\": \"a0000000-0000-0000-0000-000000000001\",\n  \"start_date\": \"2026-04-27\",\n  \"payload\": {\n    \"time_delay\": 15,\n    \"time_life\": 12\n  }\n}\n\n ```\n\n| Campo | Tipo | Requerido | Descripción |\n| --- | --- | --- | --- |\n| `type` | string | Sí | Debe ser `BUS_DELAY` |\n| `license_patent` | string | Sí | Patente del colectivo (ej: `\"AB 123 CD\"`) |\n| `uuid_terminal` | UUID | Condicional | Terminal destino. Requerido para `super_admin` y para `admin` con múltiples terminales |\n| `start_date` | string | Sí | Fecha del viaje en formato `YYYY-MM-DD` |\n| `payload.time_delay` | integer | Sí | Minutos de retraso |\n| `payload.time_life` | integer | Sí | Minutos de vida de la notificación |\n\n**Comportamiento interno:**\n\n1. Valida todos los campos del request.\n    \n2. Resuelve la terminal según el rol (igual que NOTIFY): si el admin tiene una sola terminal puede omitir `uuid_terminal`; si tiene varias, es obligatorio.\n    \n3. Verifica que la terminal tenga un `external_terminal_id` configurado; si no, devuelve `409`.\n    \n4. Consulta al servicio externo de tickets si existe un viaje registrado para esa `license_patent`, `start_date` y terminal; si no existe devuelve `409`.\n    \n5. Normaliza la patente (mayúsculas, sin espacios) para construir la `group_key`: `PATENTENORMALIZADA:uuid_terminal`.\n    \n6. Persiste la notificación en la BD y la envía por SignalR al grupo correspondiente.\n    \n\n**Respuesta exitosa** **`201 Created`****:**\n\n``` json\n{\n  \"message\": \"bus delay notification sent\"\n}\n\n ```\n\n**Errores:**  \n| Código | Causa |  \n|---|---|  \n| `400 Bad Request` | Tipo inválido, patente/fecha/terminal faltantes, `time_delay` inválido, admin sin terminal |  \n| `401 Unauthorized` | Token ausente o inválido |  \n| `403 Forbidden` | La terminal no le pertenece al admin |  \n| `404 Not Found` | Terminal no encontrada |  \n| `409 Conflict` | Terminal sin `external_terminal_id` configurado, o el viaje no está registrado en el sistema externo |  \n| `502 Bad Gateway` | Error en la consulta al servicio externo o al enviar la notificación |  \n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "GET USER INFO BY EMAIL",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/users/by-email?email=mendozamauro@gmail.com",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "by-email"
+              ],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "mendozamauro@gmail.com"
+                }
+              ]
+            },
+            "description": "## GET USER INFO BY EMAIL\n\nBusca y retorna la información de un usuario por su dirección de correo electrónico. Solo accesible para `admin` y `super_admin`.\n\n---\n\n### Autenticación\nRequiere JWT válido en el header `Authorization: Bearer <token>`. Roles permitidos: `admin`, `super_admin`.\n\n---\n\n### Query Parameters\n\n| Parámetro | Tipo   | Requerido | Descripción                          |\n|-----------|--------|-----------|--------------------------------------|\n| `email`   | string | Sí        | Dirección de correo del usuario a buscar |\n\n**Ejemplo:**\n```\nGET /api/admin/users/by-email?email=usuario@example.com\n```\n\n---\n\n### Respuesta exitosa — `200 OK`\n\n```json\n{\n  \"uuid\": \"a1b2c3d4-...\",\n  \"first_name\": \"Juan\",\n  \"last_name\": \"Pérez\",\n  \"email\": \"usuario@example.com\",\n  \"dni\": \"12345678\",\n  \"rol\": {\n    \"uuid\": \"...\",\n    \"name\": \"user\"\n  }\n}\n```\n\n---\n\n### Errores posibles\n\n| Código | Descripción                                      |\n|--------|--------------------------------------------------|\n| `400`  | Parámetro `email` ausente o inválido             |\n| `401`  | Token JWT ausente o expirado                     |\n| `403`  | El rol del token no es `admin` ni `super_admin`  |\n| `404`  | No existe ningún usuario con ese email           |\n\n---\n\n### Notas\n- La búsqueda es exacta (case-insensitive a nivel de base de datos según collation configurada).\n- Tanto `admin` como `super_admin` pueden usar este endpoint sin restricción de terminal; sirve para gestión y auditoría de usuarios."
+          },
+          "response": []
+        },
+        {
+          "name": "GET TYPES NOTIFICATIONS",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/notification-types",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "notification-types"
+              ]
+            },
+            "description": "Devuelve los tipos de notificación que el usuario autenticado puede enviar según su rol.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Body:** Ninguno.\n\n**Comportamiento interno:**\n- **`super_admin`:** Puede enviar `LOCAL`, `GLOBAL` y `BUS_DELAY`.\n- **`admin`:** Puede enviar `LOCAL` y `BUS_DELAY`.\n- Cualquier otro rol devuelve `403`.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"types\": [\"LOCAL\", \"BUS_DELAY\"]\n}\n```\n\nO para `super_admin`:\n```json\n{\n  \"types\": [\"LOCAL\", \"GLOBAL\", \"BUS_DELAY\"]\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `401 Unauthorized` | Token ausente o inválido |\n| `403 Forbidden` | El rol del usuario no está soportado |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "DEL NOTIFICATION",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": {{super_admin_email}},\r\n    \"password\": {{super_admin_pass}}\r\n}"
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/notifications?notification_id=98fb4a77-0a0f-44f0-8067-59e5b7df42ba",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "notification_id",
+                  "value": "98fb4a77-0a0f-44f0-8067-59e5b7df42ba"
+                }
+              ]
+            },
+            "description": "Elimina una notificación del sistema y la retira en tiempo real del frontend vía SignalR.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Query params:**\n| Param | Tipo | Requerido | Descripción |\n|---|---|---|---|\n| `notification_id` | UUID | Sí | ID de la notificación a eliminar |\n\n**Body:** Ninguno.\n\n**Comportamiento interno según rol:**\n- **`super_admin`:** Puede eliminar cualquier notificación. Busca la notificación, envía el evento de eliminación por SignalR y la borra de la BD.\n- **`admin`:** Solo puede eliminar notificaciones de sus terminales. No puede eliminar notificaciones `GLOBAL` (aquellas con `group_key` nulo). Verifica que el `group_key` de la notificación contenga el UUID de alguna de sus terminales; si no, devuelve `403`.\n- **`user`:** No puede eliminar notificaciones (devuelve `403`).\n\n**Respuesta exitosa `204 No Content`:** Sin cuerpo.\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `400 Bad Request` | `notification_id` ausente o con formato UUID inválido, admin sin terminal asignada |\n| `401 Unauthorized` | Token ausente o inválido |\n| `403 Forbidden` | Rol `user`, notificación `GLOBAL` intentada borrar por `admin`, o notificación de otra terminal |\n| `404 Not Found` | Notificación no encontrada |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "SUPER ADMIN",
+      "item": [
+        {
+          "name": "LIST TERMINALS",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/super/terminals",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "super",
+                "terminals"
+              ]
+            },
+            "description": "Devuelve la lista completa de terminales de colectivo registradas en el sistema.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `super_admin`).\n\n**Body:** Ninguno.\n\n**Comportamiento interno:**\n1. Obtiene todas las terminales de la base de datos sin filtrado.\n\n**Respuesta exitosa `200 OK`:**\n```json\n[\n  {\n    \"uuid\": \"a0000000-0000-0000-0000-000000000001\",\n    \"name\": \"Terminal Retiro BS AS\",\n    \"postal_code\": \"2820\",\n    \"external_terminal_id\": \"447ab6ac-488a-4ccc-90f1-6ddbf561f6e6\"\n  },\n  ...\n]\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `401 Unauthorized` | Token ausente o inválido |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "GET TERMINAL",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/super/terminals/:uuid",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "super",
+                "terminals",
+                ":uuid"
+              ],
+              "variable": [
+                {
+                  "key": "uuid"
+                }
+              ]
+            },
+            "description": "Devuelve los datos de una terminal específica por su UUID.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `super_admin`).\n\n**Path param:**\n| Param | Tipo | Descripción |\n|---|---|---|\n| `uuid` | UUID | UUID de la terminal |\n\n**Body:** Ninguno.\n\n**Comportamiento interno:**\n1. Parsea el UUID del path; si es inválido devuelve `400`.\n2. Busca la terminal en la base de datos; si no existe devuelve `404`.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"uuid\": \"a0000000-0000-0000-0000-000000000001\",\n  \"name\": \"Terminal Retiro BS AS\",\n  \"postal_code\": \"2820\",\n  \"external_terminal_id\": \"447ab6ac-488a-4ccc-90f1-6ddbf561f6e6\"\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `400 Bad Request` | UUID con formato inválido |\n| `401 Unauthorized` | Token ausente o inválido |\n| `404 Not Found` | Terminal no encontrada |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "CREATE TERMINAL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"postal_code\": \"2820\",\r\n    \"name\": \"Terminal Retiro BS AS\",\r\n    \"external_terminal_id\": \"447ab6ac-488a-4ccc-90f1-6ddbf561f6e6\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/super/terminals",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "super",
+                "terminals"
+              ]
+            },
+            "description": "Crea una nueva terminal de colectivo. El `external_terminal_id` debe existir en el servicio externo de tickets y no estar ya en uso.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `super_admin`).\n\n**Body (JSON):**\n| Campo | Tipo | Requerido | Descripción |\n|---|---|---|---|\n| `postal_code` | string | Sí | Código postal de la ciudad donde está la terminal (debe existir en la tabla `city`) |\n| `name` | string | Sí | Nombre de la terminal |\n| `external_terminal_id` | UUID | Sí | ID de la terminal en el sistema externo de tickets |\n\n**Ejemplo:**\n```json\n{\n  \"postal_code\": \"2820\",\n  \"name\": \"Terminal Retiro BS AS\",\n  \"external_terminal_id\": \"447ab6ac-488a-4ccc-90f1-6ddbf561f6e6\"\n}\n```\n\n**Comportamiento interno:**\n1. Valida que todos los campos estén presentes.\n2. Verifica que el `external_terminal_id` no esté ya asociado a otra terminal; si existe devuelve `409`.\n3. Consulta al servicio externo de tickets para verificar que el `external_terminal_id` sea válido; si no existe devuelve `400`.\n4. Verifica que el `postal_code` exista en la tabla de ciudades; si no devuelve `404`.\n5. Crea la terminal con un UUID nuevo.\n\n**Respuesta exitosa `201 Created`:**\n```json\n{\n  \"uuid\": \"...\",\n  \"name\": \"Terminal Retiro BS AS\",\n  \"postal_code\": \"2820\",\n  \"external_terminal_id\": \"447ab6ac-488a-4ccc-90f1-6ddbf561f6e6\"\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `400 Bad Request` | Campos faltantes o `external_terminal_id` no existe en el servicio externo |\n| `401 Unauthorized` | Token ausente o inválido |\n| `404 Not Found` | Ciudad con ese `postal_code` no encontrada |\n| `409 Conflict` | El `external_terminal_id` ya está en uso por otra terminal |\n| `502 Bad Gateway` | Error al consultar el servicio externo |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "UPDATE TERMINAL",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"postal_code\": \"2820\",\r\n    \"name\": \"Terminal Gualeguaychu\",\r\n    \"external_terminal_id\": \"c11ea199-91e2-43d4-a72e-1ed619258ac5\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/super/terminals/:uuid",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "super",
+                "terminals",
+                ":uuid"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "a0000000-0000-0000-0000-000000000001"
+                }
+              ]
+            },
+            "description": "Actualiza los datos de una terminal existente. Todos los campos son opcionales.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `super_admin`).\n\n**Path param:**\n| Param | Tipo | Descripción |\n|---|---|---|\n| `uuid` | UUID | UUID de la terminal a modificar |\n\n**Body (JSON):**\n| Campo | Tipo | Requerido | Descripción |\n|---|---|---|---|\n| `postal_code` | string | No | Nuevo código postal (debe existir en `city`) |\n| `name` | string | No | Nuevo nombre de la terminal |\n| `external_terminal_id` | UUID | No | Nuevo ID externo (debe existir en el servicio externo y no estar en uso) |\n\n**Ejemplo:**\n```json\n{\n  \"postal_code\": \"2820\",\n  \"name\": \"Terminal Gualeguaychú\",\n  \"external_terminal_id\": \"c11ea199-91e2-43d4-a72e-1ed619258ac5\"\n}\n```\n\n**Comportamiento interno:**\n1. Valida que el body no esté vacío.\n2. Busca la terminal por UUID; si no existe devuelve `404`.\n3. Si se cambia `postal_code`, verifica que la ciudad exista; si no devuelve `404`.\n4. Si se cambia `external_terminal_id` y es distinto al actual: verifica que no esté en uso por otra terminal (`409`), y que exista en el servicio externo (`400` / `502`).\n5. Aplica los cambios y persiste.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"uuid\": \"a0000000-0000-0000-0000-000000000001\",\n  \"name\": \"Terminal Gualeguaychú\",\n  \"postal_code\": \"2820\",\n  \"external_terminal_id\": \"c11ea199-91e2-43d4-a72e-1ed619258ac5\"\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `400 Bad Request` | UUID inválido, body vacío, o `external_terminal_id` no existe en el servicio externo |\n| `401 Unauthorized` | Token ausente o inválido |\n| `404 Not Found` | Terminal o ciudad no encontrada |\n| `409 Conflict` | El `external_terminal_id` ya está en uso por otra terminal |\n| `502 Bad Gateway` | Error al consultar el servicio externo |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE TERMINAL",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/super/terminals/:uuid",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "super",
+                "terminals",
+                ":uuid"
+              ],
+              "variable": [
+                {
+                  "key": "uuid",
+                  "value": "94908c5f-6641-4a03-a2a5-f045cae8536e"
+                }
+              ]
+            },
+            "description": "Elimina una terminal del sistema por su UUID.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `super_admin`).\n\n**Path param:**\n| Param | Tipo | Descripción |\n|---|---|---|\n| `uuid` | UUID | UUID de la terminal a eliminar |\n\n**Body:** Ninguno.\n\n**Comportamiento interno:**\n1. Parsea el UUID del path; si es inválido devuelve `400`.\n2. Verifica que la terminal exista; si no devuelve `404`.\n3. Elimina el registro de la base de datos.\n\n**Respuesta exitosa `204 No Content`:** Sin cuerpo.\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `400 Bad Request` | UUID con formato inválido |\n| `401 Unauthorized` | Token ausente o inválido |\n| `404 Not Found` | Terminal no encontrada |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "PROMOTE TO SUPER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"mendozamauro@gmail.com\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/super/users/promote-super",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "super",
+                "users",
+                "promote-super"
+              ]
+            },
+            "description": "Promueve a un usuario al rol de `super_admin`. Si el usuario era `admin`, se eliminan todas sus asociaciones a terminales.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `super_admin`).\n\n**Body (JSON):**\n| Campo | Tipo | Requerido | Descripción |\n|---|---|---|---|\n| `email` | string | Sí | Email del usuario a promover |\n\n**Ejemplo:**\n```json\n{\n  \"email\": \"usuario@gmail.com\"\n}\n```\n\n**Comportamiento interno:**\n1. Valida que `email` esté presente.\n2. Busca al usuario por email; si no existe devuelve `404`.\n3. Si el usuario ya es `super_admin`, devuelve `409`.\n4. Cambia el rol del usuario a `super_admin`.\n5. Elimina todas las relaciones `user_terminal` del usuario (un `super_admin` no está vinculado a terminales específicas).\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"uuid\": \"...\",\n  \"first_name\": \"...\",\n  \"last_name\": \"...\",\n  \"email\": \"...\",\n  \"dni\": \"...\",\n  \"rol\": { \"name\": \"super_admin\" }\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `400 Bad Request` | `email` faltante |\n| `401 Unauthorized` | Token ausente o inválido |\n| `404 Not Found` | Usuario no encontrado |\n| `409 Conflict` | El usuario ya es `super_admin` |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "DEMOTE SUPER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"mendozamauro@gmail.com\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/api/super/users/demote-super",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "super",
+                "users",
+                "demote-super"
+              ]
+            },
+            "description": "Quita el rol de `super_admin` a un usuario, degradándolo directamente a `user`.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `super_admin`).\n\n**Body (JSON):**\n| Campo | Tipo | Requerido | Descripción |\n|---|---|---|---|\n| `email` | string | Sí | Email del super admin a degradar |\n\n**Ejemplo:**\n```json\n{\n  \"email\": \"superadmin@gmail.com\"\n}\n```\n\n**Comportamiento interno:**\n1. Valida que `email` esté presente.\n2. Busca al usuario por email; si no existe devuelve `404`.\n3. Verifica que el usuario tenga rol `super_admin`; si no devuelve `400`.\n4. Cambia el rol del usuario a `user` directamente (sin pasar por `admin`).\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"uuid\": \"...\",\n  \"first_name\": \"...\",\n  \"last_name\": \"...\",\n  \"email\": \"...\",\n  \"dni\": \"...\",\n  \"rol\": { \"name\": \"user\" }\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `400 Bad Request` | `email` faltante o el usuario no es `super_admin` |\n| `401 Unauthorized` | Token ausente o inválido |\n| `404 Not Found` | Usuario no encontrado |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "CAMERA",
+      "item": [
+        {
+          "name": "NOTIFY CAMERA ERROR TO ADMIN",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{CAMERA_API_KEY}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"type\": \"CAMERA\",\r\n  \"code_camera\": \"20\",\r\n  \"payload\": {\r\n    \"message\": \"texto del error\",\r\n    \"time_delay\": 60,\r\n    \"time_life\": 12\r\n  }\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/notify_camera_error",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "notify_camera_error"
+              ]
+            },
+            "description": "Notifica a los administradores de una terminal que una cámara tiene un error. Es invocado por el sistema de cámaras, no por usuarios humanos.\n\n**Autenticación:** `x-api-key: {{CAMERA_API_KEY}}` (API key del sistema de cámaras, no JWT).\n\n**Body (JSON):**\n| Campo | Tipo | Requerido | Descripción |\n|---|---|---|---|\n| `type` | string | Sí | Debe ser `CAMERA` |\n| `code_camera` | string | Sí | Código numérico de la plataforma/andén donde está la cámara |\n| `payload.message` | string | Sí | Descripción del error de la cámara |\n| `payload.time_delay` | integer | Sí | Minutos de demora asociados al error |\n| `payload.time_life` | integer | Sí | Minutos de vida de la notificación |\n\n**Ejemplo:**\n```json\n{\n  \"type\": \"CAMERA\",\n  \"code_camera\": \"20\",\n  \"payload\": {\n    \"message\": \"Error de lectura de patente\",\n    \"time_delay\": 60,\n    \"time_life\": 12\n  }\n}\n```\n\n**Comportamiento interno:**\n1. Valida el tipo (`CAMERA`), que `code_camera` sea un número válido y que `message` y `time_life` estén presentes.\n2. Busca la plataforma por `code_camera`; si no existe devuelve `404`.\n3. Verifica que la plataforma tenga una terminal asociada; si no devuelve `500`.\n4. Construye la notificación con tipo `CAMERA` y la persiste en la BD con `group_key = uuid_terminal`.\n5. Envía la notificación por SignalR **al grupo de admins** de esa terminal (`group_name = admin:{uuid_terminal}`).\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"type\": \"CAMERA\",\n  \"payload\": {\n    \"message\": \"Error de lectura de patente\",\n    \"time_delay\": 60,\n    \"time_life\": 12\n  }\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `400 Bad Request` | Tipo inválido, `code_camera` vacío o no numérico, mensaje vacío, `time_life` inválido |\n| `401 Unauthorized` | API key ausente o inválida |\n| `404 Not Found` | Plataforma con ese código no encontrada |\n| `500 Internal Server Error` | Plataforma sin terminal asociada u error interno |\n| `502 Bad Gateway` | Error al enviar la notificación por SignalR |"
+          },
+          "response": []
+        },
+        {
+          "name": "NOTIFY BUS ARRIVAL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{CAMERA_API_KEY}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"license_patent\": \"EF456GH\",\r\n    \"code\": \"13\",\r\n    \"time_life\": 12\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BASE_URL}}/notify_passengers",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "notify_passengers"
+              ]
+            },
+            "description": "Notifica a los pasajeros suscritos que un colectivo está llegando a un andén (mediante email y el realtime). Es invocado por el sistema de cámaras al reconocer la patente de un colectivo entrando a la terminal.\n\n**Autenticación:** `x-api-key: {{CAMERA_API_KEY}}` (API key del sistema de cámaras, no JWT).\n\n**Body (JSON):**  \n| Campo | Tipo | Requerido | Descripción |  \n|---|---|---|---|  \n| `license_patent` | string | Sí | Patente del colectivo reconocida por la cámara (ej: `\"AB123CD\"`) |  \n| `code` | string | Sí | Código numérico de la plataforma/andén donde llega el colectivo |  \n| `time_life` | integer | Sí | Minutos de vida de la notificación |\n\n**Ejemplo:**\n\n``` json\n{\n  \"license_patent\": \"AB123CD\",\n  \"code\": \"13\",\n  \"time_life\": 12\n}\n\n ```\n\n**Comportamiento interno:**\n\n1. Valida que `license_patent`, `code` (debe ser numérico) y `time_life` estén presentes y sean válidos.\n    \n2. Busca la plataforma por `code`; si no existe devuelve `404`.\n    \n3. Verifica que la plataforma tenga una terminal asociada; si no devuelve `500`.\n    \n4. Construye la notificación con tipo `BUS_ARRIVAL`, incluyendo el andén y las coordenadas de la plataforma.\n    \n5. Construye la `group_key` como `license_patent:uuid_terminal` y la persiste en la BD.\n    \n6. Envía la notificación por SignalR **al grupo de pasajeros** suscritos a esa combinación de patente y terminal.\n    \n7. Notifica a los pasajeros por email\n    \n\n**Respuesta exitosa** **`200 OK`****:**\n\n``` json\n{\n  \"message\": \"passengers notified successfully\"\n}\n\n ```\n\n**Errores:**  \n| Código | Causa |  \n|---|---|  \n| `400 Bad Request` | `license_patent` vacío, `code` vacío o no numérico, `time_life` inválido |  \n| `401 Unauthorized` | API key ausente o inválida |  \n| `404 Not Found` | Plataforma con ese código no encontrada |  \n| `500 Internal Server Error` | Plataforma sin terminal asociada u error interno |  \n| `502 Bad Gateway` | Error al enviar la notificación por SignalR |"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": ""
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "CAMERA_API_KEY",
+      "value": ""
+    },
+    {
+      "key": "TOKEN_RECOVER_PASS",
+      "value": ""
+    },
+    {
+      "key": "user",
+      "value": ""
+    },
+    {
+      "key": "user_pass",
+      "value": ""
+    },
+    {
+      "key": "super_admin_email",
+      "value": ""
+    },
+    {
+      "key": "super_admin_pass",
+      "value": ""
+    },
+    {
+      "key": "admin_email",
+      "value": ""
+    },
+    {
+      "key": "admin_pass",
+      "value": ""
+    }
+  ]
+}

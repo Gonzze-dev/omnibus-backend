@@ -40,9 +40,9 @@ func (s *busTicketService) GetBusTicket(ctx context.Context, req models.GetBusTi
 		return models.BusTicketResponse{}, errorsService.ErrTicketStringEmpty
 	}
 
-	url := fmt.Sprintf("%s/bus_tickets/%s", s.upstreamURL, req.TicketString)
+	endpoint := fmt.Sprintf("%s/bus_tickets/%s", s.upstreamURL, url.PathEscape(req.TicketString))
 
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return models.BusTicketResponse{}, fmt.Errorf("%w: %w", errorsService.ErrUpstreamRequest, err)
 	}

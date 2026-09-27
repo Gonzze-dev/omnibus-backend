@@ -50,4 +50,5 @@ var (
 	ErrTerminalIDRequired = errors.New("terminalId is required")
 	ErrTerminalIDInvalid  = errors.New("terminalId must be a valid UUID")
 	ErrTicketRequired     = errors.New("ticket is required")
+	ErrAwaitedTripNotFound = errors.New("no awaited trip for this user")
 )

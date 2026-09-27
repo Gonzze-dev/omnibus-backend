@@ -30,22 +30,54 @@ func (h *BusHandler) JoinBus(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	if err := h.svc.JoinBus(c.Request().Context(), userID, req); err != nil {
-		return mapJoinBusError(err)
+	resp, err := h.svc.JoinBus(c.Request().Context(), userID, req)
+	if err != nil {
+		return mapBusError(err)
 	}
 
-	return c.NoContent(http.StatusCreated)
+	return c.JSON(http.StatusCreated, resp)
 }
 
-func mapJoinBusError(err error) error {
+func (h *BusHandler) GetAwaitedTrip(c echo.Context) error {
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
+
+	resp, err := h.svc.GetAwaitedTrip(c.Request().Context(), userID)
+	if err != nil {
+		return mapBusError(err)
+	}
+
+	return c.JSON(http.StatusOK, resp)
+}
+
+func (h *BusHandler) LeaveBus(c echo.Context) error {
+	userID, err := getUserID(c)
+	if err != nil {
+		return err
+	}
+
+	if err := h.svc.LeaveBus(c.Request().Context(), userID); err != nil {
+		return mapBusError(err)
+	}
+
+	return c.NoContent(http.StatusNoContent)
+}
+
+func mapBusError(err error) error {
 	switch {
 	case errors.Is(err, errorsService.ErrTerminalIDRequired),
 		errors.Is(err, errorsService.ErrTerminalIDInvalid),
 		errors.Is(err, errorsService.ErrTicketRequired):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case errors.Is(err, errorsService.ErrTerminalNotFound),
-		errors.Is(err, errorsService.ErrTripNotFound):
+		errors.Is(err, errorsService.ErrTripNotFound),
+		errors.Is(err, errorsService.ErrAwaitedTripNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, err.Error())
+	case errors.Is(err, errorsService.ErrUpstreamRequest),
+		errors.Is(err, errorsService.ErrUpstreamResponse):
+		return echo.NewHTTPError(http.StatusBadGateway, "terminal system unavailable")
 	default:
 		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
 	}

@@ -129,7 +129,8 @@ func (s *notificationService) NotifyPassengers(ctx context.Context, req models.N
 		Payload: payload,
 	}
 
-	groupKey := req.LicensePatent + ":" + platform.BusTerminalID.String()
+	licensePatent := normalizeLicensePlate(req.LicensePatent)
+	groupKey := licensePatent + ":" + platform.BusTerminalID.String()
 	groupName := realtime.GroupPrefixFrontend + groupKey
 
 	msgJSON, err := json.Marshal(msg)
@@ -151,30 +152,28 @@ func (s *notificationService) NotifyPassengers(ctx context.Context, req models.N
 		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 
-	if s.mailer != nil {
-		go s.sendBusArrivalEmails(groupKey, req.LicensePatent, platform.Anden, platform.Coordinates)
-	}
+	go s.notifyAwaitingPassengers(groupKey, licensePatent, platform.Anden, platform.Coordinates)
 
 	return models.NotifyPassengersResponse{
 		Message: "passengers notified successfully",
 	}, nil
 }
 
-func (s *notificationService) sendBusArrivalEmails(groupKey, licensePatent, anden string, coordinates json.RawMessage) {
+// notifyAwaitingPassengers marca como notificados a los pasajeros que esperaban
+// el colectivo y les manda el mail de llegada (si hay SMTP configurado).
+// El awaited_trip no se borra: el pasajero puede recargar el frontend y seguir
+// viendo su viaje hasta que lo abandone.
+func (s *notificationService) notifyAwaitingPassengers(groupKey, licensePatent, anden string, coordinates json.RawMessage) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	emails, err := s.awaitedTripRepo.GetEmailsByGroupKey(ctx, groupKey)
+	emails, err := s.awaitedTripRepo.MarkNotifiedByGroupKey(ctx, groupKey)
 	if err != nil {
-		log.Printf("bus arrival email: query emails for group %q: %v", groupKey, err)
+		log.Printf("bus arrival: mark awaited_trip notified for group %q: %v", groupKey, err)
 		return
 	}
-	if len(emails) == 0 {
+	if len(emails) == 0 || s.mailer == nil {
 		return
-	}
-
-	if err := s.awaitedTripRepo.DeleteByGroupKey(ctx, groupKey); err != nil {
-		log.Printf("bus arrival email: delete awaited_trip for group %q: %v", groupKey, err)
 	}
 
 	body, err := mail.RenderBusArrivalHTML(mail.BusArrivalEmailData{

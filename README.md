@@ -85,6 +85,7 @@ Las migraciones están versionadas en `migrations/` con el formato `NNN_nombre.u
 | `005` | Eliminación del campo `dni` en `users` |
 | `006` | Tabla `awaited_trip` |
 | `007` | Eliminación de `permissions` y `rol_permissions` (RBAC simplificado a roles) |
+| `008` | Datos de la espera en `awaited_trip` (ticket, terminal, `notified_at`) |
 
 ## Arquitectura
 
@@ -157,7 +158,9 @@ migrations/         Archivos SQL versionados
 | `PUT` | `/api/users/me` | Actualiza perfil propio |
 | `DELETE` | `/api/users/me` | Elimina cuenta propia |
 | `GET` | `/api/users/terminals` | Lista terminales asignadas al usuario |
-| `POST` | `/api/buses/join` | Se une a un bus (registra un awaited trip) |
+| `POST` | `/api/buses/join` | Queda a la espera de un viaje (valida el pasaje y devuelve el `group_key` del realtime) |
+| `GET` | `/api/buses/awaited` | Viaje que el usuario está esperando |
+| `DELETE` | `/api/buses/awaited` | Deja de esperar el viaje |
 
 ### Admin (`admin`, `super_admin`)
 

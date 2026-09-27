@@ -16,4 +16,6 @@ func registerUser(e *echo.Echo, a *app.App, jwtSecret string) {
 
 	buses := e.Group("/api/buses", middleware.Auth(jwtSecret))
 	buses.POST("/join", a.Bus.JoinBus)
+	buses.GET("/awaited", a.Bus.GetAwaitedTrip)
+	buses.DELETE("/awaited", a.Bus.LeaveBus)
 }

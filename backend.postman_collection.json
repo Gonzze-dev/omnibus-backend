@@ -436,7 +436,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"terminalId\": \"a0000000-0000-0000-0000-000000000001\",\r\n    \"ticket\": \"FLE-002-2026\"\r\n}",
+              "raw": "{\r\n    \"terminalId\": \"a0000000-0000-0000-0000-000000000001\",\r\n    \"ticket\": \"SUV-226780488-0\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -454,7 +454,59 @@
                 "join"
               ]
             },
-            "description": "Registra al usuario autenticado como pasajero en espera para un viaje. La terminal y el pasaje deben ser válidos y existir en el sistema.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (cualquier rol).\n\n**Body (JSON):**  \n| Campo | Tipo | Requerido | Descripción |  \n|---|---|---|---|  \n| `terminalId` | string (UUID) | Sí | UUID de la terminal de bus desde donde parte el viaje |  \n| `ticket` | string | Sí | Identificador del pasaje (ej: `FLE-002-2026`) |\n\n**Ejemplo:**\n\n``` json\n{\n  \"terminalId\": \"a0000000-0000-0000-0000-000000000001\",\n  \"ticket\": \"FLE-002-2026\"\n}\n\n ```\n\n**Comportamiento interno:**\n\n1. Valida que `terminalId` no esté vacío y sea un UUID válido; si no, devuelve `400`.\n    \n2. Valida que `ticket` no esté vacío; si no, devuelve `400`.\n    \n3. Verifica que la terminal exista en la base de datos; si no, devuelve `404`.\n    \n4. Consulta al servicio externo de tickets para validar el pasaje; si no existe, devuelve `404`.\n    \n5. Construye el `groupKey` (`:`) y registra al usuario en el sistema de espera.\n    \n\n**Respuesta exitosa:** `201 Created` (sin body).\n\n**Errores:**  \n| Código | Causa |  \n|---|---|  \n| `400 Bad Request` | `terminalId` ausente o no es UUID válido, o `ticket` ausente |  \n| `401 Unauthorized` | Token ausente o inválido |  \n| `404 Not Found` | Terminal no encontrada o pasaje no encontrado en el sistema externo |  \n| `500 Internal Server Error` | Error interno |"
+            "description": "Deja al usuario autenticado esperando su colectivo en una terminal. El backend valida el pasaje contra el backend de terminales y guarda la espera en `awaited_trip`. Un usuario espera un único viaje: si ya esperaba otro, se reemplaza.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (cualquier rol).\n\n**Body (JSON):**\n| Campo | Tipo | Requerido | Descripción |\n|---|---|---|---|\n| `terminalId` | string (UUID) | Sí | UUID de la terminal donde el pasajero espera el colectivo |\n| `ticket` | string | Sí | Código del pasaje (ej: `SUV-226780488-0`). Se ignoran espacios y mayúsculas/minúsculas |\n\n**Comportamiento interno:**\n\n1. Valida `terminalId` (UUID) y `ticket`; si no, devuelve `400`.\n2. Verifica que la terminal exista; si no, devuelve `404`.\n3. Consulta `GET /bus_tickets/{ticket}` en el backend de terminales; si no existe, devuelve `404`.\n4. Guarda la espera con `group_key = PATENTE:uuid_terminal` (patente sin espacios, en mayúsculas).\n5. Devuelve los datos del pasaje y el `group_key`.\n\n**Después:** el frontend se conecta al hub de realtime e invoca `JoinFrontend(group_key)`. Cuando la cámara detecta el colectivo (`POST /notify_passengers`, colección CAMERA), el pasajero recibe `receiveNotification` con `type: BUS_ARRIVAL` (andén y coordenadas) y un mail.\n\n**Respuesta exitosa `201 Created`:**\n\n```json\n{\n  \"group_key\": \"AF226GU:a0000000-0000-0000-0000-000000000001\",\n  \"terminal\": { \"uuid\": \"a0000000-0000-0000-0000-000000000001\", \"name\": \"Terminal Gualeguaychu\" },\n  \"trip\": {\n    \"ticket\": \"SUV-226780488-0\",\n    \"name\": \"GONZALO ERRANDONEA\",\n    \"dni\": \"40111222\",\n    \"bus_license_plate\": \"AF226GU\",\n    \"enterprise\": \"NUEVO EXPRESO\",\n    \"bus_terminal_name\": \"TERMINAL CONCEPCIÓN DEL URUGUAY\",\n    \"postal_code\": \"3260\",\n    \"start_date\": \"2026-09-27T20:00:00\",\n    \"end_date\": \"2026-09-28T01:30:00\",\n    \"trip_city\": [ { \"city_name\": \"GUALEGUAYCHÚ\", \"start_date\": \"2026-09-27T21:00:00\", \"end_date\": \"2026-09-27T21:15:00\", \"order\": 2 } ],\n    \"uuid\": \"3dfad7a5-aafb-4c18-8e03-847687814886\"\n  },\n  \"created_at\": \"2026-09-27T22:12:07.928Z\",\n  \"notified_at\": null\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `400 Bad Request` | `terminalId` ausente o no es UUID válido, o `ticket` ausente |\n| `401 Unauthorized` | Token ausente o inválido |\n| `404 Not Found` | Terminal no encontrada o pasaje no encontrado en el backend de terminales |\n| `502 Bad Gateway` | El backend de terminales no responde |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "GET AWAITED TRIP",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/buses/awaited",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "buses",
+                "awaited"
+              ]
+            },
+            "description": "Devuelve el viaje que el usuario autenticado está esperando. El frontend lo usa al recargar la página para retomar la espera (y volver a unirse al grupo `group_key` del realtime).\n\nLos datos del pasaje se consultan de nuevo al backend de terminales. `notified_at` indica cuándo la cámara detectó el colectivo (`null` si todavía no llegó).\n\n**Autenticación:** `Authorization: Bearer {{token}}` (cualquier rol).\n\n**Respuesta exitosa `200 OK`:** mismo formato que `JOIN BUS`.\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `401 Unauthorized` | Token ausente o inválido |\n| `404 Not Found` | El usuario no espera ningún viaje, o la terminal ya no existe / el pasaje ya no existe en el backend de terminales |\n| `502 Bad Gateway` | El backend de terminales no responde |"
+          },
+          "response": []
+        },
+        {
+          "name": "LEAVE AWAITED TRIP",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/buses/awaited",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "buses",
+                "awaited"
+              ]
+            },
+            "description": "El usuario deja de esperar su viaje (\"Buscar otro viaje\" en el frontend). A partir de ahí no recibe el mail de llegada.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (cualquier rol).\n\n**Respuesta exitosa:** `204 No Content` (también si no esperaba ningún viaje).\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `401 Unauthorized` | Token ausente o inválido |\n| `500 Internal Server Error` | Error interno |"
           },
           "response": []
         }
@@ -1469,7 +1521,7 @@
                 "notify_passengers"
               ]
             },
-            "description": "Notifica a los pasajeros suscritos que un colectivo está llegando a un andén (mediante email y el realtime). Es invocado por el sistema de cámaras al reconocer la patente de un colectivo entrando a la terminal.\n\n**Autenticación:** `x-api-key: {{CAMERA_API_KEY}}` (API key del sistema de cámaras, no JWT).\n\n**Body (JSON):**  \n| Campo | Tipo | Requerido | Descripción |  \n|---|---|---|---|  \n| `license_patent` | string | Sí | Patente del colectivo reconocida por la cámara (ej: `\"AB123CD\"`) |  \n| `code` | string | Sí | Código numérico de la plataforma/andén donde llega el colectivo |  \n| `time_life` | integer | Sí | Minutos de vida de la notificación |\n\n**Ejemplo:**\n\n``` json\n{\n  \"license_patent\": \"AB123CD\",\n  \"code\": \"13\",\n  \"time_life\": 12\n}\n\n ```\n\n**Comportamiento interno:**\n\n1. Valida que `license_patent`, `code` (debe ser numérico) y `time_life` estén presentes y sean válidos.\n    \n2. Busca la plataforma por `code`; si no existe devuelve `404`.\n    \n3. Verifica que la plataforma tenga una terminal asociada; si no devuelve `500`.\n    \n4. Construye la notificación con tipo `BUS_ARRIVAL`, incluyendo el andén y las coordenadas de la plataforma.\n    \n5. Construye la `group_key` como `license_patent:uuid_terminal` y la persiste en la BD.\n    \n6. Envía la notificación por SignalR **al grupo de pasajeros** suscritos a esa combinación de patente y terminal.\n    \n7. Notifica a los pasajeros por email\n    \n\n**Respuesta exitosa** **`200 OK`****:**\n\n``` json\n{\n  \"message\": \"passengers notified successfully\"\n}\n\n ```\n\n**Errores:**  \n| Código | Causa |  \n|---|---|  \n| `400 Bad Request` | `license_patent` vacío, `code` vacío o no numérico, `time_life` inválido |  \n| `401 Unauthorized` | API key ausente o inválida |  \n| `404 Not Found` | Plataforma con ese código no encontrada |  \n| `500 Internal Server Error` | Plataforma sin terminal asociada u error interno |  \n| `502 Bad Gateway` | Error al enviar la notificación por SignalR |"
+            "description": "Notifica a los pasajeros suscritos que un colectivo está llegando a un andén (mediante email y el realtime). Es invocado por el sistema de cámaras al reconocer la patente de un colectivo entrando a la terminal.\n\n**Autenticación:** `x-api-key: {{CAMERA_API_KEY}}` (API key del sistema de cámaras, no JWT).\n\n**Body (JSON):**  \n| Campo | Tipo | Requerido | Descripción |  \n|---|---|---|---|  \n| `license_patent` | string | Sí | Patente del colectivo reconocida por la cámara (ej: `\"AB123CD\"`) |  \n| `code` | string | Sí | Código numérico de la plataforma/andén donde llega el colectivo |  \n| `time_life` | integer | Sí | Minutos de vida de la notificación |\n\n**Ejemplo:**\n\n``` json\n{\n  \"license_patent\": \"AB123CD\",\n  \"code\": \"13\",\n  \"time_life\": 12\n}\n\n ```\n\n**Comportamiento interno:**\n\n1. Valida que `license_patent`, `code` (debe ser numérico) y `time_life` estén presentes y sean válidos.\n    \n2. Busca la plataforma por `code`; si no existe devuelve `404`.\n    \n3. Verifica que la plataforma tenga una terminal asociada; si no devuelve `500`.\n    \n4. Construye la notificación con tipo `BUS_ARRIVAL`, incluyendo el andén y las coordenadas de la plataforma.\n    \n5. Construye la `group_key` como `PATENTE:uuid_terminal` (patente en mayúsculas y sin espacios) y la persiste en la BD.\n    \n6. Envía la notificación por SignalR **al grupo de pasajeros** suscritos a esa combinación de patente y terminal.\n    \n7. Marca como notificados (`awaited_trip.notified_at`) a los pasajeros que esperaban ese colectivo en esa terminal y les envía el mail (una sola vez, aunque la cámara lo detecte de nuevo). La espera no se borra: el pasajero sigue viendo su viaje hasta que lo abandona.\n    \n\n**Respuesta exitosa** **`200 OK`****:**\n\n``` json\n{\n  \"message\": \"passengers notified successfully\"\n}\n\n ```\n\n**Errores:**  \n| Código | Causa |  \n|---|---|  \n| `400 Bad Request` | `license_patent` vacío, `code` vacío o no numérico, `time_life` inválido |  \n| `401 Unauthorized` | API key ausente o inválida |  \n| `404 Not Found` | Plataforma con ese código no encontrada |  \n| `500 Internal Server Error` | Plataforma sin terminal asociada u error interno |  \n| `502 Bad Gateway` | Error al enviar la notificación por SignalR |"
           },
           "response": []
         }

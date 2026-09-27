@@ -8,6 +8,7 @@ import (
 	errorsService "tesina/backend/internal/errors"
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/service"
+	"tesina/backend/internal/validators"
 )
 
 const (
@@ -117,7 +118,12 @@ func clearRefreshTokenCookie(c echo.Context) {
 
 func mapAuthError(err error) error {
 	switch {
-	case errors.Is(err, errorsService.ErrMissingFields):
+	case errors.Is(err, errorsService.ErrMissingFields),
+		errors.Is(err, validators.ErrEmailRequired),
+		errors.Is(err, validators.ErrPasswordRequired),
+		errors.Is(err, validators.ErrFirstNameRequired),
+		errors.Is(err, validators.ErrLastNameRequired),
+		errors.Is(err, validators.ErrRefreshTokenRequired):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case errors.Is(err, errorsService.ErrEmailAlreadyExists):
 		return echo.NewHTTPError(http.StatusConflict, err.Error())

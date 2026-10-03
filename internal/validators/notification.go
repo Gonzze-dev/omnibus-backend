@@ -72,9 +72,16 @@ func ValidateAdminGlobalNotification(role string, payloadRaw json.RawMessage) (i
 		return 0, ErrNotificationPayloadInvalidJSON
 	}
 	var tmp struct {
-		TimeLife int `json:"time_life"`
+		Message  string `json:"message"`
+		TimeLife int    `json:"time_life"`
 	}
-	if err := json.Unmarshal(trimmed, &tmp); err != nil || tmp.TimeLife <= 0 {
+	if err := json.Unmarshal(trimmed, &tmp); err != nil {
+		return 0, ErrNotificationPayloadInvalidJSON
+	}
+	if strings.TrimSpace(tmp.Message) == "" {
+		return 0, ErrNotificationMessageEmpty
+	}
+	if tmp.TimeLife <= 0 {
 		return 0, ErrNotificationTimeLifeInvalid
 	}
 	return tmp.TimeLife, nil
@@ -89,7 +96,7 @@ func ValidateAdminLocalNotification(payloadRaw json.RawMessage) (models.AdminLoc
 	if err := json.Unmarshal(payloadRaw, &p); err != nil {
 		return models.AdminLocalNotificationPayload{}, ErrNotificationPayloadInvalidJSON
 	}
-	if p.Message == "" {
+	if strings.TrimSpace(p.Message) == "" {
 		return models.AdminLocalNotificationPayload{}, ErrNotificationMessageEmpty
 	}
 	if p.TimeLife <= 0 {

@@ -63,7 +63,7 @@ type AdminLocalNotificationPayload struct {
 
 // AdminSendNotificationRequest is the JSON body for POST /api/admin/notifications.
 // type LOCAL: payload must be {"message":"..."}; query terminaluuid rules apply (see service).
-// type GLOBAL: super_admin only; payload is any JSON value; SignalR SendToFrontendGlobal sends {type, payload} like LOCAL.
+// type GLOBAL: super_admin only; payload is any JSON object with non-empty "message" and "time_life"; SignalR SendToFrontendGlobal sends {type, payload} like LOCAL.
 type AdminSendNotificationRequest struct {
 	Type    PassengerNotificationType `json:"type"`
 	Payload json.RawMessage           `json:"payload"`

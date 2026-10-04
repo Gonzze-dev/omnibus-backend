@@ -14,6 +14,8 @@ type UserRepository interface {
 	Create(ctx context.Context, user *models.User) error
 	GetByUUID(ctx context.Context, id uuid.UUID) (models.User, error)
 	GetByEmail(ctx context.Context, email string) (models.User, error)
+	ListPaginated(ctx context.Context, limit, offset int, order string) ([]models.User, error)
+	Count(ctx context.Context) (int64, error)
 	Update(ctx context.Context, user *models.User) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
@@ -52,6 +54,25 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (models.U
 		return models.User{}, err
 	}
 	return user, nil
+}
+
+func (r *userRepository) ListPaginated(ctx context.Context, limit, offset int, order string) ([]models.User, error) {
+	var users []models.User
+	err := r.db.WithContext(ctx).
+		Preload("Rol").
+		Order("first_name " + order).
+		Order("last_name " + order).
+		Order("uuid").
+		Limit(limit).
+		Offset(offset).
+		Find(&users).Error
+	return users, err
+}
+
+func (r *userRepository) Count(ctx context.Context) (int64, error) {
+	var total int64
+	err := r.db.WithContext(ctx).Model(&models.User{}).Count(&total).Error
+	return total, err
 }
 
 func (r *userRepository) Update(ctx context.Context, user *models.User) error {

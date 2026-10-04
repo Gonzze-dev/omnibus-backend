@@ -116,6 +116,41 @@ func (h *SuperAdminHandler) DeleteTerminal(c echo.Context) error {
 
 // --- User management (super-only) ---
 
+func (h *SuperAdminHandler) ListUsers(c echo.Context) error {
+	params := models.ListUsersParams{
+		Page:  1,
+		Limit: 10,
+		Order: "DESC",
+	}
+	if raw := c.QueryParam("page"); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v > 0 {
+			params.Page = v
+		}
+	}
+	if raw := c.QueryParam("limit"); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v > 0 {
+			params.Limit = v
+		}
+	}
+	if raw := c.QueryParam("order"); raw != "" {
+		params.Order = raw
+	}
+
+	res, err := h.svc.ListUsers(c.Request().Context(), params)
+	if err != nil {
+		return mapSuperAdminError(err)
+	}
+	return c.JSON(http.StatusOK, res)
+}
+
+func (h *SuperAdminHandler) CountUsers(c echo.Context) error {
+	total, err := h.svc.CountUsers(c.Request().Context())
+	if err != nil {
+		return mapSuperAdminError(err)
+	}
+	return c.JSON(http.StatusOK, models.CountUsersResponse{Total: total})
+}
+
 func (h *SuperAdminHandler) PromoteToSuper(c echo.Context) error {
 	var req models.PromoteSuperRequest
 	if err := c.Bind(&req); err != nil {

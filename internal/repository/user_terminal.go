@@ -15,6 +15,7 @@ type UserTerminalRepository interface {
 	GetByUserID(ctx context.Context, userID uuid.UUID) ([]models.UserTerminal, error)
 	ListByTerminalID(ctx context.Context, busTerminalID uuid.UUID) ([]models.UserTerminal, error)
 	Exists(ctx context.Context, userID, busTerminalID uuid.UUID) (bool, error)
+	ListTerminalRefsByUserIDs(ctx context.Context, userIDs []uuid.UUID) (map[uuid.UUID][]models.ProfileTerminalRef, error)
 }
 
 type userTerminalRepository struct {
@@ -53,4 +54,33 @@ func (r *userTerminalRepository) Exists(ctx context.Context, userID, busTerminal
 		Where("user_id = ? AND bus_terminal_id = ?", userID, busTerminalID).
 		Count(&count).Error
 	return count > 0, err
+}
+
+// ListTerminalRefsByUserIDs devuelve, por usuario, las terminales que tiene asignadas (uuid y nombre).
+func (r *userTerminalRepository) ListTerminalRefsByUserIDs(ctx context.Context, userIDs []uuid.UUID) (map[uuid.UUID][]models.ProfileTerminalRef, error) {
+	result := make(map[uuid.UUID][]models.ProfileTerminalRef, len(userIDs))
+	if len(userIDs) == 0 {
+		return result, nil
+	}
+
+	var rows []struct {
+		UserID uuid.UUID
+		UUID   uuid.UUID
+		Name   string
+	}
+	err := r.db.WithContext(ctx).
+		Table("user_terminal AS ut").
+		Select("ut.user_id, bt.uuid, bt.name").
+		Joins("JOIN bus_terminal AS bt ON bt.uuid = ut.bus_terminal_id").
+		Where("ut.user_id IN ?", userIDs).
+		Order("bt.name").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	for _, row := range rows {
+		result[row.UserID] = append(result[row.UserID], models.ProfileTerminalRef{UUID: row.UUID, Name: row.Name})
+	}
+	return result, nil
 }

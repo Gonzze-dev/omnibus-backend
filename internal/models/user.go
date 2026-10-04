@@ -132,3 +132,53 @@ func ToAdminUserByEmailResponse(u User, terminals []string) AdminUserByEmailResp
 		Terminals: terminals,
 	}
 }
+
+// ListUsersParams son los parámetros de paginación de GET /api/super/users.
+type ListUsersParams struct {
+	Page  int    // default 1
+	Limit int    // default 10
+	Order string // "ASC" o "DESC", default "DESC"
+}
+
+// UserListItem es un usuario dentro del listado paginado de GET /api/super/users.
+type UserListItem struct {
+	UUID      uuid.UUID            `json:"uuid"`
+	FirstName string               `json:"first_name"`
+	LastName  string               `json:"last_name"`
+	Email     string               `json:"email"`
+	Rol       string               `json:"rol"`
+	Terminals []ProfileTerminalRef `json:"terminals"`
+}
+
+// ListUsersResponse es el payload paginado de usuarios.
+type ListUsersResponse struct {
+	Users         []UserListItem `json:"users"`
+	Page          int            `json:"page"`
+	Next          *int           `json:"next"`
+	Prev          *int           `json:"prev"`
+	Elements      int            `json:"elements"`
+	TotalElements int64          `json:"total_elements"`
+}
+
+// CountUsersResponse es el payload de GET /api/super/users/count.
+type CountUsersResponse struct {
+	Total int64 `json:"total"`
+}
+
+func ToUserListItem(u User, terminals []ProfileTerminalRef) UserListItem {
+	rolName := ""
+	if u.Rol != nil {
+		rolName = u.Rol.Name
+	}
+	if terminals == nil {
+		terminals = []ProfileTerminalRef{}
+	}
+	return UserListItem{
+		UUID:      u.UUID,
+		FirstName: u.FirstName,
+		LastName:  u.LastName,
+		Email:     u.Email,
+		Rol:       rolName,
+		Terminals: terminals,
+	}
+}

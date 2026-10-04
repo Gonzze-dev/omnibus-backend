@@ -16,8 +16,6 @@ func registerSuperAdmin(e *echo.Echo, a *app.App, jwtSecret string) {
 	superAdmin.POST("/terminals", a.SuperAdmin.CreateTerminal)
 	superAdmin.PUT("/terminals/:uuid", a.SuperAdmin.UpdateTerminal)
 	superAdmin.DELETE("/terminals/:uuid", a.SuperAdmin.DeleteTerminal)
-	superAdmin.GET("/users", a.SuperAdmin.ListUsers)
-	superAdmin.GET("/users/count", a.SuperAdmin.CountUsers)
 	superAdmin.POST("/users/promote-super", a.SuperAdmin.PromoteToSuper)
 	superAdmin.POST("/users/demote-super", a.SuperAdmin.DemoteSuper)
 }

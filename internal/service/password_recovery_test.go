@@ -196,11 +196,11 @@ func (s stubUserRepo) Update(_ context.Context, user *models.User) error {
 
 func (s stubUserRepo) Delete(context.Context, uuid.UUID) error { return nil }
 
-func (s stubUserRepo) ListPaginated(context.Context, int, int, string) ([]models.User, error) {
+func (s stubUserRepo) ListPaginated(context.Context, string, int, int, string) ([]models.User, error) {
 	return nil, nil
 }
 
-func (s stubUserRepo) Count(context.Context) (int64, error) { return 0, nil }
+func (s stubUserRepo) Count(context.Context, string) (int64, error) { return 0, nil }
 
 type noopRefreshTokenRepo struct{}
 

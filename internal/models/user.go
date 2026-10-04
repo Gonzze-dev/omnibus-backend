@@ -133,14 +133,15 @@ func ToAdminUserByEmailResponse(u User, terminals []string) AdminUserByEmailResp
 	}
 }
 
-// ListUsersParams son los parámetros de paginación de GET /api/super/users.
+// ListUsersParams son los parámetros de paginación y búsqueda de GET /api/admin/users.
 type ListUsersParams struct {
-	Page  int    // default 1
-	Limit int    // default 10
-	Order string // "ASC" o "DESC", default "DESC"
+	Page   int    // default 1
+	Limit  int    // default 10
+	Order  string // "ASC" o "DESC", default "DESC"
+	Search string // filtra por nombre o email; vacío no filtra
 }
 
-// UserListItem es un usuario dentro del listado paginado de GET /api/super/users.
+// UserListItem es un usuario dentro del listado paginado de GET /api/admin/users.
 type UserListItem struct {
 	UUID      uuid.UUID            `json:"uuid"`
 	FirstName string               `json:"first_name"`
@@ -160,7 +161,7 @@ type ListUsersResponse struct {
 	TotalElements int64          `json:"total_elements"`
 }
 
-// CountUsersResponse es el payload de GET /api/super/users/count.
+// CountUsersResponse es el payload de GET /api/admin/users/count.
 type CountUsersResponse struct {
 	Total int64 `json:"total"`
 }

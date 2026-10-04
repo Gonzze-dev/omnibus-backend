@@ -304,6 +304,42 @@ func (h *AdminHandler) DeletePlatform(c echo.Context) error {
 
 // --- User management ---
 
+func (h *AdminHandler) ListUsers(c echo.Context) error {
+	params := models.ListUsersParams{
+		Page:  1,
+		Limit: 10,
+		Order: "DESC",
+	}
+	if raw := c.QueryParam("page"); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v > 0 {
+			params.Page = v
+		}
+	}
+	if raw := c.QueryParam("limit"); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v > 0 {
+			params.Limit = v
+		}
+	}
+	if raw := c.QueryParam("order"); raw != "" {
+		params.Order = raw
+	}
+	params.Search = c.QueryParam("search")
+
+	res, err := h.svc.ListUsers(c.Request().Context(), params)
+	if err != nil {
+		return mapAdminError(err)
+	}
+	return c.JSON(http.StatusOK, res)
+}
+
+func (h *AdminHandler) CountUsers(c echo.Context) error {
+	total, err := h.svc.CountUsers(c.Request().Context())
+	if err != nil {
+		return mapAdminError(err)
+	}
+	return c.JSON(http.StatusOK, models.CountUsersResponse{Total: total})
+}
+
 func (h *AdminHandler) GetUserByEmail(c echo.Context) error {
 	email := c.QueryParam("email")
 	resp, err := h.svc.GetUserByEmail(c.Request().Context(), email)

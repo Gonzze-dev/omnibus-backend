@@ -22,6 +22,8 @@ func registerAdmin(e *echo.Echo, a *app.App, jwtSecret string) {
 	admin.POST("/platforms", a.Admin.CreatePlatform)
 	admin.PUT("/platforms/:code", a.Admin.UpdatePlatform)
 	admin.DELETE("/platforms/:code", a.Admin.DeletePlatform)
+	admin.GET("/users", a.Admin.ListUsers)
+	admin.GET("/users/count", a.Admin.CountUsers)
 	admin.GET("/users/by-email", a.Admin.GetUserByEmail)
 	admin.POST("/users/promote", a.Admin.PromoteToAdmin)
 	admin.POST("/users/demote", a.Admin.DemoteAdmin)

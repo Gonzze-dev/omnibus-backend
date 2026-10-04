@@ -19,6 +19,9 @@ const (
 
 	defaultPlatformsLimit = 10
 	maxPlatformsLimit     = 100
+
+	defaultUsersLimit = 10
+	maxUsersLimit     = 100
 )
 
 type AdminService interface {
@@ -45,6 +48,8 @@ type AdminService interface {
 	DeletePlatform(ctx context.Context, adminID uuid.UUID, code int) error
 
 	// User management
+	ListUsers(ctx context.Context, params models.ListUsersParams) (models.ListUsersResponse, error)
+	CountUsers(ctx context.Context) (int64, error)
 	GetUserByEmail(ctx context.Context, email string) (models.AdminUserByEmailResponse, error)
 	PromoteToAdminDirect(ctx context.Context, req models.PromoteAdminRequest) (models.UserResponse, error)
 	PromoteToAdmin(ctx context.Context, adminID uuid.UUID, req models.PromoteAdminRequest) (models.UserResponse, error)
@@ -505,6 +510,53 @@ func (s *adminService) DeletePlatform(ctx context.Context, adminID uuid.UUID, co
 }
 
 // --- User management ---
+
+func (s *adminService) ListUsers(ctx context.Context, params models.ListUsersParams) (models.ListUsersResponse, error) {
+	page, limit, order := normalizePagination(params.Page, params.Limit, params.Order, defaultUsersLimit, maxUsersLimit)
+
+	total, err := s.userRepo.Count(ctx, params.Search)
+	if err != nil {
+		return models.ListUsersResponse{}, fmt.Errorf("failed to count users: %w", err)
+	}
+
+	users, err := s.userRepo.ListPaginated(ctx, params.Search, limit, (page-1)*limit, order)
+	if err != nil {
+		return models.ListUsersResponse{}, fmt.Errorf("failed to list users: %w", err)
+	}
+
+	ids := make([]uuid.UUID, len(users))
+	for i := range users {
+		ids[i] = users[i].UUID
+	}
+	terminalsByUser, err := s.userTerminalRepo.ListTerminalRefsByUserIDs(ctx, ids)
+	if err != nil {
+		return models.ListUsersResponse{}, fmt.Errorf("failed to list user terminals: %w", err)
+	}
+
+	items := make([]models.UserListItem, len(users))
+	for i := range users {
+		items[i] = models.ToUserListItem(users[i], terminalsByUser[users[i].UUID])
+	}
+
+	next, prev := pageLinks(total, page, limit)
+
+	return models.ListUsersResponse{
+		Users:         items,
+		Page:          page,
+		Next:          next,
+		Prev:          prev,
+		Elements:      len(items),
+		TotalElements: total,
+	}, nil
+}
+
+func (s *adminService) CountUsers(ctx context.Context) (int64, error) {
+	total, err := s.userRepo.Count(ctx, "")
+	if err != nil {
+		return 0, fmt.Errorf("failed to count users: %w", err)
+	}
+	return total, nil
+}
 
 func (s *adminService) GetUserByEmail(ctx context.Context, email string) (models.AdminUserByEmailResponse, error) {
 	var err error

@@ -164,3 +164,44 @@ type GetNotificationsResponse struct {
 	NumberPage    int                        `json:"number_page"`
 	Notifications []NotificationResponseItem `json:"notifications"`
 }
+
+// ListAdminNotificationsParams son los parámetros de paginación y filtrado de GET /api/admin/notifications.
+type ListAdminNotificationsParams struct {
+	Page         int    // default 1
+	Limit        int    // default 10
+	Order        string // "ASC" o "DESC" por fecha, default "DESC"
+	Type         string // opcional: uno de los PassengerNotificationType
+	TerminalUUID string // opcional: filtra por terminal (admin: debe tenerla a cargo)
+	Status       string // "active", "expired" o "" / "all" (default: todas)
+}
+
+// AdminNotificationFilters es armado por el service a partir del rol y los parámetros
+// y se pasa al repositorio.
+type AdminNotificationFilters struct {
+	// TerminalIDs limita a notificaciones de esas terminales (group_key = tid o "<patente>:tid").
+	// nil no limita (incluye globales); un slice vacío no matchea nada.
+	TerminalIDs []string
+	Type        *PassengerNotificationType
+	Status      string // "active", "expired" o "" (todas)
+}
+
+// AdminNotificationListItem es una notificación dentro del listado de GET /api/admin/notifications.
+type AdminNotificationListItem struct {
+	ID         uuid.UUID                 `json:"id"`
+	Type       PassengerNotificationType `json:"type"`
+	Terminal   *ProfileTerminalRef       `json:"terminal"` // null para notificaciones globales
+	Date       time.Time                 `json:"date"`
+	Expiration time.Time                 `json:"expiration"`
+	Expired    bool                      `json:"expired"`
+	Payload    json.RawMessage           `json:"payload"`
+}
+
+// ListAdminNotificationsResponse es el payload paginado de GET /api/admin/notifications.
+type ListAdminNotificationsResponse struct {
+	Notifications []AdminNotificationListItem `json:"notifications"`
+	Page          int                         `json:"page"`
+	Next          *int                        `json:"next"`
+	Prev          *int                        `json:"prev"`
+	Elements      int                         `json:"elements"`
+	TotalElements int64                       `json:"total_elements"`
+}

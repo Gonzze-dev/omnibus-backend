@@ -124,6 +124,78 @@ func (h *NotificationHandler) GetNotifications(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
+func (h *NotificationHandler) ListAdminNotifications(c echo.Context) error {
+	userID, ok := c.Get("user_id").(uuid.UUID)
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "invalid user context")
+	}
+	role, _ := c.Get("role").(string)
+
+	params := models.ListAdminNotificationsParams{
+		Page:  1,
+		Limit: 10,
+		Order: "DESC",
+	}
+	if raw := c.QueryParam("page"); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v > 0 {
+			params.Page = v
+		}
+	}
+	if raw := c.QueryParam("limit"); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v > 0 {
+			params.Limit = v
+		}
+	}
+	if raw := c.QueryParam("order"); raw != "" {
+		params.Order = raw
+	}
+	params.Type = c.QueryParam("type")
+	params.TerminalUUID = c.QueryParam("terminal_uuid")
+	params.Status = c.QueryParam("status")
+
+	resp, err := h.svc.ListAdminNotifications(c.Request().Context(), userID, role, params)
+	if err != nil {
+		return mapListAdminNotificationsError(err)
+	}
+	return c.JSON(http.StatusOK, resp)
+}
+
+func (h *NotificationHandler) GetAdminNotification(c echo.Context) error {
+	userID, ok := c.Get("user_id").(uuid.UUID)
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "invalid user context")
+	}
+	role, _ := c.Get("role").(string)
+
+	notificationID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "id must be a valid UUID")
+	}
+
+	resp, err := h.svc.GetAdminNotification(c.Request().Context(), userID, role, notificationID)
+	if err != nil {
+		return mapListAdminNotificationsError(err)
+	}
+	return c.JSON(http.StatusOK, resp)
+}
+
+func mapListAdminNotificationsError(err error) error {
+	switch {
+	case errors.Is(err, errorsService.ErrNotificationListTypeInvalid),
+		errors.Is(err, errorsService.ErrNotificationStatusInvalid),
+		errors.Is(err, errorsService.ErrInvalidTerminalUUIDFilter),
+		errors.Is(err, errorsService.ErrAdminNoTerminal):
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	case errors.Is(err, errorsService.ErrTerminalNotOwned),
+		errors.Is(err, errorsService.ErrNotificationListForbidden):
+		return echo.NewHTTPError(http.StatusForbidden, err.Error())
+	case errors.Is(err, errorsService.ErrNotificationNotFound):
+		return echo.NewHTTPError(http.StatusNotFound, err.Error())
+	default:
+		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")
+	}
+}
+
 func mapGetNotificationsError(err error) error {
 	switch {
 	case errors.Is(err, validators.ErrTerminalIDRequired),

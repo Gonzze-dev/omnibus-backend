@@ -34,6 +34,8 @@ type NotificationService interface {
 	ListNotifications(ctx context.Context) ([]models.Notification, error)
 	GetNotifications(ctx context.Context, userID uuid.UUID, role string, params models.GetNotificationsParams) (models.GetNotificationsResponse, error)
 	DeleteNotification(ctx context.Context, userID uuid.UUID, role string, notificationID uuid.UUID) error
+	ListAdminNotifications(ctx context.Context, userID uuid.UUID, role string, params models.ListAdminNotificationsParams) (models.ListAdminNotificationsResponse, error)
+	GetAdminNotification(ctx context.Context, userID uuid.UUID, role string, notificationID uuid.UUID) (models.AdminNotificationListItem, error)
 }
 
 type notificationService struct {
@@ -593,6 +595,230 @@ func (s *notificationService) DeleteNotification(ctx context.Context, userID uui
 	}
 }
 
+const (
+	defaultAdminNotificationsLimit = 10
+	maxAdminNotificationsLimit     = 100
+)
+
+// ListAdminNotifications lista las notificaciones según el rol:
+// super_admin ve todas (incluidas las globales); admin solo las de sus terminales.
+func (s *notificationService) ListAdminNotifications(
+	ctx context.Context,
+	userID uuid.UUID,
+	role string,
+	params models.ListAdminNotificationsParams,
+) (models.ListAdminNotificationsResponse, error) {
+	page, limit, order := normalizePagination(params.Page, params.Limit, params.Order, defaultAdminNotificationsLimit, maxAdminNotificationsLimit)
+
+	var f models.AdminNotificationFilters
+
+	if params.Type != "" {
+		t := models.PassengerNotificationType(strings.ToUpper(strings.TrimSpace(params.Type)))
+		if !isKnownNotificationType(t) {
+			return models.ListAdminNotificationsResponse{}, errorsService.ErrNotificationListTypeInvalid
+		}
+		f.Type = &t
+	}
+
+	switch status := strings.ToLower(strings.TrimSpace(params.Status)); status {
+	case "", "all":
+	case "active", "expired":
+		f.Status = status
+	default:
+		return models.ListAdminNotificationsResponse{}, errorsService.ErrNotificationStatusInvalid
+	}
+
+	var terminalFilter *uuid.UUID
+	if raw := strings.TrimSpace(params.TerminalUUID); raw != "" {
+		id, err := uuid.Parse(raw)
+		if err != nil {
+			return models.ListAdminNotificationsResponse{}, errorsService.ErrInvalidTerminalUUIDFilter
+		}
+		terminalFilter = &id
+	}
+
+	switch role {
+	case roles.SuperAdmin:
+		if terminalFilter != nil {
+			f.TerminalIDs = []string{terminalFilter.String()}
+		}
+
+	case roles.Admin:
+		uts, err := s.userTerminalRepo.GetByUserID(ctx, userID)
+		if err != nil {
+			return models.ListAdminNotificationsResponse{}, fmt.Errorf("failed to list admin terminals: %w", err)
+		}
+		if len(uts) == 0 {
+			return models.ListAdminNotificationsResponse{}, errorsService.ErrAdminNoTerminal
+		}
+		if terminalFilter != nil {
+			owned := false
+			for _, ut := range uts {
+				if ut.BusTerminalID == *terminalFilter {
+					owned = true
+					break
+				}
+			}
+			if !owned {
+				return models.ListAdminNotificationsResponse{}, errorsService.ErrTerminalNotOwned
+			}
+			f.TerminalIDs = []string{terminalFilter.String()}
+		} else {
+			f.TerminalIDs = make([]string, len(uts))
+			for i, ut := range uts {
+				f.TerminalIDs[i] = ut.BusTerminalID.String()
+			}
+		}
+
+	default:
+		return models.ListAdminNotificationsResponse{}, errorsService.ErrNotificationListForbidden
+	}
+
+	total, err := s.notificationRepo.CountAdmin(ctx, f)
+	if err != nil {
+		return models.ListAdminNotificationsResponse{}, fmt.Errorf("failed to count notifications: %w", err)
+	}
+
+	rows, err := s.notificationRepo.ListAdminPaginated(ctx, f, limit, (page-1)*limit, order)
+	if err != nil {
+		return models.ListAdminNotificationsResponse{}, fmt.Errorf("failed to list notifications: %w", err)
+	}
+
+	items, err := s.toAdminNotificationItems(ctx, rows)
+	if err != nil {
+		return models.ListAdminNotificationsResponse{}, err
+	}
+
+	next, prev := pageLinks(total, page, limit)
+
+	return models.ListAdminNotificationsResponse{
+		Notifications: items,
+		Page:          page,
+		Next:          next,
+		Prev:          prev,
+		Elements:      len(items),
+		TotalElements: total,
+	}, nil
+}
+
+// GetAdminNotification devuelve una notificación si el rol puede verla:
+// super_admin cualquiera; admin solo las de sus terminales.
+func (s *notificationService) GetAdminNotification(
+	ctx context.Context,
+	userID uuid.UUID,
+	role string,
+	notificationID uuid.UUID,
+) (models.AdminNotificationListItem, error) {
+	if role != roles.SuperAdmin && role != roles.Admin {
+		return models.AdminNotificationListItem{}, errorsService.ErrNotificationListForbidden
+	}
+
+	n, err := s.notificationRepo.GetByID(ctx, notificationID)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return models.AdminNotificationListItem{}, errorsService.ErrNotificationNotFound
+		}
+		return models.AdminNotificationListItem{}, fmt.Errorf("failed to get notification: %w", err)
+	}
+
+	if role == roles.Admin {
+		terminalID := terminalIDFromGroupKey(n.GroupKey)
+		if terminalID == nil {
+			return models.AdminNotificationListItem{}, errorsService.ErrNotificationNotFound
+		}
+		owned, err := s.userTerminalRepo.Exists(ctx, userID, *terminalID)
+		if err != nil {
+			return models.AdminNotificationListItem{}, fmt.Errorf("failed to check admin terminal: %w", err)
+		}
+		if !owned {
+			return models.AdminNotificationListItem{}, errorsService.ErrNotificationNotFound
+		}
+	}
+
+	items, err := s.toAdminNotificationItems(ctx, []models.Notification{n})
+	if err != nil {
+		return models.AdminNotificationListItem{}, err
+	}
+	return items[0], nil
+}
+
+// toAdminNotificationItems arma los ítems del listado de admin, resolviendo
+// el nombre de cada terminal con una sola consulta.
+func (s *notificationService) toAdminNotificationItems(ctx context.Context, rows []models.Notification) ([]models.AdminNotificationListItem, error) {
+	terminalIDs := make([]*uuid.UUID, len(rows))
+	var lookup []uuid.UUID
+	seen := make(map[uuid.UUID]bool)
+	for i, n := range rows {
+		terminalIDs[i] = terminalIDFromGroupKey(n.GroupKey)
+		if id := terminalIDs[i]; id != nil && !seen[*id] {
+			seen[*id] = true
+			lookup = append(lookup, *id)
+		}
+	}
+	names := make(map[uuid.UUID]string, len(lookup))
+	if len(lookup) > 0 {
+		terminals, err := s.busTerminalRepo.ListByUUIDs(ctx, lookup)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list notification terminals: %w", err)
+		}
+		for _, t := range terminals {
+			names[t.UUID] = t.Name
+		}
+	}
+
+	now := time.Now().UTC()
+	items := make([]models.AdminNotificationListItem, len(rows))
+	for i, n := range rows {
+		var stored models.PassengerNotificationMessage
+		if err := json.Unmarshal(n.Payload, &stored); err != nil {
+			stored.Payload = n.Payload
+		}
+		var terminal *models.ProfileTerminalRef
+		if id := terminalIDs[i]; id != nil {
+			terminal = &models.ProfileTerminalRef{UUID: *id, Name: names[*id]}
+		}
+		items[i] = models.AdminNotificationListItem{
+			ID:         n.ID,
+			Type:       stored.Type,
+			Terminal:   terminal,
+			Date:       n.Date,
+			Expiration: n.Expiration,
+			Expired:    !n.Expiration.After(now),
+			Payload:    stored.Payload,
+		}
+	}
+	return items, nil
+}
+
+func isKnownNotificationType(t models.PassengerNotificationType) bool {
+	switch t {
+	case models.PassengerNotificationBUSArrival,
+		models.PassengerNotificationBUSDelay,
+		models.PassengerNotificationLocal,
+		models.PassengerNotificationGlobal,
+		models.PassengerNotificationCAMERA:
+		return true
+	}
+	return false
+}
+
+// terminalIDFromGroupKey extrae la terminal de un group_key ("<tid>" o "<patente>:<tid>").
+// Devuelve nil para notificaciones globales o claves inválidas.
+func terminalIDFromGroupKey(groupKey *string) *uuid.UUID {
+	if groupKey == nil {
+		return nil
+	}
+	key := *groupKey
+	if i := strings.LastIndex(key, ":"); i >= 0 {
+		key = key[i+1:]
+	}
+	id, err := uuid.Parse(key)
+	if err != nil {
+		return nil
+	}
+	return &id
+}
+
 func mergeJSONWithFields(base json.RawMessage, extra map[string]any) (json.RawMessage, error) {
 	var m map[string]any
 	if err := json.Unmarshal(base, &m); err != nil {
@@ -702,16 +928,10 @@ func (s *notificationService) GetNotifications(
 func applyCommonFilters(params models.GetNotificationsParams, f *models.NotificationFilters) error {
 	if params.NotificationType != "" {
 		t := models.PassengerNotificationType(params.NotificationType)
-		switch t {
-		case models.PassengerNotificationBUSArrival,
-			models.PassengerNotificationBUSDelay,
-			models.PassengerNotificationLocal,
-			models.PassengerNotificationGlobal,
-			models.PassengerNotificationCAMERA:
-			f.NotificationType = &t
-		default:
+		if !isKnownNotificationType(t) {
 			return validators.ErrNotificationTypeInvalid
 		}
+		f.NotificationType = &t
 	}
 	if params.ExpirationFilter == "true" {
 		v := true

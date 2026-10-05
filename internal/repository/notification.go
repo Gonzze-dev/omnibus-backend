@@ -15,6 +15,8 @@ type NotificationRepository interface {
 	Insert(ctx context.Context, n models.Notification) error
 	List(ctx context.Context) ([]models.Notification, error)
 	ListWithFilters(ctx context.Context, f models.NotificationFilters) ([]models.Notification, int64, error)
+	ListAdminPaginated(ctx context.Context, f models.AdminNotificationFilters, limit, offset int, order string) ([]models.Notification, error)
+	CountAdmin(ctx context.Context, f models.AdminNotificationFilters) (int64, error)
 	GetByID(ctx context.Context, id uuid.UUID) (models.Notification, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 }
@@ -87,6 +89,49 @@ func (r *notificationRepository) ListWithFilters(ctx context.Context, f models.N
 	var results []models.Notification
 	err := q.Order("date desc").Limit(f.Limit).Offset(f.Offset).Find(&results).Error
 	return results, total, err
+}
+
+// adminNotificationScope aplica los filtros del listado de admin.
+func adminNotificationScope(db *gorm.DB, f models.AdminNotificationFilters) *gorm.DB {
+	if f.TerminalIDs != nil {
+		if len(f.TerminalIDs) == 0 {
+			return db.Where("1 = 0")
+		}
+		clauses := []string{"group_key IN ?"}
+		args := []any{f.TerminalIDs}
+		for _, tid := range f.TerminalIDs {
+			clauses = append(clauses, "group_key LIKE ?")
+			args = append(args, "%:"+tid)
+		}
+		db = db.Where("("+strings.Join(clauses, " OR ")+")", args...)
+	}
+	if f.Type != nil {
+		db = db.Where("payload->>'type' = ?", string(*f.Type))
+	}
+	switch f.Status {
+	case "active":
+		db = db.Where("expiration > NOW()")
+	case "expired":
+		db = db.Where("expiration <= NOW()")
+	}
+	return db
+}
+
+func (r *notificationRepository) ListAdminPaginated(ctx context.Context, f models.AdminNotificationFilters, limit, offset int, order string) ([]models.Notification, error) {
+	var results []models.Notification
+	err := adminNotificationScope(r.db.WithContext(ctx), f).
+		Order("date " + order).
+		Order("id " + order).
+		Limit(limit).
+		Offset(offset).
+		Find(&results).Error
+	return results, err
+}
+
+func (r *notificationRepository) CountAdmin(ctx context.Context, f models.AdminNotificationFilters) (int64, error) {
+	var total int64
+	err := adminNotificationScope(r.db.WithContext(ctx).Model(&models.Notification{}), f).Count(&total).Error
+	return total, err
 }
 
 func (r *notificationRepository) GetByID(ctx context.Context, id uuid.UUID) (models.Notification, error) {

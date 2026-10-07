@@ -18,7 +18,6 @@ type BusTerminalRepository interface {
 	List(ctx context.Context) ([]models.BusTerminal, error)
 	ListPaginated(ctx context.Context, limit, offset int, order string) ([]models.BusTerminal, error)
 	Count(ctx context.Context) (int64, error)
-	CountActive(ctx context.Context) (int64, error)
 	ListWithPlatforms(ctx context.Context) ([]models.BusTerminal, error)
 	ListByUUIDs(ctx context.Context, ids []uuid.UUID) ([]models.BusTerminal, error)
 	ListWithPlatformsPaginated(ctx context.Context, limit, offset int, order string) ([]models.BusTerminal, error)
@@ -103,16 +102,6 @@ func (r *busTerminalRepository) ListPaginated(ctx context.Context, limit, offset
 func (r *busTerminalRepository) Count(ctx context.Context) (int64, error) {
 	var total int64
 	err := r.db.WithContext(ctx).Model(&models.BusTerminal{}).Count(&total).Error
-	return total, err
-}
-
-// CountActive cuenta las terminales que tienen al menos una plataforma.
-func (r *busTerminalRepository) CountActive(ctx context.Context) (int64, error) {
-	var total int64
-	err := r.db.WithContext(ctx).
-		Model(&models.BusTerminal{}).
-		Where("EXISTS (SELECT 1 FROM platform p WHERE p.bus_terminal_id = bus_terminal.uuid)").
-		Count(&total).Error
 	return total, err
 }
 

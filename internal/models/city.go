@@ -41,8 +41,3 @@ type ListCitiesResponse struct {
 type CountCitiesResponse struct {
 	Total int64 `json:"total"`
 }
-
-// CountActiveResponse es el payload de los endpoints GET /api/admin/stats/*/active.
-type CountActiveResponse struct {
-	Total int64 `json:"total"`
-}

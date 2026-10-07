@@ -1201,7 +1201,7 @@
           "response": []
         },
         {
-          "name": "COUNT ACTIVE TERMINALS",
+          "name": "TOTAL TERMINALS",
           "request": {
             "method": "GET",
             "header": [
@@ -1211,7 +1211,7 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/admin/stats/terminals/active",
+              "raw": "{{BASE_URL}}/api/admin/stats/terminals",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -1219,16 +1219,15 @@
                 "api",
                 "admin",
                 "stats",
-                "terminals",
-                "active"
+                "terminals"
               ]
             },
-            "description": "Devuelve la cantidad de terminales activas del sistema. Pensado para las métricas del dashboard.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Body:** Ninguno.\n\n**Query params:** Ninguno.\n\n**Comportamiento interno:**\n1. Cuenta las terminales que tienen al menos una plataforma (andén) registrada.\n2. El conteo es global: no se filtra por las terminales asignadas al admin.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"total\": 12\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `401 Unauthorized` | Token ausente o inválido |\n| `403 Forbidden` | El usuario no tiene rol `admin` ni `super_admin` |\n| `500 Internal Server Error` | Error interno |"
+            "description": "Devuelve la cantidad total de terminales registradas en el sistema. Pensado para las métricas del dashboard.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Body:** Ninguno.\n\n**Query params:** Ninguno.\n\n**Comportamiento interno:**\n1. Cuenta todas las terminales registradas.\n2. El conteo es global: no se filtra por las terminales asignadas al admin.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"total\": 12\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `401 Unauthorized` | Token ausente o inválido |\n| `403 Forbidden` | El usuario no tiene rol `admin` ni `super_admin` |\n| `500 Internal Server Error` | Error interno |"
           },
           "response": []
         },
         {
-          "name": "COUNT ACTIVE PLATFORMS",
+          "name": "TOTAL PLATFORMS",
           "request": {
             "method": "GET",
             "header": [
@@ -1238,7 +1237,7 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/admin/stats/platforms/active",
+              "raw": "{{BASE_URL}}/api/admin/stats/platforms",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -1246,16 +1245,15 @@
                 "api",
                 "admin",
                 "stats",
-                "platforms",
-                "active"
+                "platforms"
               ]
             },
-            "description": "Devuelve la cantidad de plataformas activas del sistema. Pensado para las métricas del dashboard.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Body:** Ninguno.\n\n**Query params:** Ninguno.\n\n**Comportamiento interno:**\n1. Cuenta las plataformas (andenes) asociadas a una terminal existente.\n2. El conteo es global: no se filtra por las terminales asignadas al admin.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"total\": 38\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `401 Unauthorized` | Token ausente o inválido |\n| `403 Forbidden` | El usuario no tiene rol `admin` ni `super_admin` |\n| `500 Internal Server Error` | Error interno |"
+            "description": "Devuelve la cantidad total de plataformas (andenes) registradas en el sistema. Pensado para las métricas del dashboard.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Body:** Ninguno.\n\n**Query params:** Ninguno.\n\n**Comportamiento interno:**\n1. Cuenta todas las plataformas (andenes) registradas, de todas las terminales.\n2. El conteo es global: no se filtra por las terminales asignadas al admin.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"total\": 38\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `401 Unauthorized` | Token ausente o inválido |\n| `403 Forbidden` | El usuario no tiene rol `admin` ni `super_admin` |\n| `500 Internal Server Error` | Error interno |"
           },
           "response": []
         },
         {
-          "name": "COUNT ACTIVE CITIES",
+          "name": "TOTAL CITIES",
           "request": {
             "method": "GET",
             "header": [
@@ -1265,7 +1263,7 @@
               }
             ],
             "url": {
-              "raw": "{{BASE_URL}}/api/admin/stats/cities/active",
+              "raw": "{{BASE_URL}}/api/admin/stats/cities",
               "host": [
                 "{{BASE_URL}}"
               ],
@@ -1273,11 +1271,10 @@
                 "api",
                 "admin",
                 "stats",
-                "cities",
-                "active"
+                "cities"
               ]
             },
-            "description": "Devuelve la cantidad de ciudades activas del sistema. Pensado para las métricas del dashboard.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Body:** Ninguno.\n\n**Query params:** Ninguno.\n\n**Comportamiento interno:**\n1. Cuenta las ciudades que tienen al menos una terminal registrada.\n2. El conteo es global: no se filtra por las terminales asignadas al admin.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"total\": 7\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `401 Unauthorized` | Token ausente o inválido |\n| `403 Forbidden` | El usuario no tiene rol `admin` ni `super_admin` |\n| `500 Internal Server Error` | Error interno |"
+            "description": "Devuelve la cantidad total de ciudades registradas en el sistema. Pensado para las métricas del dashboard.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Body:** Ninguno.\n\n**Query params:** Ninguno.\n\n**Comportamiento interno:**\n1. Cuenta todas las ciudades registradas.\n2. El conteo es global: no se filtra por las terminales asignadas al admin.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"total\": 7\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `401 Unauthorized` | Token ausente o inválido |\n| `403 Forbidden` | El usuario no tiene rol `admin` ni `super_admin` |\n| `500 Internal Server Error` | Error interno |"
           },
           "response": []
         }

@@ -57,9 +57,9 @@ type AdminService interface {
 	DemoteAdmin(ctx context.Context, adminID uuid.UUID, req models.DemoteAdminRequest) (models.UserResponse, error)
 
 	// Stats
-	CountActiveTerminals(ctx context.Context) (int64, error)
-	CountActivePlatforms(ctx context.Context) (int64, error)
-	CountActiveCities(ctx context.Context) (int64, error)
+	TotalTerminals(ctx context.Context) (int64, error)
+	TotalPlatforms(ctx context.Context) (int64, error)
+	TotalCities(ctx context.Context) (int64, error)
 }
 
 type adminService struct {
@@ -790,29 +790,29 @@ func (s *adminService) DemoteAdmin(ctx context.Context, adminID uuid.UUID, req m
 
 // --- Stats ---
 
-// CountActiveTerminals cuenta las terminales con al menos una plataforma.
-func (s *adminService) CountActiveTerminals(ctx context.Context) (int64, error) {
-	total, err := s.busTerminalRepo.CountActive(ctx)
+// TotalTerminals devuelve la cantidad de terminales registradas.
+func (s *adminService) TotalTerminals(ctx context.Context) (int64, error) {
+	total, err := s.busTerminalRepo.Count(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("failed to count active terminals: %w", err)
+		return 0, fmt.Errorf("failed to count terminals: %w", err)
 	}
 	return total, nil
 }
 
-// CountActivePlatforms cuenta las plataformas asociadas a una terminal.
-func (s *adminService) CountActivePlatforms(ctx context.Context) (int64, error) {
-	total, err := s.platformRepo.CountActive(ctx)
+// TotalPlatforms devuelve la cantidad de plataformas (andenes) registradas.
+func (s *adminService) TotalPlatforms(ctx context.Context) (int64, error) {
+	total, err := s.platformRepo.Count(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("failed to count active platforms: %w", err)
+		return 0, fmt.Errorf("failed to count platforms: %w", err)
 	}
 	return total, nil
 }
 
-// CountActiveCities cuenta las ciudades con al menos una terminal.
-func (s *adminService) CountActiveCities(ctx context.Context) (int64, error) {
-	total, err := s.cityRepo.CountActive(ctx)
+// TotalCities devuelve la cantidad de ciudades registradas.
+func (s *adminService) TotalCities(ctx context.Context) (int64, error) {
+	total, err := s.cityRepo.Count(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("failed to count active cities: %w", err)
+		return 0, fmt.Errorf("failed to count cities: %w", err)
 	}
 	return total, nil
 }

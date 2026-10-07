@@ -405,28 +405,28 @@ func (h *AdminHandler) DemoteAdmin(c echo.Context) error {
 
 // --- Stats ---
 
-func (h *AdminHandler) CountActiveTerminals(c echo.Context) error {
-	total, err := h.svc.CountActiveTerminals(c.Request().Context())
+func (h *AdminHandler) TotalTerminals(c echo.Context) error {
+	total, err := h.svc.TotalTerminals(c.Request().Context())
 	if err != nil {
 		return mapAdminError(err)
 	}
-	return c.JSON(http.StatusOK, models.CountActiveResponse{Total: total})
+	return c.JSON(http.StatusOK, models.CountTerminalsResponse{Total: total})
 }
 
-func (h *AdminHandler) CountActivePlatforms(c echo.Context) error {
-	total, err := h.svc.CountActivePlatforms(c.Request().Context())
+func (h *AdminHandler) TotalPlatforms(c echo.Context) error {
+	total, err := h.svc.TotalPlatforms(c.Request().Context())
 	if err != nil {
 		return mapAdminError(err)
 	}
-	return c.JSON(http.StatusOK, models.CountActiveResponse{Total: total})
+	return c.JSON(http.StatusOK, models.CountPlatformsResponse{Total: total})
 }
 
-func (h *AdminHandler) CountActiveCities(c echo.Context) error {
-	total, err := h.svc.CountActiveCities(c.Request().Context())
+func (h *AdminHandler) TotalCities(c echo.Context) error {
+	total, err := h.svc.TotalCities(c.Request().Context())
 	if err != nil {
 		return mapAdminError(err)
 	}
-	return c.JSON(http.StatusOK, models.CountActiveResponse{Total: total})
+	return c.JSON(http.StatusOK, models.CountCitiesResponse{Total: total})
 }
 
 func mapAdminError(err error) error {

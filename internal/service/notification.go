@@ -26,7 +26,7 @@ type RealtimeNotifier interface {
 }
 
 type NotificationService interface {
-	NotifyPassengers(ctx context.Context, req models.NotifyPassengersRequest) (models.NotifyPassengersResponse, error)
+	NotifyPassengers(ctx context.Context, userID uuid.UUID, role string, req models.NotifyPassengersRequest) (models.NotifyPassengersResponse, error)
 	SendAdminNotification(ctx context.Context, userID uuid.UUID, role string, queryTerminalUUID string, req models.AdminSendNotificationRequest) (models.AdminSendNotificationResponse, error)
 	NotifyBusDelay(ctx context.Context, userID uuid.UUID, role string, req models.NotifyBusDelayRequest) (models.NotifyBusDelayResponse, error)
 	ListAdminSelectableNotificationTypes(ctx context.Context, role string) (models.AdminNotificationTypesResponse, error)
@@ -85,6 +85,7 @@ func (s *notificationService) ListAdminSelectableNotificationTypes(_ context.Con
 				models.PassengerNotificationLocal,
 				models.PassengerNotificationGlobal,
 				models.PassengerNotificationBUSDelay,
+				models.PassengerNotificationBUSArrival,
 			},
 		}, nil
 	case roles.Admin:
@@ -92,6 +93,7 @@ func (s *notificationService) ListAdminSelectableNotificationTypes(_ context.Con
 			Types: []models.PassengerNotificationType{
 				models.PassengerNotificationLocal,
 				models.PassengerNotificationBUSDelay,
+				models.PassengerNotificationBUSArrival,
 			},
 		}, nil
 	default:
@@ -99,7 +101,10 @@ func (s *notificationService) ListAdminSelectableNotificationTypes(_ context.Con
 	}
 }
 
-func (s *notificationService) NotifyPassengers(ctx context.Context, req models.NotifyPassengersRequest) (models.NotifyPassengersResponse, error) {
+// NotifyPassengers avisa la llegada de un colectivo. La invoca la cámara (X-API-Key, role vacío)
+// o un admin/super_admin manualmente (JWT) cuando la cámara falla; el admin solo puede avisar
+// en andenes de terminales que tiene asignadas.
+func (s *notificationService) NotifyPassengers(ctx context.Context, userID uuid.UUID, role string, req models.NotifyPassengersRequest) (models.NotifyPassengersResponse, error) {
 	code, err := validators.ValidateNotifyPassengersRequest(req)
 	if err != nil {
 		return models.NotifyPassengersResponse{}, err
@@ -111,6 +116,15 @@ func (s *notificationService) NotifyPassengers(ctx context.Context, req models.N
 	}
 	if platform.BusTerminalID == uuid.Nil {
 		return models.NotifyPassengersResponse{}, errorsService.ErrPlatformMissingTerminal
+	}
+	if role == roles.Admin {
+		owned, err := s.userTerminalRepo.Exists(ctx, userID, platform.BusTerminalID)
+		if err != nil {
+			return models.NotifyPassengersResponse{}, err
+		}
+		if !owned {
+			return models.NotifyPassengersResponse{}, errorsService.ErrTerminalNotOwned
+		}
 	}
 
 	notifID := uuid.New()

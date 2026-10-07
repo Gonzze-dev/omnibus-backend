@@ -139,7 +139,7 @@ migrations/         Archivos SQL versionados
 |---|---|---|
 | `GET` | `/health` | Health check |
 | `GET` | `/bus_tickets/:ticket_string` | Consulta de pasaje por string de ticket |
-| `POST` | `/notify_passengers` | Notifica llegada de bus a pasajeros (API key) |
+| `POST` | `/notify_passengers` | Notifica llegada de bus a pasajeros (API key, o JWT de `admin`/`super_admin` para el aviso manual; el admin solo en andenes de sus terminales) |
 | `POST` | `/notify_camera_error` | Notifica error de cámara (API key) |
 | `GET` | `/api/notifications` | Lista notificaciones del usuario (JWT) |
 | `POST` | `/api/auth/register` | Registro de nuevo usuario |

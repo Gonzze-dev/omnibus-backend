@@ -7,12 +7,14 @@ import (
 	"tesina/backend/internal/config"
 	"tesina/backend/internal/handler"
 	"tesina/backend/internal/middleware"
+	"tesina/backend/internal/roles"
 )
 
 func registerPublic(e *echo.Echo, a *app.App, cfg config.Config) {
 	e.GET("/health", handler.HealthHandler)
 	e.GET("/bus_tickets/:ticket_string", a.BusTicket.GetBusTicket)
-	e.POST("/notify_passengers", a.Notification.NotifyPassengers, middleware.CameraAPIKey(cfg.CameraNotificationAPIKey))
+	e.POST("/notify_passengers", a.Notification.NotifyPassengers,
+		middleware.CameraAPIKeyOrRole(cfg.CameraNotificationAPIKey, cfg.JWTSecret, roles.Admin, roles.SuperAdmin))
 	e.POST("/notify_camera_error", a.Notification.NotifyCameraError, middleware.CameraAPIKey(cfg.CameraNotificationAPIKey))
 	e.GET("/api/notifications", a.Notification.GetNotifications, middleware.Auth(cfg.JWTSecret))
 

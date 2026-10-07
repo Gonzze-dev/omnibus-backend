@@ -29,7 +29,11 @@ func (h *NotificationHandler) NotifyPassengers(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	resp, err := h.svc.NotifyPassengers(c.Request().Context(), req)
+	// Con X-API-Key (cámara) no hay usuario en contexto; con JWT viene el admin/super_admin.
+	userID, _ := c.Get("user_id").(uuid.UUID)
+	role, _ := c.Get("role").(string)
+
+	resp, err := h.svc.NotifyPassengers(c.Request().Context(), userID, role, req)
 	if err != nil {
 		return mapNotificationError(err)
 	}
@@ -240,6 +244,8 @@ func mapNotificationError(err error) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case errors.Is(err, repository.ErrNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, "platform not found")
+	case errors.Is(err, errorsService.ErrTerminalNotOwned):
+		return echo.NewHTTPError(http.StatusForbidden, err.Error())
 	case errors.Is(err, errorsService.ErrPlatformMissingTerminal):
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	case errors.Is(err, errorsService.ErrNotification):

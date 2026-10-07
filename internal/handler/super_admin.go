@@ -114,6 +114,14 @@ func (h *SuperAdminHandler) DeleteTerminal(c echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
+func (h *SuperAdminHandler) ListExternalTerminals(c echo.Context) error {
+	terminals, err := h.svc.ListExternalTerminals(c.Request().Context())
+	if err != nil {
+		return mapSuperAdminError(err)
+	}
+	return c.JSON(http.StatusOK, terminals)
+}
+
 // --- User management (super-only) ---
 
 func (h *SuperAdminHandler) PromoteToSuper(c echo.Context) error {

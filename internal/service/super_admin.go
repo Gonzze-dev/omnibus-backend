@@ -28,6 +28,7 @@ type SuperAdminService interface {
 	CreateTerminal(ctx context.Context, req models.CreateBusTerminalRequest) (models.BusTerminal, error)
 	UpdateTerminal(ctx context.Context, id uuid.UUID, req models.UpdateBusTerminalRequest) (models.BusTerminal, error)
 	DeleteTerminal(ctx context.Context, id uuid.UUID) error
+	ListExternalTerminals(ctx context.Context) ([]models.ExternalTerminal, error)
 
 	// User management (super-only)
 	PromoteToSuper(ctx context.Context, req models.PromoteSuperRequest) (models.UserResponse, error)
@@ -214,6 +215,10 @@ func (s *superAdminService) DeleteTerminal(ctx context.Context, id uuid.UUID) er
 		return err
 	}
 	return s.busTerminalRepo.Delete(ctx, id)
+}
+
+func (s *superAdminService) ListExternalTerminals(ctx context.Context) ([]models.ExternalTerminal, error) {
+	return s.externalTerminalCheck.ListExternalTerminals(ctx)
 }
 
 // --- User management (super-only) ---

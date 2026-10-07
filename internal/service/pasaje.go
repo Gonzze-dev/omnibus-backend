@@ -21,6 +21,7 @@ type BusTicketService interface {
 	GetBusTicket(ctx context.Context, req models.GetBusTicketRequest) (models.BusTicketResponse, error)
 	ExternalTerminalExists(ctx context.Context, externalTerminalUUID uuid.UUID) (bool, error)
 	TripExists(ctx context.Context, externalTerminalUUID uuid.UUID, startDate, licensePlate string) (bool, error)
+	ListExternalTerminals(ctx context.Context) ([]models.ExternalTerminal, error)
 }
 
 type busTicketService struct {
@@ -170,6 +171,49 @@ func (s *busTicketService) TripExists(ctx context.Context, externalTerminalUUID 
 	}
 
 	return parseUpstreamBoolBody(body)
+}
+
+func (s *busTicketService) ListExternalTerminals(ctx context.Context) ([]models.ExternalTerminal, error) {
+	u, err := url.Parse(s.upstreamURL)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", errorsService.ErrUpstreamRequest, err)
+	}
+	// Trailing slash: FastAPI redirects /terminal to /terminal/.
+	u = u.JoinPath("terminal/")
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", errorsService.ErrUpstreamRequest, err)
+	}
+
+	resp, err := s.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", errorsService.ErrUpstreamRequest, err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", errorsService.ErrUpstreamResponse, err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%w: status %d", errorsService.ErrUpstreamResponse, resp.StatusCode)
+	}
+
+	var upstream []struct {
+		UUID     uuid.UUID `json:"uuid"`
+		Terminal string    `json:"terminal"`
+	}
+	if err := json.Unmarshal(body, &upstream); err != nil {
+		return nil, fmt.Errorf("%w: %w", errorsService.ErrUpstreamResponse, err)
+	}
+
+	terminals := make([]models.ExternalTerminal, 0, len(upstream))
+	for _, t := range upstream {
+		terminals = append(terminals, models.ExternalTerminal{UUID: t.UUID, Name: t.Terminal})
+	}
+	return terminals, nil
 }
 
 func normalizeLicensePlate(s string) string {

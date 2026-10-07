@@ -1,6 +1,10 @@
 package models
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/google/uuid"
+)
 
 type GetBusTicketRequest struct {
 	TicketString string `json:"ticket_string"`
@@ -30,4 +34,9 @@ type BusTicket struct {
 	EndDate         string     `json:"end_date"`
 	TripCity        []TripCity `json:"trip_city"`
 	UUID            string     `json:"uuid"`
+}
+
+type ExternalTerminal struct {
+	UUID uuid.UUID `json:"uuid"`
+	Name string    `json:"name"`
 }

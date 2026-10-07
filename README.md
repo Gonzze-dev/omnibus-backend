@@ -167,10 +167,8 @@ migrations/         Archivos SQL versionados
 | Método | Ruta | Descripción |
 |---|---|---|
 | `GET` | `/api/admin/cities` | Lista ciudades |
+| `GET` | `/api/admin/cities/count` | Cantidad de ciudades |
 | `GET` | `/api/admin/cities/:postal_code` | Obtiene ciudad por código postal |
-| `POST` | `/api/admin/cities` | Crea ciudad |
-| `PUT` | `/api/admin/cities/:postal_code` | Actualiza ciudad |
-| `DELETE` | `/api/admin/cities/:postal_code` | Elimina ciudad |
 | `GET` | `/api/admin/platforms` | Lista andenes |
 | `GET` | `/api/admin/platforms/:code` | Obtiene andén por código |
 | `POST` | `/api/admin/platforms` | Crea andén |
@@ -195,3 +193,6 @@ migrations/         Archivos SQL versionados
 | `DELETE` | `/api/super/terminals/:uuid` | Elimina terminal |
 | `POST` | `/api/super/users/promote-super` | Promueve admin a super_admin |
 | `POST` | `/api/super/users/demote-super` | Degrada super_admin a admin |
+| `POST` | `/api/admin/cities` | Crea ciudad |
+| `PUT` | `/api/admin/cities/:postal_code` | Actualiza ciudad |
+| `DELETE` | `/api/admin/cities/:postal_code` | Elimina ciudad |

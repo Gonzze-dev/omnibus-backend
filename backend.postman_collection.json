@@ -1199,6 +1199,87 @@
             "description": "Elimina una notificación del sistema y la retira en tiempo real del frontend vía SignalR.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Query params:**\n| Param | Tipo | Requerido | Descripción |\n|---|---|---|---|\n| `notification_id` | UUID | Sí | ID de la notificación a eliminar |\n\n**Body:** Ninguno.\n\n**Comportamiento interno según rol:**\n- **`super_admin`:** Puede eliminar cualquier notificación. Busca la notificación, envía el evento de eliminación por SignalR y la borra de la BD.\n- **`admin`:** Solo puede eliminar notificaciones de sus terminales. No puede eliminar notificaciones `GLOBAL` (aquellas con `group_key` nulo). Verifica que el `group_key` de la notificación contenga el UUID de alguna de sus terminales; si no, devuelve `403`.\n- **`user`:** No puede eliminar notificaciones (devuelve `403`).\n\n**Respuesta exitosa `204 No Content`:** Sin cuerpo.\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `400 Bad Request` | `notification_id` ausente o con formato UUID inválido, admin sin terminal asignada |\n| `401 Unauthorized` | Token ausente o inválido |\n| `403 Forbidden` | Rol `user`, notificación `GLOBAL` intentada borrar por `admin`, o notificación de otra terminal |\n| `404 Not Found` | Notificación no encontrada |\n| `500 Internal Server Error` | Error interno |"
           },
           "response": []
+        },
+        {
+          "name": "COUNT ACTIVE TERMINALS",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/stats/terminals/active",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "stats",
+                "terminals",
+                "active"
+              ]
+            },
+            "description": "Devuelve la cantidad de terminales activas del sistema. Pensado para las métricas del dashboard.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Body:** Ninguno.\n\n**Query params:** Ninguno.\n\n**Comportamiento interno:**\n1. Cuenta las terminales que tienen al menos una plataforma (andén) registrada.\n2. El conteo es global: no se filtra por las terminales asignadas al admin.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"total\": 12\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `401 Unauthorized` | Token ausente o inválido |\n| `403 Forbidden` | El usuario no tiene rol `admin` ni `super_admin` |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "COUNT ACTIVE PLATFORMS",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/stats/platforms/active",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "stats",
+                "platforms",
+                "active"
+              ]
+            },
+            "description": "Devuelve la cantidad de plataformas activas del sistema. Pensado para las métricas del dashboard.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Body:** Ninguno.\n\n**Query params:** Ninguno.\n\n**Comportamiento interno:**\n1. Cuenta las plataformas (andenes) asociadas a una terminal existente.\n2. El conteo es global: no se filtra por las terminales asignadas al admin.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"total\": 38\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `401 Unauthorized` | Token ausente o inválido |\n| `403 Forbidden` | El usuario no tiene rol `admin` ni `super_admin` |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
+        },
+        {
+          "name": "COUNT ACTIVE CITIES",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BASE_URL}}/api/admin/stats/cities/active",
+              "host": [
+                "{{BASE_URL}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "stats",
+                "cities",
+                "active"
+              ]
+            },
+            "description": "Devuelve la cantidad de ciudades activas del sistema. Pensado para las métricas del dashboard.\n\n**Autenticación:** `Authorization: Bearer {{token}}` (rol `admin` o `super_admin`).\n\n**Body:** Ninguno.\n\n**Query params:** Ninguno.\n\n**Comportamiento interno:**\n1. Cuenta las ciudades que tienen al menos una terminal registrada.\n2. El conteo es global: no se filtra por las terminales asignadas al admin.\n\n**Respuesta exitosa `200 OK`:**\n```json\n{\n  \"total\": 7\n}\n```\n\n**Errores:**\n| Código | Causa |\n|---|---|\n| `401 Unauthorized` | Token ausente o inválido |\n| `403 Forbidden` | El usuario no tiene rol `admin` ni `super_admin` |\n| `500 Internal Server Error` | Error interno |"
+          },
+          "response": []
         }
       ]
     },

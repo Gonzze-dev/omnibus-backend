@@ -14,6 +14,7 @@ type PlatformRepository interface {
 	GetByCode(ctx context.Context, code int) (models.Platform, error)
 	List(ctx context.Context) ([]models.Platform, error)
 	ListByBusTerminalID(ctx context.Context, busTerminalID uuid.UUID) ([]models.Platform, error)
+	CountActive(ctx context.Context) (int64, error)
 	Create(ctx context.Context, platform *models.Platform) error
 	Update(ctx context.Context, platform *models.Platform) error
 	Delete(ctx context.Context, code int) error
@@ -63,6 +64,16 @@ func (r *platformRepository) ListByBusTerminalID(ctx context.Context, busTermina
 		Error
 
 	return platforms, err
+}
+
+// CountActive cuenta las plataformas asociadas a una terminal existente.
+func (r *platformRepository) CountActive(ctx context.Context) (int64, error) {
+	var total int64
+	err := r.db.WithContext(ctx).
+		Model(&models.Platform{}).
+		Where("EXISTS (SELECT 1 FROM bus_terminal bt WHERE bt.uuid = platform.bus_terminal_id)").
+		Count(&total).Error
+	return total, err
 }
 
 func (r *platformRepository) Create(ctx context.Context, platform *models.Platform) error {

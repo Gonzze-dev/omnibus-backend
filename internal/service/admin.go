@@ -55,6 +55,11 @@ type AdminService interface {
 	PromoteToAdmin(ctx context.Context, adminID uuid.UUID, req models.PromoteAdminRequest) (models.UserResponse, error)
 	DemoteAdminDirect(ctx context.Context, req models.DemoteAdminRequest) (models.UserResponse, error)
 	DemoteAdmin(ctx context.Context, adminID uuid.UUID, req models.DemoteAdminRequest) (models.UserResponse, error)
+
+	// Stats
+	CountActiveTerminals(ctx context.Context) (int64, error)
+	CountActivePlatforms(ctx context.Context) (int64, error)
+	CountActiveCities(ctx context.Context) (int64, error)
 }
 
 type adminService struct {
@@ -781,4 +786,33 @@ func (s *adminService) DemoteAdmin(ctx context.Context, adminID uuid.UUID, req m
 	}
 
 	return models.ToUserResponse(user), nil
+}
+
+// --- Stats ---
+
+// CountActiveTerminals cuenta las terminales con al menos una plataforma.
+func (s *adminService) CountActiveTerminals(ctx context.Context) (int64, error) {
+	total, err := s.busTerminalRepo.CountActive(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count active terminals: %w", err)
+	}
+	return total, nil
+}
+
+// CountActivePlatforms cuenta las plataformas asociadas a una terminal.
+func (s *adminService) CountActivePlatforms(ctx context.Context) (int64, error) {
+	total, err := s.platformRepo.CountActive(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count active platforms: %w", err)
+	}
+	return total, nil
+}
+
+// CountActiveCities cuenta las ciudades con al menos una terminal.
+func (s *adminService) CountActiveCities(ctx context.Context) (int64, error) {
+	total, err := s.cityRepo.CountActive(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count active cities: %w", err)
+	}
+	return total, nil
 }

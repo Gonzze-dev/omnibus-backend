@@ -403,6 +403,32 @@ func (h *AdminHandler) DemoteAdmin(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
+// --- Stats ---
+
+func (h *AdminHandler) CountActiveTerminals(c echo.Context) error {
+	total, err := h.svc.CountActiveTerminals(c.Request().Context())
+	if err != nil {
+		return mapAdminError(err)
+	}
+	return c.JSON(http.StatusOK, models.CountActiveResponse{Total: total})
+}
+
+func (h *AdminHandler) CountActivePlatforms(c echo.Context) error {
+	total, err := h.svc.CountActivePlatforms(c.Request().Context())
+	if err != nil {
+		return mapAdminError(err)
+	}
+	return c.JSON(http.StatusOK, models.CountActiveResponse{Total: total})
+}
+
+func (h *AdminHandler) CountActiveCities(c echo.Context) error {
+	total, err := h.svc.CountActiveCities(c.Request().Context())
+	if err != nil {
+		return mapAdminError(err)
+	}
+	return c.JSON(http.StatusOK, models.CountActiveResponse{Total: total})
+}
+
 func mapAdminError(err error) error {
 	switch {
 	case errors.Is(err, validators.ErrPostalCodeRequired),

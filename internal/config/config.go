@@ -22,6 +22,9 @@ const (
 	defaultMailSiteName                = "Omnibus"
 	defaultSMTPPort                    = 587
 	defaultFrontEndBaseLink            = "http://localhost:4200/"
+	defaultOCRURL                      = "http://localhost:8000"
+	defaultOCRAPIKey                   = "default-api-key-12345"
+	defaultOCRTimeout                  = 30 * time.Second
 )
 
 type Config struct {
@@ -41,6 +44,9 @@ type Config struct {
 	ListenAddr                  string
 	CameraNotificationAPIKey    string
 	RealtimeAPIKey              string
+	OCRURL                      string
+	OCRAPIKey                   string
+	OCRTimeout                  time.Duration
 }
 
 func Load() Config {
@@ -98,6 +104,16 @@ func Load() Config {
 		mailSiteName = defaultMailSiteName
 	}
 
+	ocrURL := os.Getenv("OCR_URL")
+	if ocrURL == "" {
+		ocrURL = defaultOCRURL
+	}
+
+	ocrAPIKey := os.Getenv("OCR_API_KEY")
+	if ocrAPIKey == "" {
+		ocrAPIKey = defaultOCRAPIKey
+	}
+
 	smtpPort := defaultSMTPPort
 	if p := os.Getenv("SMTP_PORT"); p != "" {
 		if n, err := strconv.Atoi(p); err == nil && n > 0 {
@@ -122,5 +138,8 @@ func Load() Config {
 		ListenAddr:                  listenAddr,
 		CameraNotificationAPIKey:    cameraAPIKey,
 		RealtimeAPIKey:              realtimeAPIKey,
+		OCRURL:                      ocrURL,
+		OCRAPIKey:                   ocrAPIKey,
+		OCRTimeout:                  defaultOCRTimeout,
 	}
 }

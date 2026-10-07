@@ -24,6 +24,7 @@ type App struct {
 	Admin            *handler.AdminHandler
 	SuperAdmin       *handler.SuperAdminHandler
 	Bus              *handler.BusHandler
+	LicensePlate     *handler.LicensePlateHandler
 }
 
 func New(cfg config.Config, db *gorm.DB) *App {
@@ -80,6 +81,8 @@ func New(cfg config.Config, db *gorm.DB) *App {
 	adminSvc := service.NewAdminService(cityRepo, platformRepo, busTerminalRepo, userRepo, rolRepo, userTerminalRepo)
 	superAdminSvc := service.NewSuperAdminService(cityRepo, busTerminalRepo, userRepo, rolRepo, userTerminalRepo, BusTicketSvc)
 
+	licensePlateSvc := service.NewLicensePlateService(&http.Client{Timeout: cfg.OCRTimeout}, cfg.OCRURL, cfg.OCRAPIKey)
+
 	return &App{
 		BusTicket:        handler.NewBusTicketHandler(BusTicketSvc),
 		Bus:              handler.NewBusHandler(busSvc),
@@ -89,5 +92,6 @@ func New(cfg config.Config, db *gorm.DB) *App {
 		User:             handler.NewUserHandler(userSvc),
 		Admin:            handler.NewAdminHandler(adminSvc),
 		SuperAdmin:       handler.NewSuperAdminHandler(superAdminSvc),
+		LicensePlate:     handler.NewLicensePlateHandler(licensePlateSvc),
 	}
 }

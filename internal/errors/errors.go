@@ -55,4 +55,8 @@ var (
 	ErrTerminalIDInvalid  = errors.New("terminalId must be a valid UUID")
 	ErrTicketRequired     = errors.New("ticket is required")
 	ErrAwaitedTripNotFound = errors.New("no awaited trip for this user")
+
+	ErrLicensePlateImageRequired = errors.New("image is required")
+	ErrLicensePlateImageInvalid  = errors.New("the image could not be read")
+	ErrLicensePlateNotRead       = errors.New("no license plate could be read from the image")
 )

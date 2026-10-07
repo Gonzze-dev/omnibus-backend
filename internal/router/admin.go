@@ -36,4 +36,5 @@ func registerAdmin(e *echo.Echo, a *app.App, jwtSecret string) {
 	admin.POST("/notifications", a.Notification.SendAdminNotification)
 	admin.DELETE("/notifications", a.Notification.DeleteNotification)
 	admin.POST("/notify-bus-delay", a.Notification.NotifyBusDelay)
+	admin.POST("/license-plate/read", a.LicensePlate.Read)
 }

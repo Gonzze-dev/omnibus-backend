@@ -2,15 +2,23 @@ package config
 
 import (
 	"log"
+	"net"
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
 )
 
 const (
-	defaultDatabaseURL                 = "host=localhost user=postgres password=1234 dbname=omnibus-terminal port=5432 sslmode=disable"
+	defaultDBHost                      = "localhost"
+	defaultDBUser                      = "postgres"
+	defaultDBPassword                  = "1234"
+	defaultDBName                      = "omnibus-terminal"
+	defaultDBPort                      = "5432"
+	defaultDBSSLMode                   = "disable"
 	defaultJWTSecret                   = "default-secret-change-me"
 	defaultPasswordResetJWTSecret      = "default-password-reset-secret-change-me"
 	defaultExternalTerminalUpstreamURL = "http://localhost:4990"
@@ -49,6 +57,37 @@ type Config struct {
 	OCRTimeout                  time.Duration
 }
 
+// getEnvTrim lee una variable de entorno sin espacios sobrantes y usa def si está vacía.
+func getEnvTrim(key, def string) string {
+	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
+		return v
+	}
+	return def
+}
+
+// buildDatabaseURL arma la URL de PostgreSQL a partir de DB_URL (host), DB_USER,
+// DB_PASSWORD, DB_NAME, DB_PORT y DB_SSLMODE.
+func buildDatabaseURL() string {
+	host := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(os.Getenv("DB_URL")), "host="))
+	if host == "" {
+		host = defaultDBHost
+	}
+	user := getEnvTrim("DB_USER", defaultDBUser)
+	password := getEnvTrim("DB_PASSWORD", defaultDBPassword)
+	name := getEnvTrim("DB_NAME", defaultDBName)
+	port := getEnvTrim("DB_PORT", defaultDBPort)
+	sslmode := getEnvTrim("DB_SSLMODE", defaultDBSSLMode)
+
+	u := url.URL{
+		Scheme:   "postgres",
+		User:     url.UserPassword(user, password),
+		Host:     net.JoinHostPort(host, port),
+		Path:     "/" + name,
+		RawQuery: url.Values{"sslmode": {sslmode}}.Encode(),
+	}
+	return u.String()
+}
+
 func Load() Config {
 	if err := godotenv.Load(); err != nil {
 		log.Println("aviso: no se cargó .env, se usan solo variables del sistema:", err)
@@ -59,10 +98,7 @@ func Load() Config {
 		listenAddr = defaultListenAddr
 	}
 
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		dsn = defaultDatabaseURL
-	}
+	dsn := buildDatabaseURL()
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {

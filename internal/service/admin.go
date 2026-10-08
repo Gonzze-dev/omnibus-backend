@@ -399,7 +399,8 @@ func (s *adminService) GetPlatform(ctx context.Context, adminID uuid.UUID, code 
 }
 
 func (s *adminService) CreatePlatformDirect(ctx context.Context, req models.CreatePlatformRequest) (models.Platform, error) {
-	if err := validators.ValidateCreatePlatformRequest(req); err != nil {
+	anden, err := validators.NormalizeAnden(req.Anden)
+	if err != nil {
 		return models.Platform{}, err
 	}
 
@@ -411,7 +412,7 @@ func (s *adminService) CreatePlatformDirect(ctx context.Context, req models.Crea
 	}
 
 	platform := models.Platform{
-		Anden:         req.Anden,
+		Anden:         anden,
 		Coordinates:   req.Coordinates,
 		BusTerminalID: req.BusTerminalID,
 	}
@@ -422,7 +423,8 @@ func (s *adminService) CreatePlatformDirect(ctx context.Context, req models.Crea
 }
 
 func (s *adminService) CreatePlatform(ctx context.Context, adminID uuid.UUID, req models.CreatePlatformRequest) (models.Platform, error) {
-	if err := validators.ValidateCreatePlatformRequest(req); err != nil {
+	anden, err := validators.NormalizeAnden(req.Anden)
+	if err != nil {
 		return models.Platform{}, err
 	}
 
@@ -431,7 +433,7 @@ func (s *adminService) CreatePlatform(ctx context.Context, adminID uuid.UUID, re
 	}
 
 	platform := models.Platform{
-		Anden:         req.Anden,
+		Anden:         anden,
 		Coordinates:   req.Coordinates,
 		BusTerminalID: req.BusTerminalID,
 	}
@@ -451,7 +453,11 @@ func (s *adminService) UpdatePlatformByCode(ctx context.Context, code int, req m
 	}
 
 	if req.Anden != nil {
-		platform.Anden = *req.Anden
+		anden, err := validators.NormalizeAnden(*req.Anden)
+		if err != nil {
+			return models.Platform{}, err
+		}
+		platform.Anden = anden
 	}
 	if req.Coordinates != nil {
 		platform.Coordinates = *req.Coordinates
@@ -477,7 +483,11 @@ func (s *adminService) UpdatePlatform(ctx context.Context, adminID uuid.UUID, co
 	}
 
 	if req.Anden != nil {
-		platform.Anden = *req.Anden
+		anden, err := validators.NormalizeAnden(*req.Anden)
+		if err != nil {
+			return models.Platform{}, err
+		}
+		platform.Anden = anden
 	}
 	if req.Coordinates != nil {
 		platform.Coordinates = *req.Coordinates

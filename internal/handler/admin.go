@@ -434,6 +434,7 @@ func mapAdminError(err error) error {
 	case errors.Is(err, validators.ErrPostalCodeRequired),
 		errors.Is(err, validators.ErrCityNameRequired),
 		errors.Is(err, validators.ErrAndenRequired),
+		errors.Is(err, validators.ErrAndenInvalid),
 		errors.Is(err, validators.ErrEmailRequired):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case errors.Is(err, errorsService.ErrCityNotFound):

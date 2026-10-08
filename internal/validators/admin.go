@@ -2,6 +2,7 @@ package validators
 
 import (
 	"errors"
+	"regexp"
 	"strings"
 
 	"tesina/backend/internal/models"
@@ -11,8 +12,11 @@ var (
 	ErrPostalCodeRequired = errors.New("postal_code is required")
 	ErrCityNameRequired   = errors.New("name is required")
 	ErrAndenRequired      = errors.New("anden is required")
+	ErrAndenInvalid       = errors.New("anden may only contain letters, numbers and '-'")
 	ErrEmailRequired      = errors.New("email is required")
 )
+
+var andenPattern = regexp.MustCompile(`^[A-Z0-9-]+$`)
 
 func ValidateCreateCityRequest(req models.CreateCityRequest) error {
 	if req.PostalCode == "" {
@@ -25,10 +29,21 @@ func ValidateCreateCityRequest(req models.CreateCityRequest) error {
 }
 
 func ValidateCreatePlatformRequest(req models.CreatePlatformRequest) error {
-	if req.Anden == "" {
-		return ErrAndenRequired
+	_, err := NormalizeAnden(req.Anden)
+	return err
+}
+
+// NormalizeAnden trims and uppercases the anden, and checks it only contains
+// letters, digits and '-'. Returns the normalized value on success.
+func NormalizeAnden(anden string) (string, error) {
+	anden = strings.ToUpper(strings.TrimSpace(anden))
+	if anden == "" {
+		return "", ErrAndenRequired
 	}
-	return nil
+	if !andenPattern.MatchString(anden) {
+		return "", ErrAndenInvalid
+	}
+	return anden, nil
 }
 
 // ValidateAdminEmail trims the email and checks it is not empty.

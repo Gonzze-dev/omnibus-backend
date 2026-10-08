@@ -66,9 +66,15 @@ func (s *busService) JoinBus(ctx context.Context, userID uuid.UUID, req models.J
 		return models.AwaitedTripResponse{}, err
 	}
 
+	// El pasaje debe pertenecer a la terminal elegida.
+	if terminal.ExternalTerminalID == nil ||
+		!strings.EqualFold(ticket.TerminalUUID, terminal.ExternalTerminalID.String()) {
+		return models.AwaitedTripResponse{}, errorsService.ErrTripNotFound
+	}
+
 	awaited := models.AwaitedTrip{
 		UserID:        userID,
-		GroupKey:      normalizeLicensePlate(ticket.BusLicensePlate) + ":" + terminal.UUID.String(),
+		GroupKey:     normalizeLicensePlate(ticket.BusLicensePlate) + ":" + terminal.UUID.String(),
 		Ticket:        ticket.Ticket,
 		BusTerminalID: terminal.UUID,
 		CreatedAt:     time.Now().UTC(),

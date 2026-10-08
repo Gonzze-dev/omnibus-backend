@@ -26,7 +26,7 @@ type BusTicket struct {
 	PostalCode      string     `json:"postal_code"`
 	BusTerminalName string     `json:"bus_terminal_name"`
 	TerminalUUID    string     `json:"terminal_uuid"`
-	Ticket         string     `json:"ticket"`
+	Ticket          string     `json:"ticket"`
 	DNI             string     `json:"dni"`
 	Name            string     `json:"name"`
 	BusLicensePlate string     `json:"bus_license_plate"`

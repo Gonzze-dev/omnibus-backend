@@ -112,6 +112,7 @@ func (s *superAdminService) GetTerminal(ctx context.Context, id uuid.UUID) (mode
 }
 
 func (s *superAdminService) CreateTerminal(ctx context.Context, req models.CreateBusTerminalRequest) (models.BusTerminal, error) {
+	req.Name = validators.NormalizeTerminalName(req.Name)
 	if err := validators.ValidateCreateBusTerminalRequest(req); err != nil {
 		return models.BusTerminal{}, err
 	}
@@ -151,6 +152,10 @@ func (s *superAdminService) CreateTerminal(ctx context.Context, req models.Creat
 }
 
 func (s *superAdminService) UpdateTerminal(ctx context.Context, id uuid.UUID, req models.UpdateBusTerminalRequest) (models.BusTerminal, error) {
+	if req.Name != nil {
+		name := validators.NormalizeTerminalName(*req.Name)
+		req.Name = &name
+	}
 	if err := validators.ValidateUpdateBusTerminalRequest(req); err != nil {
 		return models.BusTerminal{}, err
 	}

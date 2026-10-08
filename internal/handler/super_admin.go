@@ -10,6 +10,7 @@ import (
 
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/service"
+	"tesina/backend/internal/validators"
 	errorsService "tesina/backend/internal/errors"
 )
 
@@ -153,6 +154,10 @@ func (h *SuperAdminHandler) DemoteSuper(c echo.Context) error {
 func mapSuperAdminError(err error) error {
 	switch {
 	case errors.Is(err, errorsService.ErrMissingFields):
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	case errors.Is(err, validators.ErrTerminalNameInvalid),
+		errors.Is(err, validators.ErrTerminalNameRequired),
+		errors.Is(err, validators.ErrTerminalPostalCodeRequired):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case errors.Is(err, errorsService.ErrExternalTerminalIDRequired):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())

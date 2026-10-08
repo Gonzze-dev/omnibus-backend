@@ -6,9 +6,9 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	errorsService "tesina/backend/internal/errors"
 	"tesina/backend/internal/models"
 	"tesina/backend/internal/service"
-	errorsService "tesina/backend/internal/errors"
 )
 
 type BusHandler struct {
@@ -75,6 +75,8 @@ func mapBusError(err error) error {
 		errors.Is(err, errorsService.ErrTripNotFound),
 		errors.Is(err, errorsService.ErrAwaitedTripNotFound):
 		return echo.NewHTTPError(http.StatusNotFound, err.Error())
+	case errors.Is(err, errorsService.ErrTicketWrongTerminal):
+		return echo.NewHTTPError(http.StatusConflict, err.Error())
 	case errors.Is(err, errorsService.ErrUpstreamRequest),
 		errors.Is(err, errorsService.ErrUpstreamResponse):
 		return echo.NewHTTPError(http.StatusBadGateway, "terminal system unavailable")

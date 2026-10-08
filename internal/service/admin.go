@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	errorsService "tesina/backend/internal/errors"
@@ -149,7 +150,7 @@ func (s *adminService) CreateCity(ctx context.Context, req models.CreateCityRequ
 
 	city := models.City{
 		PostalCode: req.PostalCode,
-		Name:       req.Name,
+		Name:       strings.ToUpper(req.Name),
 	}
 	if err := s.cityRepo.Create(ctx, &city); err != nil {
 		return models.City{}, fmt.Errorf("failed to create city: %w", err)
@@ -167,7 +168,7 @@ func (s *adminService) UpdateCity(ctx context.Context, postalCode string, req mo
 	}
 
 	if req.Name != nil {
-		city.Name = *req.Name
+		city.Name = strings.ToUpper(*req.Name)
 	}
 
 	if req.PostalCode != nil && *req.PostalCode != postalCode {

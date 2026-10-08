@@ -211,7 +211,7 @@ func (s *busTicketService) ListExternalTerminals(ctx context.Context) ([]models.
 
 	terminals := make([]models.ExternalTerminal, 0, len(upstream))
 	for _, t := range upstream {
-		terminals = append(terminals, models.ExternalTerminal{UUID: t.UUID, Name: t.Terminal})
+		terminals = append(terminals, models.ExternalTerminal{UUID: t.UUID, Name: strings.ToUpper(strings.TrimSpace(t.Terminal))})
 	}
 	return terminals, nil
 }

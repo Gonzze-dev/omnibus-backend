@@ -137,7 +137,8 @@ migrations/         Archivos SQL versionados
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| `GET` | `/health` | Health check |
+| `GET` | `/` | Redirige a `/health` |
+| `GET` | `/health` | Health check (`OK`) |
 | `GET` | `/bus_tickets/:ticket_string` | Consulta de pasaje por string de ticket |
 | `POST` | `/notify_passengers` | Notifica llegada de bus a pasajeros (API key, o JWT de `admin`/`super_admin` para el aviso manual; el admin solo en andenes de sus terminales) |
 | `POST` | `/notify_camera_error` | Notifica error de cámara (API key) |

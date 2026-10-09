@@ -11,6 +11,7 @@ import (
 )
 
 func registerPublic(e *echo.Echo, a *app.App, cfg config.Config) {
+	e.GET("/", handler.RootRedirectHandler)
 	e.GET("/health", handler.HealthHandler)
 	e.GET("/bus_tickets/:ticket_string", a.BusTicket.GetBusTicket)
 	e.POST("/notify_passengers", a.Notification.NotifyPassengers,

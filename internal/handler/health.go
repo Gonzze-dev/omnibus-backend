@@ -7,5 +7,9 @@ import (
 )
 
 func HealthHandler(c echo.Context) error {
-	return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+	return c.String(http.StatusOK, "OK")
+}
+
+func RootRedirectHandler(c echo.Context) error {
+	return c.Redirect(http.StatusFound, "/health")
 }

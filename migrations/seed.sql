@@ -1,5 +1,3 @@
-BEGIN;
-
 INSERT INTO city (postal_code, name) VALUES
     ('2820', 'Gualeguaychú'),
     ('3260', 'Concepción del Uruguay');
@@ -21,4 +19,3 @@ INSERT INTO platform (anden, coordinates, bus_terminal_id) VALUES
     ('A11', '{"lat": -33.02080571081059, "lng": -58.534636514496114}', 'a0000000-0000-0000-0000-000000000001'),
     ('A12', '{"lat": -33.020800650652475, "lng": -58.534576164798075}', 'a0000000-0000-0000-0000-000000000001');
 
-COMMIT;

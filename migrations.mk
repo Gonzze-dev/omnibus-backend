@@ -1,12 +1,17 @@
-DATABASE_URL := postgres://postgres:1234@localhost:5432/omnibus-terminal
+# Usa las mismas variables DB_* (.env) que la API.
+MIGRATE := go run ./cmd/migrate
 
 migrate-up:
-	psql $(DATABASE_URL) -f ./migrations/001_create_tables.up.sql
-	psql $(DATABASE_URL) -f ./migrations/002_auth_roles.up.sql
-	psql $(DATABASE_URL) -f ./migrations/002_seed.sql
-	psql $(DATABASE_URL) -f ./migrations/003_city_cascade_update.up.sql
-	psql $(DATABASE_URL) -f ./migrations/004_bus_terminal_external_id.up.sql
-	psql $(DATABASE_URL) -f ./migrations/005_remove_dni.up.sql
-	psql $(DATABASE_URL) -f ./migrations/006_awaited_trip.up.sql
-	psql $(DATABASE_URL) -f ./migrations/007_drop_permissions.up.sql
-	psql $(DATABASE_URL) -f ./migrations/008_awaited_trip_details.up.sql
+	$(MIGRATE) up
+
+migrate-down:
+	$(MIGRATE) down
+
+migrate-status:
+	$(MIGRATE) status
+
+migrate-baseline:
+	$(MIGRATE) baseline
+
+migrate-seed:
+	$(MIGRATE) seed

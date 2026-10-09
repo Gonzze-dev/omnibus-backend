@@ -28,7 +28,6 @@ El arranque sigue este flujo: carga de config → conexión a PostgreSQL → ini
 
 - Go 1.25+
 - PostgreSQL corriendo localmente (o configurable vía `DATABASE_URL`)
-- `psql` en el PATH (para migraciones)
 - `make` instalado
 
 ### Variables de entorno
@@ -64,17 +63,23 @@ go run ./cmd/api
 
 ## Migraciones
 
-Las migraciones se gestionan con `psql` plano. El archivo `migrations.mk` define los targets, incluido desde el `Makefile` principal.
+El esquema se gestiona con el comando `cmd/migrate`, que usa las mismas variables `DB_*` que la API y registra lo aplicado en la tabla `omnibus_schema_migrations`. No requiere `psql`.
 
 ```bash
-# Aplicar todas las migraciones en orden
-make migrate-up
-
-# Revertir todas las migraciones en orden inverso
-make migrate-down
+go run ./cmd/migrate up        # o: make migrate-up
+go run ./cmd/migrate status    # qué migraciones están aplicadas
+go run ./cmd/migrate down      # revierte la última
+go run ./cmd/migrate seed      # datos de ejemplo (migrations/seed.sql)
+go run ./cmd/migrate baseline  # marca todas como aplicadas sin ejecutarlas
 ```
 
-Las migraciones están versionadas en `migrations/` con el formato `NNN_nombre.up.sql` / `NNN_nombre.down.sql`:
+- **Base vacía:** `up` ejecuta `migrations/schema.sql` (esquema completo actual + roles) y marca todas las migraciones como aplicadas.
+- **Base existente:** `up` aplica solo las migraciones `NNN_nombre.up.sql` pendientes, en orden y cada una en su propia transacción.
+- **Base creada antes de este comando** (con `psql` a mano): ejecutar `baseline` una única vez.
+
+En producción la imagen Docker incluye el binario: `/app/migrate up` (por ejemplo como *Pre-Deploy Command* en Railway).
+
+Al agregar una migración nueva, crear `NNN_nombre.up.sql` / `NNN_nombre.down.sql` y **reflejar el cambio también en `schema.sql`**.
 
 | Versión | Descripción |
 |---|---|
@@ -86,6 +91,7 @@ Las migraciones están versionadas en `migrations/` con el formato `NNN_nombre.u
 | `006` | Tabla `awaited_trip` |
 | `007` | Eliminación de `permissions` y `rol_permissions` (RBAC simplificado a roles) |
 | `008` | Datos de la espera en `awaited_trip` (ticket, terminal, `notified_at`) |
+| `009` | Tabla `notifications` (existía en las bases locales pero sin migración) |
 
 ## Arquitectura
 
@@ -97,6 +103,7 @@ Handler → Service → Repository → Database (PostgreSQL/GORM)
 
 ```
 cmd/api/            Entrypoint
+cmd/migrate/        Runner de migraciones
 internal/
 ├── app/            Contenedor de dependencias (DI manual)
 ├── config/         Carga de configuración (.env + defaults)

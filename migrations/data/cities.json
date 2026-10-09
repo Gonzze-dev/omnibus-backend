@@ -1,0 +1,110 @@
+[
+  { "postal_code": "1000", "name": "Ciudad Autónoma de Buenos Aires", "province": "Ciudad Autónoma de Buenos Aires" },
+
+  { "postal_code": "1900", "name": "La Plata", "province": "Buenos Aires" },
+  { "postal_code": "7600", "name": "Mar del Plata", "province": "Buenos Aires" },
+  { "postal_code": "8000", "name": "Bahía Blanca", "province": "Buenos Aires" },
+  { "postal_code": "7000", "name": "Tandil", "province": "Buenos Aires" },
+  { "postal_code": "7400", "name": "Olavarría", "province": "Buenos Aires" },
+  { "postal_code": "7300", "name": "Azul", "province": "Buenos Aires" },
+  { "postal_code": "7630", "name": "Necochea", "province": "Buenos Aires" },
+  { "postal_code": "7500", "name": "Tres Arroyos", "province": "Buenos Aires" },
+  { "postal_code": "7165", "name": "Villa Gesell", "province": "Buenos Aires" },
+  { "postal_code": "7167", "name": "Pinamar", "province": "Buenos Aires" },
+  { "postal_code": "6000", "name": "Junín", "province": "Buenos Aires" },
+  { "postal_code": "2700", "name": "Pergamino", "province": "Buenos Aires" },
+  { "postal_code": "2900", "name": "San Nicolás de los Arroyos", "province": "Buenos Aires" },
+  { "postal_code": "2930", "name": "San Pedro", "province": "Buenos Aires" },
+  { "postal_code": "2800", "name": "Zárate", "province": "Buenos Aires" },
+  { "postal_code": "2804", "name": "Campana", "province": "Buenos Aires" },
+  { "postal_code": "6700", "name": "Luján", "province": "Buenos Aires" },
+  { "postal_code": "6620", "name": "Chivilcoy", "province": "Buenos Aires" },
+  { "postal_code": "6500", "name": "Nueve de Julio", "province": "Buenos Aires" },
+
+  { "postal_code": "5000", "name": "Córdoba", "province": "Córdoba" },
+  { "postal_code": "5152", "name": "Villa Carlos Paz", "province": "Córdoba" },
+  { "postal_code": "5800", "name": "Río Cuarto", "province": "Córdoba" },
+  { "postal_code": "5900", "name": "Villa María", "province": "Córdoba" },
+  { "postal_code": "2400", "name": "San Francisco", "province": "Córdoba" },
+  { "postal_code": "5186", "name": "Alta Gracia", "province": "Córdoba" },
+  { "postal_code": "5220", "name": "Jesús María", "province": "Córdoba" },
+  { "postal_code": "5166", "name": "Cosquín", "province": "Córdoba" },
+  { "postal_code": "5172", "name": "La Falda", "province": "Córdoba" },
+
+  { "postal_code": "2000", "name": "Rosario", "province": "Santa Fe" },
+  { "postal_code": "3000", "name": "Santa Fe", "province": "Santa Fe" },
+  { "postal_code": "2300", "name": "Rafaela", "province": "Santa Fe" },
+  { "postal_code": "2600", "name": "Venado Tuerto", "province": "Santa Fe" },
+  { "postal_code": "3560", "name": "Reconquista", "province": "Santa Fe" },
+
+  { "postal_code": "3100", "name": "Paraná", "province": "Entre Ríos" },
+  { "postal_code": "3200", "name": "Concordia", "province": "Entre Ríos" },
+  { "postal_code": "2820", "name": "Gualeguaychú", "province": "Entre Ríos" },
+  { "postal_code": "3260", "name": "Concepción del Uruguay", "province": "Entre Ríos" },
+  { "postal_code": "3280", "name": "Colón", "province": "Entre Ríos" },
+  { "postal_code": "2840", "name": "Gualeguay", "province": "Entre Ríos" },
+  { "postal_code": "3153", "name": "Victoria", "province": "Entre Ríos" },
+  { "postal_code": "3240", "name": "Villaguay", "province": "Entre Ríos" },
+  { "postal_code": "3206", "name": "Federación", "province": "Entre Ríos" },
+  { "postal_code": "3228", "name": "Chajarí", "province": "Entre Ríos" },
+
+  { "postal_code": "3400", "name": "Corrientes", "province": "Corrientes" },
+  { "postal_code": "3450", "name": "Goya", "province": "Corrientes" },
+  { "postal_code": "3230", "name": "Paso de los Libres", "province": "Corrientes" },
+
+  { "postal_code": "3300", "name": "Posadas", "province": "Misiones" },
+  { "postal_code": "3360", "name": "Oberá", "province": "Misiones" },
+  { "postal_code": "3370", "name": "Puerto Iguazú", "province": "Misiones" },
+
+  { "postal_code": "3500", "name": "Resistencia", "province": "Chaco" },
+  { "postal_code": "3700", "name": "Presidencia Roque Sáenz Peña", "province": "Chaco" },
+
+  { "postal_code": "3600", "name": "Formosa", "province": "Formosa" },
+
+  { "postal_code": "4200", "name": "Santiago del Estero", "province": "Santiago del Estero" },
+  { "postal_code": "4220", "name": "Termas de Río Hondo", "province": "Santiago del Estero" },
+
+  { "postal_code": "4000", "name": "San Miguel de Tucumán", "province": "Tucumán" },
+  { "postal_code": "4400", "name": "Salta", "province": "Salta" },
+  { "postal_code": "4600", "name": "San Salvador de Jujuy", "province": "Jujuy" },
+  { "postal_code": "4700", "name": "San Fernando del Valle de Catamarca", "province": "Catamarca" },
+  { "postal_code": "5300", "name": "La Rioja", "province": "La Rioja" },
+  { "postal_code": "5400", "name": "San Juan", "province": "San Juan" },
+
+  { "postal_code": "5500", "name": "Mendoza", "province": "Mendoza" },
+  { "postal_code": "5600", "name": "San Rafael", "province": "Mendoza" },
+  { "postal_code": "5613", "name": "Malargüe", "province": "Mendoza" },
+
+  { "postal_code": "5700", "name": "San Luis", "province": "San Luis" },
+  { "postal_code": "5730", "name": "Villa Mercedes", "province": "San Luis" },
+  { "postal_code": "5881", "name": "Merlo", "province": "San Luis" },
+
+  { "postal_code": "6300", "name": "Santa Rosa", "province": "La Pampa" },
+  { "postal_code": "6360", "name": "General Pico", "province": "La Pampa" },
+
+  { "postal_code": "8300", "name": "Neuquén", "province": "Neuquén" },
+  { "postal_code": "8340", "name": "Zapala", "province": "Neuquén" },
+  { "postal_code": "8370", "name": "San Martín de los Andes", "province": "Neuquén" },
+  { "postal_code": "8407", "name": "Villa La Angostura", "province": "Neuquén" },
+
+  { "postal_code": "8500", "name": "Viedma", "province": "Río Negro" },
+  { "postal_code": "8400", "name": "San Carlos de Bariloche", "province": "Río Negro" },
+  { "postal_code": "8332", "name": "General Roca", "province": "Río Negro" },
+  { "postal_code": "8324", "name": "Cipolletti", "province": "Río Negro" },
+  { "postal_code": "8430", "name": "El Bolsón", "province": "Río Negro" },
+  { "postal_code": "8520", "name": "San Antonio Oeste", "province": "Río Negro" },
+
+  { "postal_code": "9103", "name": "Rawson", "province": "Chubut" },
+  { "postal_code": "9100", "name": "Trelew", "province": "Chubut" },
+  { "postal_code": "9120", "name": "Puerto Madryn", "province": "Chubut" },
+  { "postal_code": "9000", "name": "Comodoro Rivadavia", "province": "Chubut" },
+  { "postal_code": "9200", "name": "Esquel", "province": "Chubut" },
+
+  { "postal_code": "9400", "name": "Río Gallegos", "province": "Santa Cruz" },
+  { "postal_code": "9405", "name": "El Calafate", "province": "Santa Cruz" },
+  { "postal_code": "9011", "name": "Caleta Olivia", "province": "Santa Cruz" },
+  { "postal_code": "9301", "name": "El Chaltén", "province": "Santa Cruz" },
+
+  { "postal_code": "9410", "name": "Ushuaia", "province": "Tierra del Fuego" },
+  { "postal_code": "9420", "name": "Río Grande", "province": "Tierra del Fuego" }
+]

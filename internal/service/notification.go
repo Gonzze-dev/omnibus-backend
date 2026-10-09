@@ -49,6 +49,7 @@ type notificationService struct {
 	BusTicketSvc         BusTicketService
 	mailer               *mail.Mailer
 	mailSiteName         string
+	frontEndBaseLink     string
 }
 
 func NewNotificationService(
@@ -62,6 +63,7 @@ func NewNotificationService(
 	BusTicketSvc BusTicketService,
 	mailer *mail.Mailer,
 	mailSiteName string,
+	frontEndBaseLink string,
 ) *notificationService {
 	return &notificationService{
 		platformRepo:         platformRepo,
@@ -74,6 +76,7 @@ func NewNotificationService(
 		BusTicketSvc:         BusTicketSvc,
 		mailer:               mailer,
 		mailSiteName:         mailSiteName,
+		frontEndBaseLink:     frontEndBaseLink,
 	}
 }
 
@@ -164,11 +167,12 @@ func (s *notificationService) NotifyPassengers(ctx context.Context, userID uuid.
 		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 
+	// El mail no depende del realtime: si el hub está caído, igual se avisa por correo.
+	go s.notifyAwaitingPassengers(groupKey, licensePatent, platform.BusTerminalID, platform.Anden, platform.Coordinates)
+
 	if err := s.notifier.Invoke(ctx, s.hubMethods.SendToFrontend, groupName, msg); err != nil {
 		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
-
-	go s.notifyAwaitingPassengers(groupKey, licensePatent, platform.Anden, platform.Coordinates)
 
 	return models.NotifyPassengersResponse{
 		Message: "passengers notified successfully",
@@ -179,7 +183,7 @@ func (s *notificationService) NotifyPassengers(ctx context.Context, userID uuid.
 // el colectivo y les manda el mail de llegada (si hay SMTP configurado).
 // El awaited_trip no se borra: el pasajero puede recargar el frontend y seguir
 // viendo su viaje hasta que lo abandone.
-func (s *notificationService) notifyAwaitingPassengers(groupKey, licensePatent, anden string, coordinates json.RawMessage) {
+func (s *notificationService) notifyAwaitingPassengers(groupKey, licensePatent string, terminalID uuid.UUID, anden string, coordinates json.RawMessage) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -192,10 +196,19 @@ func (s *notificationService) notifyAwaitingPassengers(groupKey, licensePatent, 
 		return
 	}
 
+	var terminalName string
+	if terminal, err := s.busTerminalRepo.GetByUUID(ctx, terminalID); err == nil {
+		terminalName = terminal.Name
+	} else {
+		log.Printf("bus arrival email: get terminal %s: %v", terminalID, err)
+	}
+
 	body, err := mail.RenderBusArrivalHTML(mail.BusArrivalEmailData{
 		SiteName:      s.mailSiteName,
 		LicensePatent: licensePatent,
+		TerminalName:  terminalName,
 		Anden:         anden,
+		AppURL:        s.awaitedTripAppURL(),
 		MapsURL:       mapsURLFromCoords(coordinates),
 	})
 	if err != nil {
@@ -206,7 +219,7 @@ func (s *notificationService) notifyAwaitingPassengers(groupKey, licensePatent, 
 	for _, email := range emails {
 		if err := s.mailer.Send(mail.SendOptions{
 			To:      []string{email},
-			Subject: "Tu bus ha llegado",
+			Subject: "Tu colectivo llegó al andén " + anden,
 			Body:    body,
 			IsHTML:  true,
 		}); err != nil {
@@ -226,7 +239,16 @@ func mapsURLFromCoords(coordinates json.RawMessage) string {
 	if err := json.Unmarshal(coordinates, &c); err != nil || (c.Lat == 0 && c.Lng == 0) {
 		return ""
 	}
-	return fmt.Sprintf("https://www.google.com/maps?q=%.6f,%.6f", c.Lat, c.Lng)
+	return fmt.Sprintf("https://www.google.com/maps/search/?api=1&query=%.6f,%.6f", c.Lat, c.Lng)
+}
+
+// awaitedTripAppURL es la pantalla del frontend donde el pasajero ve el viaje que espera.
+func (s *notificationService) awaitedTripAppURL() string {
+	base := strings.TrimRight(strings.TrimSpace(s.frontEndBaseLink), "/")
+	if base == "" {
+		return ""
+	}
+	return base + "/home"
 }
 
 func (s *notificationService) SendAdminNotification(

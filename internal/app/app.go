@@ -61,7 +61,7 @@ func New(cfg config.Config, db *gorm.DB) *App {
 	}
 
 	signalRClient := realtime.NewClient(cfg.RealtimeURL, cfg.RealtimeAPIKey)
-	notificationSvc := service.NewNotificationService(platformRepo, userTerminalRepo, busTerminalRepo, notificationRepo, awaitedTripRepo, signalRClient, realtimeHubMethods.DefaultRealtimeHubMethods(), BusTicketSvc, smtpMailer, cfg.MailSiteName)
+	notificationSvc := service.NewNotificationService(platformRepo, userTerminalRepo, busTerminalRepo, notificationRepo, awaitedTripRepo, signalRClient, realtimeHubMethods.DefaultRealtimeHubMethods(), BusTicketSvc, smtpMailer, cfg.MailSiteName, cfg.FrontEndBaseLink)
 
 	authSvc := service.NewAuthService(userRepo, rolRepo, refreshTokenRepo, cfg.JWTSecret)
 

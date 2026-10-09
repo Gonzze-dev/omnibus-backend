@@ -5,6 +5,7 @@ import (
 
 	"tesina/backend/internal/app"
 	"tesina/backend/internal/config"
+	"tesina/backend/internal/docs"
 	"tesina/backend/internal/handler"
 	"tesina/backend/internal/middleware"
 	"tesina/backend/internal/roles"
@@ -13,6 +14,8 @@ import (
 func registerPublic(e *echo.Echo, a *app.App, cfg config.Config) {
 	e.GET("/", handler.RootRedirectHandler)
 	e.GET("/health", handler.HealthHandler)
+	e.GET("/docs", docs.UIHandler)
+	e.GET("/docs/openapi.yaml", docs.SpecHandler)
 	e.GET("/bus_tickets/:ticket_string", a.BusTicket.GetBusTicket)
 	e.POST("/notify_passengers", a.Notification.NotifyPassengers,
 		middleware.CameraAPIKeyOrRole(cfg.CameraNotificationAPIKey, cfg.JWTSecret, roles.Admin, roles.SuperAdmin))

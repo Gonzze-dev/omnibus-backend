@@ -7,3 +7,4 @@ help:
 	@echo "  make migrate-status   - Muestra qué migraciones están aplicadas"
 	@echo "  make migrate-baseline - Marca todas como aplicadas (bases creadas a mano)"
 	@echo "  make migrate-seed     - Inserta los datos de ejemplo (seed.sql)"
+	@echo "  make migrate-seed-ar  - Carga ciudades y terminales de Argentina (migrations/data/*.json)"

@@ -15,3 +15,6 @@ migrate-baseline:
 
 migrate-seed:
 	$(MIGRATE) seed
+
+migrate-seed-ar:
+	$(MIGRATE) seed-ar

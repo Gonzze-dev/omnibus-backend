@@ -20,6 +20,7 @@
   { "postal_code": "6700", "name": "LUJÁN", "province": "BUENOS AIRES" },
   { "postal_code": "6620", "name": "CHIVILCOY", "province": "BUENOS AIRES" },
   { "postal_code": "6500", "name": "NUEVE DE JULIO", "province": "BUENOS AIRES" },
+  { "postal_code": "7105", "name": "SAN CLEMENTE DEL TUYÚ", "province": "BUENOS AIRES" },
 
   { "postal_code": "5000", "name": "CÓRDOBA", "province": "CÓRDOBA" },
   { "postal_code": "5152", "name": "VILLA CARLOS PAZ", "province": "CÓRDOBA" },
@@ -47,6 +48,9 @@
   { "postal_code": "3240", "name": "VILLAGUAY", "province": "ENTRE RÍOS" },
   { "postal_code": "3206", "name": "FEDERACIÓN", "province": "ENTRE RÍOS" },
   { "postal_code": "3228", "name": "CHAJARÍ", "province": "ENTRE RÍOS" },
+  { "postal_code": "3105", "name": "DIAMANTE", "province": "ENTRE RÍOS" },
+  { "postal_code": "3190", "name": "LA PAZ", "province": "ENTRE RÍOS" },
+  { "postal_code": "3150", "name": "NOGOYÁ", "province": "ENTRE RÍOS" },
 
   { "postal_code": "3400", "name": "CORRIENTES", "province": "CORRIENTES" },
   { "postal_code": "3450", "name": "GOYA", "province": "CORRIENTES" },

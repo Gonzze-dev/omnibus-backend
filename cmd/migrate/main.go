@@ -13,11 +13,11 @@
 //	          (para bases creadas antes de existir este comando).
 //	seed      Ejecuta seed.sql (datos de ejemplo).
 //	seed-ar   Carga ciudades y terminales de Argentina desde data/cities.json
-//	          y data/terminals.json. Es idempotente: no duplica ni pisa datos.
+//	          y data/terminals.json, y les asigna el external_terminal_id
+//	          consultando backend-terminales. Es idempotente.
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -36,8 +36,6 @@ const (
 	migrationsTable = "omnibus_schema_migrations"
 	schemaFile      = "schema.sql"
 	seedFile        = "seed.sql"
-	citiesFile      = "data/cities.json"
-	terminalsFile   = "data/terminals.json"
 	upSuffix        = ".up.sql"
 	downSuffix      = ".down.sql"
 	// sentinelTable indica que la base ya tiene el esquema de la aplicación.
@@ -57,12 +55,13 @@ func main() {
 		cmd = flag.Arg(0)
 	}
 
-	db, err := database.OpenPostgres(config.Load().DatabaseURL)
+	cfg := config.Load()
+	db, err := database.OpenPostgres(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	m := migrator{db: db, dir: *dir}
+	m := migrator{db: db, dir: *dir, terminalsURL: cfg.ExternalTerminalUpstreamURL}
 	if err := m.ensureTable(); err != nil {
 		log.Fatal(err)
 	}
@@ -90,8 +89,9 @@ func main() {
 }
 
 type migrator struct {
-	db  *gorm.DB
-	dir string
+	db           *gorm.DB
+	dir          string
+	terminalsURL string // backend-terminales, para los external_terminal_id de seed-ar
 }
 
 func (m migrator) ensureTable() error {
@@ -253,76 +253,6 @@ func record(tx *gorm.DB, names []string) error {
 		if err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-// seedRow es una ciudad o una terminal de los JSON de data/.
-type seedRow struct {
-	PostalCode string `json:"postal_code"`
-	Name       string `json:"name"`
-}
-
-// seedArgentina inserta las ciudades y terminales de los JSON de data/.
-// Las ciudades existentes (mismo código postal) se dejan como están y solo se
-// agregan terminales a ciudades que todavía no tienen ninguna.
-func (m migrator) seedArgentina() error {
-	var cities []seedRow
-	if err := readJSON(filepath.Join(m.dir, citiesFile), &cities); err != nil {
-		return err
-	}
-	var terminals []seedRow
-	if err := readJSON(filepath.Join(m.dir, terminalsFile), &terminals); err != nil {
-		return err
-	}
-
-	return m.db.Transaction(func(tx *gorm.DB) error {
-		newCities := 0
-		for _, c := range cities {
-			res := tx.Exec(`INSERT INTO city (postal_code, name) VALUES (?, ?) ON CONFLICT (postal_code) DO NOTHING`,
-				c.PostalCode, c.Name)
-			if res.Error != nil {
-				return fmt.Errorf("ciudad %s (%s): %w", c.Name, c.PostalCode, res.Error)
-			}
-			newCities += int(res.RowsAffected)
-		}
-
-		// Las ciudades que ya tenían terminales se saltean: pueden estar cargadas
-		// con otro nombre (p. ej. vinculadas a backend-terminales).
-		var withTerminals []string
-		if err := tx.Raw(`SELECT DISTINCT postal_code FROM bus_terminal`).Scan(&withTerminals).Error; err != nil {
-			return err
-		}
-		skip := make(map[string]bool, len(withTerminals))
-		for _, pc := range withTerminals {
-			skip[pc] = true
-		}
-
-		newTerminals := 0
-		for _, t := range terminals {
-			if skip[t.PostalCode] {
-				continue
-			}
-			if err := tx.Exec(`INSERT INTO bus_terminal (postal_code, name) VALUES (?, ?)`,
-				t.PostalCode, t.Name).Error; err != nil {
-				return fmt.Errorf("terminal %s (%s): %w", t.Name, t.PostalCode, err)
-			}
-			newTerminals++
-		}
-
-		log.Printf("ciudades: %d nuevas de %d; terminales: %d nuevas de %d",
-			newCities, len(cities), newTerminals, len(terminals))
-		return nil
-	})
-}
-
-func readJSON(path string, v any) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-	if err := json.Unmarshal(data, v); err != nil {
-		return fmt.Errorf("%s: %w", path, err)
 	}
 	return nil
 }

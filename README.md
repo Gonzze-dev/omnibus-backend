@@ -77,7 +77,7 @@ go run ./cmd/migrate baseline  # marca todas como aplicadas sin ejecutarlas
 - **Base vacía:** `up` ejecuta `migrations/schema.sql` (esquema completo actual + roles) y marca todas las migraciones como aplicadas.
 - **Base existente:** `up` aplica solo las migraciones `NNN_nombre.up.sql` pendientes, en orden y cada una en su propia transacción.
 - **Base creada antes de este comando** (con `psql` a mano): ejecutar `baseline` una única vez.
-- **Ciudades y terminales de Argentina:** `seed-ar` lee `migrations/data/cities.json` y `migrations/data/terminals.json`. Se puede correr las veces que se quiera: no pisa ciudades existentes y solo agrega terminales a ciudades que todavía no tienen ninguna. Para agregar más, editar los JSON y volver a ejecutarlo. En Docker: `/app/migrate seed-ar`.
+- **Ciudades y terminales de Argentina:** `seed-ar` lee `migrations/data/cities.json` y `migrations/data/terminals.json`. Además hace `GET {EXTERN_TERMINAL_UPSTREAM_URL}/terminal/` a backend-terminales y completa el `external_terminal_id` de cada terminal buscando su `external_name` (sin distinguir mayúsculas ni tildes). Si backend-terminales no responde, falla sin tocar la base. Al terminar informa cuántos `external_terminal_id` cargó y lista las terminales sin coincidencia. Se puede correr las veces que se quiera: no pisa ciudades existentes, solo agrega terminales a ciudades que todavía no tienen ninguna y no reemplaza un `external_terminal_id` ya asignado. Para agregar más, editar los JSON y volver a ejecutarlo. En Docker: `/app/migrate seed-ar`.
 
 En producción la imagen Docker incluye el binario: `/app/migrate up` (por ejemplo como *Pre-Deploy Command* en Railway).
 

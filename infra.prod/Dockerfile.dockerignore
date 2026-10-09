@@ -1,0 +1,7 @@
+.git
+.env
+.agents
+.claude
+.cursor
+planes
+*.postman_collection.json

@@ -55,6 +55,8 @@ type Config struct {
 	OCRURL                      string
 	OCRAPIKey                   string
 	OCRTimeout                  time.Duration
+	// CORSAllowedOrigins vacío significa que se permiten todos los orígenes.
+	CORSAllowedOrigins []string
 }
 
 // getEnvTrim lee una variable de entorno sin espacios sobrantes y usa def si está vacía.
@@ -86,6 +88,17 @@ func buildDatabaseURL() string {
 		RawQuery: url.Values{"sslmode": {sslmode}}.Encode(),
 	}
 	return u.String()
+}
+
+// parseCSV separa una lista por comas descartando espacios y elementos vacíos.
+func parseCSV(raw string) []string {
+	var out []string
+	for _, part := range strings.Split(raw, ",") {
+		if v := strings.TrimSpace(part); v != "" {
+			out = append(out, v)
+		}
+	}
+	return out
 }
 
 func Load() Config {
@@ -177,5 +190,6 @@ func Load() Config {
 		OCRURL:                      ocrURL,
 		OCRAPIKey:                   ocrAPIKey,
 		OCRTimeout:                  defaultOCRTimeout,
+		CORSAllowedOrigins:          parseCSV(os.Getenv("CORS_ALLOWED_ORIGINS")),
 	}
 }

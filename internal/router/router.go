@@ -10,7 +10,7 @@ import (
 )
 
 func Register(e *echo.Echo, a *app.App, cfg config.Config) {
-	e.Use(middleware.CORS())
+	e.Use(middleware.CORS(cfg.CORSAllowedOrigins))
 	e.Use(middleware.Logging())
 
 	registerPublic(e, a, cfg)

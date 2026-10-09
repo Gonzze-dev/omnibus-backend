@@ -5,13 +5,18 @@ import (
 	echomw "github.com/labstack/echo/v4/middleware"
 )
 
-// TODO: replace AllowOrigins with the actual frontend origin (e.g. "http://localhost:3000")
-// when a browser client is integrated. Wildcard "*" cannot be used with AllowCredentials in browsers.
-func CORS() echo.MiddlewareFunc {
-	return echomw.CORSWithConfig(echomw.CORSConfig{
-		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{echo.GET, echo.POST, echo.PUT, echo.DELETE, echo.OPTIONS},
+// CORS permite los orígenes indicados. Si la lista está vacía se aceptan todos:
+// se refleja el Origin de la petición, porque "*" no es válido junto a AllowCredentials.
+func CORS(allowedOrigins []string) echo.MiddlewareFunc {
+	cfg := echomw.CORSConfig{
+		AllowMethods:     []string{echo.GET, echo.POST, echo.PUT, echo.PATCH, echo.DELETE, echo.OPTIONS},
 		AllowHeaders:     []string{echo.HeaderContentType, echo.HeaderAuthorization},
 		AllowCredentials: true,
-	})
+	}
+	if len(allowedOrigins) == 0 {
+		cfg.AllowOriginFunc = func(string) (bool, error) { return true, nil }
+	} else {
+		cfg.AllowOrigins = allowedOrigins
+	}
+	return echomw.CORSWithConfig(cfg)
 }

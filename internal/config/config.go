@@ -28,6 +28,8 @@ const (
 	defaultCameraNotificationAPIKey    = "DEFAULT_API_KEY"
 	defaultRealtimeAPIKey               = "agag2J26sgJ2SAV6ATAJ6aG26sg26JG"
 	defaultMailSiteName                = "Omnibus"
+	// Public copy of internal/mail/isotype.png; email clients cannot load images from localhost.
+	defaultMailLogoURL                 = "https://raw.githubusercontent.com/Gonzze-dev/omnibus-backend/main/internal/mail/isotype.png"
 	defaultSMTPPort                    = 587
 	defaultFrontEndBaseLink            = "http://localhost:4200/"
 	defaultOCRURL                      = "http://localhost:8000"
@@ -41,6 +43,7 @@ type Config struct {
 	PasswordResetJWTSecret      string
 	FrontEndBaseLink            string
 	MailSiteName                string
+	MailLogoURL                 string
 	SMTPHost                    string
 	SMTPPort                    int
 	SMTPUser                    string
@@ -153,6 +156,11 @@ func Load() Config {
 		mailSiteName = defaultMailSiteName
 	}
 
+	mailLogoURL := os.Getenv("MAIL_LOGO_URL")
+	if mailLogoURL == "" {
+		mailLogoURL = defaultMailLogoURL
+	}
+
 	ocrURL := os.Getenv("OCR_URL")
 	if ocrURL == "" {
 		ocrURL = defaultOCRURL
@@ -176,6 +184,7 @@ func Load() Config {
 		PasswordResetJWTSecret:      passwordResetJWTSecret,
 		FrontEndBaseLink:            frontEndBaseLink,
 		MailSiteName:                mailSiteName,
+		MailLogoURL:                 mailLogoURL,
 		SMTPHost:                    os.Getenv("SMTP_HOST"),
 		SMTPPort:                    smtpPort,
 		SMTPUser:                    os.Getenv("SMTP_USER"),

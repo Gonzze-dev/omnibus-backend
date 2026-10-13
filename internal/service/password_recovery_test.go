@@ -85,6 +85,7 @@ func TestForgotPassword_notFound_returnsSameMessage(t *testing.T) {
 		"reset-secret",
 		"https://app.example.com",
 		"Test",
+		"",
 	)
 	resp, err := svc.ForgotPassword(context.Background(), "nobody@example.com")
 	if err != nil {
@@ -104,6 +105,7 @@ func TestForgotPassword_emptyEmail(t *testing.T) {
 		"reset-secret",
 		"https://app.example.com",
 		"Test",
+		"",
 	)
 	_, err := svc.ForgotPassword(context.Background(), "   ")
 	if err != validators.ErrEmailRequired {
@@ -135,6 +137,7 @@ func TestResetPasswordWithToken_success(t *testing.T) {
 		"reset-secret-xyz",
 		"https://app.example.com",
 		"Test",
+		"",
 	)
 	tok, err := signPasswordResetToken(uid, "reset-secret-xyz")
 	if err != nil {

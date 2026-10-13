@@ -12,6 +12,7 @@ var busArrivalTemplateHTML string
 
 // BusArrivalEmailData is passed to the bus arrival email template.
 // AppURL and MapsURL are optional: if empty, the button is not shown.
+// LogoURL is optional: if empty, the isotype is not shown.
 type BusArrivalEmailData struct {
 	SiteName      string
 	LicensePlate string
@@ -19,6 +20,7 @@ type BusArrivalEmailData struct {
 	Bay         string
 	AppURL        string
 	MapsURL       string
+	LogoURL       string
 }
 
 func RenderBusArrivalHTML(data BusArrivalEmailData) (string, error) {

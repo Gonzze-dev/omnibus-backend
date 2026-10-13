@@ -44,13 +44,14 @@ type passwordRecoveryService struct {
 	resetJWTSecret   string
 	frontEndBaseLink string
 	mailSiteName     string
+	mailLogoURL      string
 }
 
 func NewPasswordRecoveryService(
 	userRepo repository.UserRepository,
 	refreshTokenRepo repository.RefreshTokenRepository,
 	mailer *mail.Mailer,
-	resetJWTSecret, frontEndBaseLink, mailSiteName string,
+	resetJWTSecret, frontEndBaseLink, mailSiteName, mailLogoURL string,
 ) *passwordRecoveryService {
 	return &passwordRecoveryService{
 		userRepo:         userRepo,
@@ -59,6 +60,7 @@ func NewPasswordRecoveryService(
 		resetJWTSecret:   resetJWTSecret,
 		frontEndBaseLink: frontEndBaseLink,
 		mailSiteName:     mailSiteName,
+		mailLogoURL:      mailLogoURL,
 	}
 }
 
@@ -103,6 +105,7 @@ func (s *passwordRecoveryService) ForgotPassword(ctx context.Context, email stri
 	htmlBody, err := mail.RenderResetPasswordHTML(mail.ResetPasswordEmailData{
 		Link:     resetLink,
 		SiteName: s.mailSiteName,
+		LogoURL:  s.mailLogoURL,
 	})
 	if err != nil {
 		log.Printf("password recovery: render template: %v", err)

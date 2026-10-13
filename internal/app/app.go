@@ -61,7 +61,7 @@ func New(cfg config.Config, db *gorm.DB) *App {
 	}
 
 	signalRClient := realtime.NewClient(cfg.RealtimeURL, cfg.RealtimeAPIKey)
-	notificationSvc := service.NewNotificationService(platformRepo, userTerminalRepo, busTerminalRepo, notificationRepo, awaitedTripRepo, signalRClient, realtimeHubMethods.DefaultRealtimeHubMethods(), BusTicketSvc, smtpMailer, cfg.MailSiteName, cfg.FrontEndBaseLink)
+	notificationSvc := service.NewNotificationService(platformRepo, userTerminalRepo, busTerminalRepo, notificationRepo, awaitedTripRepo, signalRClient, realtimeHubMethods.DefaultRealtimeHubMethods(), BusTicketSvc, smtpMailer, cfg.MailSiteName, cfg.MailLogoURL, cfg.FrontEndBaseLink)
 
 	authSvc := service.NewAuthService(userRepo, roleRepo, refreshTokenRepo, cfg.JWTSecret)
 
@@ -72,6 +72,7 @@ func New(cfg config.Config, db *gorm.DB) *App {
 		cfg.PasswordResetJWTSecret,
 		cfg.FrontEndBaseLink,
 		cfg.MailSiteName,
+		cfg.MailLogoURL,
 	)
 
 	busSvc := service.NewBusService(busTerminalRepo, awaitedTripRepo, BusTicketSvc)

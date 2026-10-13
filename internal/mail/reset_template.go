@@ -11,9 +11,11 @@ import (
 var resetPasswordTemplateHTML string
 
 // ResetPasswordEmailData is passed to the HTML template for password reset emails.
+// LogoURL is optional: if empty, the isotype is not shown.
 type ResetPasswordEmailData struct {
 	Link     string
 	SiteName string
+	LogoURL  string
 }
 
 // RenderResetPasswordHTML returns the rendered HTML body for a reset-password email.

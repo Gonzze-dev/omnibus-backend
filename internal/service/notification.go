@@ -49,6 +49,7 @@ type notificationService struct {
 	BusTicketSvc         BusTicketService
 	mailer               *mail.Mailer
 	mailSiteName         string
+	mailLogoURL          string
 	frontEndBaseLink     string
 }
 
@@ -63,6 +64,7 @@ func NewNotificationService(
 	BusTicketSvc BusTicketService,
 	mailer *mail.Mailer,
 	mailSiteName string,
+	mailLogoURL string,
 	frontEndBaseLink string,
 ) *notificationService {
 	return &notificationService{
@@ -76,6 +78,7 @@ func NewNotificationService(
 		BusTicketSvc:         BusTicketSvc,
 		mailer:               mailer,
 		mailSiteName:         mailSiteName,
+		mailLogoURL:          mailLogoURL,
 		frontEndBaseLink:     frontEndBaseLink,
 	}
 }
@@ -210,6 +213,7 @@ func (s *notificationService) notifyAwaitingPassengers(groupKey, licensePlate st
 		Bay:         bay,
 		AppURL:        s.awaitedTripAppURL(),
 		MapsURL:       mapsURLFromCoords(coordinates),
+		LogoURL:       s.mailLogoURL,
 	})
 	if err != nil {
 		log.Printf("bus arrival email: render template: %v", err)

@@ -1,9 +1,9 @@
 INSERT INTO city (postal_code, name) VALUES
-    ('2820', 'Gualeguaychú'),
-    ('3260', 'Concepción del Uruguay');
+    ('2820', 'GUALEGUAYCHÚ'),
+    ('3260', 'CONCEPCIÓN DEL URUGUAY');
 
 INSERT INTO bus_terminal (uuid, postal_code, name) VALUES
-    ('a0000000-0000-0000-0000-000000000001', '2820', 'Terminal de Gualeguaychú');
+    ('a0000000-0000-0000-0000-000000000001', '2820', 'TERMINAL DE GUALEGUAYCHÚ');
 
 INSERT INTO platform (bay, coordinates, bus_terminal_id) VALUES
     ('A01', '{"lat": -33.02083044935717, "lng": -58.535303043383294}', 'a0000000-0000-0000-0000-000000000001'),

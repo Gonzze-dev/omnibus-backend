@@ -61,6 +61,7 @@ func (m *Mailer) Send(opts SendOptions) error {
 
 	if opts.IsHTML {
 		msg.SetBody("text/html", opts.Body)
+		embedIsotype(msg, opts.Body)
 	} else {
 		msg.SetBody("text/plain", opts.Body)
 	}

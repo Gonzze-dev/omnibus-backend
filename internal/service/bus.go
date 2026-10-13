@@ -40,9 +40,9 @@ func NewBusService(
 	}
 }
 
-// JoinBus valida el pasaje contra el sistema de terminales y deja al usuario
-// esperando ese colectivo en la terminal elegida. Si ya esperaba otro viaje,
-// lo reemplaza.
+// JoinBus validates the bus ticket against the terminals system and leaves the user
+// waiting for that bus at the chosen terminal. If they were already waiting for
+// another trip, it replaces it.
 func (s *busService) JoinBus(ctx context.Context, userID uuid.UUID, req models.JoinBusRequest) (models.AwaitedTripResponse, error) {
 	if strings.TrimSpace(req.TerminalID) == "" {
 		return models.AwaitedTripResponse{}, errorsService.ErrTerminalIDRequired
@@ -66,7 +66,7 @@ func (s *busService) JoinBus(ctx context.Context, userID uuid.UUID, req models.J
 		return models.AwaitedTripResponse{}, err
 	}
 
-	// El pasaje debe pertenecer a la terminal elegida.
+	// The bus ticket must belong to the chosen terminal.
 	if terminal.ExternalTerminalID == nil ||
 		!strings.EqualFold(ticket.TerminalUUID, terminal.ExternalTerminalID.String()) {
 		return models.AwaitedTripResponse{}, errorsService.ErrTicketWrongTerminal
@@ -87,8 +87,8 @@ func (s *busService) JoinBus(ctx context.Context, userID uuid.UUID, req models.J
 	return toAwaitedTripResponse(awaited, terminal, ticket), nil
 }
 
-// GetAwaitedTrip devuelve el viaje que el usuario está esperando, con los
-// datos del pasaje actualizados desde el sistema de terminales.
+// GetAwaitedTrip returns the trip the user is waiting for, with the
+// bus ticket data refreshed from the terminals system.
 func (s *busService) GetAwaitedTrip(ctx context.Context, userID uuid.UUID) (models.AwaitedTripResponse, error) {
 	awaited, err := s.awaitedTripRepo.GetByUserID(ctx, userID)
 	if err != nil {
@@ -129,7 +129,7 @@ func (s *busService) getTerminal(ctx context.Context, id uuid.UUID) (models.BusT
 	return terminal, nil
 }
 
-// fetchTicket consulta el pasaje en el backend de terminales.
+// fetchTicket looks up the bus ticket in the terminals backend.
 func (s *busService) fetchTicket(ctx context.Context, ticketCode string) (models.BusTicket, error) {
 	resp, err := s.busTicketSvc.GetBusTicket(ctx, models.GetBusTicketRequest{TicketString: ticketCode})
 	if err != nil {

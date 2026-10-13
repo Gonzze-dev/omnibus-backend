@@ -2,8 +2,8 @@ package service
 
 import "strings"
 
-// normalizePagination aplica los defaults y topes de los parámetros de paginación.
-// Devuelve page (>=1), limit (entre 1 y maxLimit) y order normalizado a "ASC" o "DESC".
+// normalizePagination applies the defaults and caps of the pagination parameters.
+// Returns page (>=1), limit (between 1 and maxLimit) and order normalized to "ASC" or "DESC".
 func normalizePagination(page, limit int, order string, defaultLimit, maxLimit int) (int, int, string) {
 	if page < 1 {
 		page = 1
@@ -21,8 +21,8 @@ func normalizePagination(page, limit int, order string, defaultLimit, maxLimit i
 	return page, limit, normalized
 }
 
-// pageLinks calcula las páginas anterior y siguiente. prev es nil en la primera
-// página y next es nil en la última.
+// pageLinks computes the previous and next pages. prev is nil on the first
+// page and next is nil on the last one.
 func pageLinks(total int64, page, limit int) (next, prev *int) {
 	lastPage := int((total + int64(limit) - 1) / int64(limit))
 	if lastPage < 1 {

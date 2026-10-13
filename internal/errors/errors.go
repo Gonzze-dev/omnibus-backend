@@ -16,7 +16,7 @@ var (
 	ErrInvalidRefreshToken       = errors.New("invalid or expired refresh token")
 	ErrInvalidPasswordResetToken = errors.New("invalid or expired password reset token")
 	ErrUserNotFound              = errors.New("user not found")
-	ErrRolNotFound               = errors.New("role not found")
+	ErrRoleNotFound               = errors.New("role not found")
 	ErrTerminalNotFound          = errors.New("terminal not found")
 	ErrPlatformNotFound          = errors.New("platform not found")
 	ErrCityNotFound              = errors.New("city not found")

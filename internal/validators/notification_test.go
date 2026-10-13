@@ -19,7 +19,7 @@ func Test_ValidateAdminGlobalNotification(t *testing.T) {
 		wantTimeLife int
 	}{
 		{name: "valid", role: roles.SuperAdmin, payload: `{"message":"Hola","time_life":12}`, wantTimeLife: 12},
-		{name: "extra fields allowed", role: roles.SuperAdmin, payload: `{"title":"Aviso","message":"Hola","time_life":5}`, wantTimeLife: 5},
+		{name: "extra fields allowed", role: roles.SuperAdmin, payload: `{"title":"Notice","message":"Hello","time_life":5}`, wantTimeLife: 5},
 		{name: "admin role forbidden", role: roles.Admin, payload: `{"message":"Hola","time_life":12}`, wantErr: ErrNotificationGlobalSuperAdminOnly},
 		{name: "empty payload", role: roles.SuperAdmin, payload: `  `, wantErr: ErrNotificationPayloadEmpty},
 		{name: "malformed json", role: roles.SuperAdmin, payload: `{"message":`, wantErr: ErrNotificationPayloadInvalidJSON},
@@ -55,7 +55,7 @@ func Test_ValidateAdminLocalNotification(t *testing.T) {
 		wantMessage  string
 		wantTimeLife int
 	}{
-		{name: "valid", payload: `{"message":"Anden 3 cerrado","time_life":30}`, wantMessage: "Anden 3 cerrado", wantTimeLife: 30},
+		{name: "valid", payload: `{"message":"Bay 3 closed","time_life":30}`, wantMessage: "Bay 3 closed", wantTimeLife: 30},
 		{name: "empty payload", payload: ``, wantErr: ErrNotificationPayloadEmpty},
 		{name: "malformed json", payload: `{"message":`, wantErr: ErrNotificationPayloadInvalidJSON},
 		{name: "missing message", payload: `{"time_life":30}`, wantErr: ErrNotificationMessageEmpty},

@@ -39,7 +39,7 @@ type superAdminService struct {
 	cityRepo              repository.CityRepository
 	busTerminalRepo       repository.BusTerminalRepository
 	userRepo              repository.UserRepository
-	rolRepo               repository.RolRepository
+	roleRepo               repository.RoleRepository
 	userTerminalRepo      repository.UserTerminalRepository
 	externalTerminalCheck BusTicketService
 }
@@ -48,7 +48,7 @@ func NewSuperAdminService(
 	cityRepo repository.CityRepository,
 	busTerminalRepo repository.BusTerminalRepository,
 	userRepo repository.UserRepository,
-	rolRepo repository.RolRepository,
+	roleRepo repository.RoleRepository,
 	userTerminalRepo repository.UserTerminalRepository,
 	externalTerminalCheck BusTicketService,
 ) *superAdminService {
@@ -56,7 +56,7 @@ func NewSuperAdminService(
 		cityRepo:              cityRepo,
 		busTerminalRepo:       busTerminalRepo,
 		userRepo:              userRepo,
-		rolRepo:               rolRepo,
+		roleRepo:               roleRepo,
 		userTerminalRepo:      userTerminalRepo,
 		externalTerminalCheck: externalTerminalCheck,
 	}
@@ -241,17 +241,17 @@ func (s *superAdminService) PromoteToSuper(ctx context.Context, req models.Promo
 		return models.UserResponse{}, err
 	}
 
-	if user.Rol != nil && user.Rol.Name == roles.SuperAdmin {
+	if user.Role != nil && user.Role.Name == roles.SuperAdmin {
 		return models.UserResponse{}, errorsService.ErrAlreadySuperAdmin
 	}
 
-	superRol, err := s.rolRepo.GetByName(ctx, roles.SuperAdmin)
+	superRole, err := s.roleRepo.GetByName(ctx, roles.SuperAdmin)
 	if err != nil {
-		return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
+		return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRoleNotFound, err)
 	}
 
-	user.RolID = superRol.UUID
-	user.Rol = &superRol
+	user.RoleID = superRole.UUID
+	user.Role = &superRole
 	if err := s.userRepo.Update(ctx, &user); err != nil {
 		return models.UserResponse{}, fmt.Errorf("failed to update user role: %w", err)
 	}
@@ -279,17 +279,17 @@ func (s *superAdminService) DemoteSuper(ctx context.Context, req models.DemoteSu
 		return models.UserResponse{}, err
 	}
 
-	if user.Rol == nil || user.Rol.Name != roles.SuperAdmin {
+	if user.Role == nil || user.Role.Name != roles.SuperAdmin {
 		return models.UserResponse{}, errorsService.ErrNotSuperAdmin
 	}
 
-	userRol, err := s.rolRepo.GetByName(ctx, roles.User)
+	userRole, err := s.roleRepo.GetByName(ctx, roles.User)
 	if err != nil {
-		return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
+		return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRoleNotFound, err)
 	}
 
-	user.RolID = userRol.UUID
-	user.Rol = &userRol
+	user.RoleID = userRole.UUID
+	user.Role = &userRole
 	if err := s.userRepo.Update(ctx, &user); err != nil {
 		return models.UserResponse{}, fmt.Errorf("failed to update user role: %w", err)
 	}

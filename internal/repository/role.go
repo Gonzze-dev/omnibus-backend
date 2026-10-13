@@ -10,46 +10,46 @@ import (
 	"tesina/backend/internal/models"
 )
 
-type RolRepository interface {
-	GetByUUID(ctx context.Context, id uuid.UUID) (models.Rol, error)
-	GetByName(ctx context.Context, name string) (models.Rol, error)
-	List(ctx context.Context) ([]models.Rol, error)
+type RoleRepository interface {
+	GetByUUID(ctx context.Context, id uuid.UUID) (models.Role, error)
+	GetByName(ctx context.Context, name string) (models.Role, error)
+	List(ctx context.Context) ([]models.Role, error)
 }
 
-type rolRepository struct {
+type roleRepository struct {
 	db *gorm.DB
 }
 
-func NewRolRepository(db *gorm.DB) *rolRepository {
-	return &rolRepository{db: db}
+func NewRoleRepository(db *gorm.DB) *roleRepository {
+	return &roleRepository{db: db}
 }
 
-func (r *rolRepository) GetByUUID(ctx context.Context, id uuid.UUID) (models.Rol, error) {
-	var rol models.Rol
-	err := r.db.WithContext(ctx).Where("uuid = ?", id).First(&rol).Error
+func (r *roleRepository) GetByUUID(ctx context.Context, id uuid.UUID) (models.Role, error) {
+	var role models.Role
+	err := r.db.WithContext(ctx).Where("uuid = ?", id).First(&role).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return models.Rol{}, ErrNotFound
+			return models.Role{}, ErrNotFound
 		}
-		return models.Rol{}, err
+		return models.Role{}, err
 	}
-	return rol, nil
+	return role, nil
 }
 
-func (r *rolRepository) GetByName(ctx context.Context, name string) (models.Rol, error) {
-	var rol models.Rol
-	err := r.db.WithContext(ctx).Where("name = ?", name).First(&rol).Error
+func (r *roleRepository) GetByName(ctx context.Context, name string) (models.Role, error) {
+	var role models.Role
+	err := r.db.WithContext(ctx).Where("name = ?", name).First(&role).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return models.Rol{}, ErrNotFound
+			return models.Role{}, ErrNotFound
 		}
-		return models.Rol{}, err
+		return models.Role{}, err
 	}
-	return rol, nil
+	return role, nil
 }
 
-func (r *rolRepository) List(ctx context.Context) ([]models.Rol, error) {
-	var roles []models.Rol
+func (r *roleRepository) List(ctx context.Context) ([]models.Role, error) {
+	var roles []models.Role
 	err := r.db.WithContext(ctx).Order("name").Find(&roles).Error
 	return roles, err
 }

@@ -1,20 +1,20 @@
-// Command migrate aplica las migraciones SQL de migrations/ y registra cuáles
-// se ejecutaron en la tabla omnibus_schema_migrations.
+// Command migrate applies the SQL migrations in migrations/ and records which
+// ones ran in the omnibus_schema_migrations table.
 //
-// Uso:
+// Usage:
 //
 //	go run ./cmd/migrate [-dir migrations] <up|down|status|baseline|seed|seed-ar>
 //
-//	up        Base vacía: aplica schema.sql y marca todas las migraciones.
-//	          Base existente: aplica las migraciones pendientes en orden.
-//	down      Revierte la última migración aplicada usando su .down.sql.
-//	status    Lista las migraciones y si están aplicadas.
-//	baseline  Marca todas las migraciones como aplicadas sin ejecutarlas
-//	          (para bases creadas antes de existir este comando).
-//	seed      Ejecuta seed.sql (datos de ejemplo).
-//	seed-ar   Carga ciudades y terminales de Argentina desde data/cities.json
-//	          y data/terminals.json, y les asigna el external_terminal_id
-//	          consultando backend-terminales. Es idempotente.
+//	up        Empty database: applies schema.sql and marks every migration.
+//	          Existing database: applies the pending migrations in order.
+//	down      Reverts the last applied migration using its .down.sql.
+//	status    Lists the migrations and whether they are applied.
+//	baseline  Marks every migration as applied without running it
+//	          (for databases created before this command existed).
+//	seed      Runs seed.sql (sample data).
+//	seed-ar   Loads the cities and terminals of Argentina from data/cities.json
+//	          and data/terminals.json, and assigns their external_terminal_id
+//	          by querying backend-terminales. It is idempotent.
 package main
 
 import (
@@ -38,14 +38,14 @@ const (
 	seedFile        = "seed.sql"
 	upSuffix        = ".up.sql"
 	downSuffix      = ".down.sql"
-	// sentinelTable indica que la base ya tiene el esquema de la aplicación.
+	// sentinelTable means the database already has the application schema.
 	sentinelTable = "users"
 )
 
 func main() {
-	dir := flag.String("dir", "migrations", "directorio con los archivos .sql")
+	dir := flag.String("dir", "migrations", "directory with the .sql files")
 	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "uso: migrate [-dir migrations] <up|down|status|baseline|seed|seed-ar>")
+		fmt.Fprintln(os.Stderr, "usage: migrate [-dir migrations] <up|down|status|baseline|seed|seed-ar>")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -91,7 +91,7 @@ func main() {
 type migrator struct {
 	db           *gorm.DB
 	dir          string
-	terminalsURL string // backend-terminales, para los external_terminal_id de seed-ar
+	terminalsURL string // backend-terminales, for the seed-ar external_terminal_ids
 }
 
 func (m migrator) ensureTable() error {
@@ -101,7 +101,7 @@ func (m migrator) ensureTable() error {
 	)`).Error
 }
 
-// migrations devuelve los nombres (sin .up.sql) ordenados alfabéticamente.
+// migrations returns the names (without .up.sql) sorted alphabetically.
 func (m migrator) migrations() ([]string, error) {
 	files, err := filepath.Glob(filepath.Join(m.dir, "*"+upSuffix))
 	if err != nil {
@@ -143,10 +143,10 @@ func (m migrator) up() error {
 			return err
 		}
 		if exists {
-			return fmt.Errorf("la base ya tiene tablas pero no hay migraciones registradas en %s; "+
-				"si está al día ejecutá `migrate baseline`", migrationsTable)
+			return fmt.Errorf("the database already has tables but no migrations are recorded in %s; "+
+				"if it is up to date run `migrate baseline`", migrationsTable)
 		}
-		log.Printf("base vacía: aplicando %s", schemaFile)
+		log.Printf("empty database: applying %s", schemaFile)
 		return m.db.Transaction(func(tx *gorm.DB) error {
 			if err := execFile(tx, m.dir, schemaFile); err != nil {
 				return err
@@ -166,7 +166,7 @@ func (m migrator) up() error {
 		}
 	}
 	if pending == 0 {
-		log.Println("no hay migraciones pendientes")
+		log.Println("no pending migrations")
 	}
 	return nil
 }
@@ -178,7 +178,7 @@ func (m migrator) down() error {
 		return err
 	}
 	if last == "" {
-		log.Println("no hay migraciones aplicadas")
+		log.Println("no applied migrations")
 		return nil
 	}
 	return m.db.Transaction(func(tx *gorm.DB) error {
@@ -199,9 +199,9 @@ func (m migrator) status() error {
 		return err
 	}
 	for _, name := range all {
-		mark := "pendiente"
+		mark := "pending"
 		if done[name] {
-			mark = "aplicada"
+			mark = "applied"
 		}
 		fmt.Printf("%-10s %s\n", mark, name)
 	}
@@ -216,12 +216,12 @@ func (m migrator) baseline() error {
 	if err := record(m.db, all); err != nil {
 		return err
 	}
-	log.Printf("%d migraciones marcadas como aplicadas", len(all))
+	log.Printf("%d migrations marked as applied", len(all))
 	return nil
 }
 
-// execFile ejecuta un archivo en su propia transacción y, si name no está vacío,
-// lo registra como migración aplicada.
+// execFile runs a file in its own transaction and, if name is not empty,
+// records it as an applied migration.
 func (m migrator) execFile(file, name string) error {
 	return m.db.Transaction(func(tx *gorm.DB) error {
 		if err := execFile(tx, m.dir, file); err != nil {
@@ -239,8 +239,8 @@ func execFile(tx *gorm.DB, dir, file string) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("ejecutando %s", file)
-	// Sin argumentos pgx usa el protocolo simple, que admite varias sentencias.
+	log.Printf("running %s", file)
+	// Without arguments pgx uses the simple protocol, which allows several statements.
 	if err := tx.Exec(string(sql)).Error; err != nil {
 		return fmt.Errorf("%s: %w", file, err)
 	}

@@ -1,4 +1,4 @@
--- La tabla existía en las bases creadas a mano pero no tenía migración.
+-- The table existed in manually created databases but had no migration.
 CREATE TABLE IF NOT EXISTS notifications (
     id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     group_key  TEXT,

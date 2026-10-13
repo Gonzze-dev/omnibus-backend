@@ -17,12 +17,12 @@ var (
 	ErrTerminalNameInvalid        = errors.New("name must contain only letters and numbers")
 )
 
-// NormalizeTerminalName recorta espacios y pasa el nombre a mayúsculas.
+// NormalizeTerminalName trims spaces and uppercases the name.
 func NormalizeTerminalName(name string) string {
 	return strings.ToUpper(strings.TrimSpace(name))
 }
 
-// validateTerminalName acepta únicamente letras y números (se permiten espacios internos como separador).
+// validateTerminalName only accepts letters and numbers (inner spaces are allowed as separators).
 func validateTerminalName(name string) error {
 	if name == "" {
 		return ErrTerminalNameRequired

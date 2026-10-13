@@ -10,13 +10,13 @@ import (
 //go:embed BusArrivalTemplate.html
 var busArrivalTemplateHTML string
 
-// BusArrivalEmailData se pasa al template del mail de llegada del colectivo.
-// AppURL y MapsURL son opcionales: si están vacíos no se muestra el botón.
+// BusArrivalEmailData is passed to the bus arrival email template.
+// AppURL and MapsURL are optional: if empty, the button is not shown.
 type BusArrivalEmailData struct {
 	SiteName      string
-	LicensePatent string
+	LicensePlate string
 	TerminalName  string
-	Anden         string
+	Bay         string
 	AppURL        string
 	MapsURL       string
 }

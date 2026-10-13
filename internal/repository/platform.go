@@ -48,7 +48,7 @@ func (r *platformRepository) List(ctx context.Context) ([]models.Platform, error
 	var platforms []models.Platform
 	err := r.db.WithContext(ctx).
 		Preload("BusTerminal").
-		Order("anden").
+		Order("bay").
 		Find(&platforms).
 		Error
 
@@ -59,7 +59,7 @@ func (r *platformRepository) ListByBusTerminalID(ctx context.Context, busTermina
 	var platforms []models.Platform
 	err := r.db.WithContext(ctx).
 		Where("bus_terminal_id = ?", busTerminalID).
-		Order("anden").
+		Order("bay").
 		Find(&platforms).
 		Error
 

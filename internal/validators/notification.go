@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	ErrLicensePatentEmpty             = errors.New("license_patent is required")
+	ErrLicensePlateEmpty             = errors.New("license_plate is required")
 	ErrCodeEmpty                      = errors.New("code is required")
 	ErrInvalidCode                    = errors.New("code must be a valid integer")
 	ErrNotificationTimeLifeInvalid    = errors.New("time_life must be greater than 0")
@@ -26,7 +26,7 @@ var (
 	ErrNotificationTypeInvalid        = errors.New("notification type must be LOCAL or GLOBAL")
 	ErrUnsupportedNotificationRole    = errors.New("unsupported role for notification types")
 	ErrBusDelayTypeInvalid            = errors.New("type must be BUS_DELAY")
-	ErrBusDelayLicensePatentRequired  = errors.New("license_patent is required")
+	ErrBusDelayLicensePlateRequired  = errors.New("license_plate is required")
 	ErrBusDelayStartDateRequired      = errors.New("start_date is required")
 	ErrBusDelayTimeDelayInvalid       = errors.New("payload.time_delay must be a positive integer")
 	ErrCameraNotificationTypeInvalid  = errors.New("type incorrect or missing")
@@ -42,8 +42,8 @@ var (
 
 // ValidateNotifyPassengersRequest validates required fields and returns the parsed platform code.
 func ValidateNotifyPassengersRequest(req models.NotifyPassengersRequest) (int, error) {
-	if req.LicensePatent == "" {
-		return 0, ErrLicensePatentEmpty
+	if req.LicensePlate == "" {
+		return 0, ErrLicensePlateEmpty
 	}
 	if req.Code == "" {
 		return 0, ErrCodeEmpty
@@ -110,8 +110,8 @@ func ValidateNotifyBusDelayRequest(req models.NotifyBusDelayRequest) error {
 	if req.Type != models.PassengerNotificationBUSDelay {
 		return ErrBusDelayTypeInvalid
 	}
-	if strings.TrimSpace(req.LicensePatent) == "" {
-		return ErrBusDelayLicensePatentRequired
+	if strings.TrimSpace(req.LicensePlate) == "" {
+		return ErrBusDelayLicensePlateRequired
 	}
 	if strings.TrimSpace(req.StartDate) == "" {
 		return ErrBusDelayStartDateRequired

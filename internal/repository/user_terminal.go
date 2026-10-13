@@ -56,7 +56,7 @@ func (r *userTerminalRepository) Exists(ctx context.Context, userID, busTerminal
 	return count > 0, err
 }
 
-// ListTerminalRefsByUserIDs devuelve, por usuario, las terminales que tiene asignadas (uuid y nombre).
+// ListTerminalRefsByUserIDs returns, per user, the terminals assigned to them (uuid and name).
 func (r *userTerminalRepository) ListTerminalRefsByUserIDs(ctx context.Context, userIDs []uuid.UUID) (map[uuid.UUID][]models.ProfileTerminalRef, error) {
 	result := make(map[uuid.UUID][]models.ProfileTerminalRef, len(userIDs))
 	if len(userIDs) == 0 {

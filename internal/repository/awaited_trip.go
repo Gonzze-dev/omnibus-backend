@@ -26,7 +26,7 @@ func NewAwaitedTripRepository(db *gorm.DB) *awaitedTripRepository {
 	return &awaitedTripRepository{db: db}
 }
 
-// Upsert reemplaza el viaje que el usuario estaba esperando (si había uno).
+// Upsert replaces the trip the user was waiting for (if there was one).
 func (r *awaitedTripRepository) Upsert(ctx context.Context, a models.AwaitedTrip) error {
 	return r.db.WithContext(ctx).
 		Clauses(clause.OnConflict{
@@ -51,9 +51,9 @@ func (r *awaitedTripRepository) DeleteByUserID(ctx context.Context, userID uuid.
 		Delete(&models.AwaitedTrip{}).Error
 }
 
-// MarkNotifiedByGroupKey marca como notificados a los pasajeros que esperaban
-// ese colectivo y devuelve sus emails. Es atómico: si la cámara detecta el
-// mismo colectivo dos veces, la segunda llamada no devuelve a nadie.
+// MarkNotifiedByGroupKey marks the passengers who were waiting for that bus as
+// notified and returns their emails. It is atomic: if the camera detects the
+// same bus twice, the second call returns nobody.
 func (r *awaitedTripRepository) MarkNotifiedByGroupKey(ctx context.Context, groupKey string) ([]string, error) {
 	var emails []string
 	err := r.db.WithContext(ctx).

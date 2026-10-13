@@ -91,7 +91,7 @@ func (r *notificationRepository) ListWithFilters(ctx context.Context, f models.N
 	return results, total, err
 }
 
-// adminNotificationScope aplica los filtros del listado de admin.
+// adminNotificationScope applies the filters of the admin list.
 func adminNotificationScope(db *gorm.DB, f models.AdminNotificationFilters) *gorm.DB {
 	if f.TerminalIDs != nil {
 		if len(f.TerminalIDs) == 0 {

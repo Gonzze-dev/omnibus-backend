@@ -35,7 +35,7 @@ func (r *userRepository) Create(ctx context.Context, user *models.User) error {
 
 func (r *userRepository) GetByUUID(ctx context.Context, id uuid.UUID) (models.User, error) {
 	var user models.User
-	err := r.db.WithContext(ctx).Preload("Rol").Where("uuid = ?", id).First(&user).Error
+	err := r.db.WithContext(ctx).Preload("Role").Where("uuid = ?", id).First(&user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return models.User{}, ErrNotFound
@@ -47,7 +47,7 @@ func (r *userRepository) GetByUUID(ctx context.Context, id uuid.UUID) (models.Us
 
 func (r *userRepository) GetByEmail(ctx context.Context, email string) (models.User, error) {
 	var user models.User
-	err := r.db.WithContext(ctx).Preload("Rol").Where("email = ?", email).First(&user).Error
+	err := r.db.WithContext(ctx).Preload("Role").Where("email = ?", email).First(&user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return models.User{}, ErrNotFound
@@ -57,8 +57,8 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (models.U
 	return user, nil
 }
 
-// searchUsers filtra por nombre completo o email, sin distinguir mayusculas.
-// Una busqueda vacia no filtra.
+// searchUsers filters by full name or email, case-insensitively.
+// An empty search does not filter.
 func searchUsers(db *gorm.DB, search string) *gorm.DB {
 	search = strings.TrimSpace(search)
 	if search == "" {
@@ -75,7 +75,7 @@ func searchUsers(db *gorm.DB, search string) *gorm.DB {
 func (r *userRepository) ListPaginated(ctx context.Context, search string, limit, offset int, order string) ([]models.User, error) {
 	var users []models.User
 	err := searchUsers(r.db.WithContext(ctx), search).
-		Preload("Rol").
+		Preload("Role").
 		Order("first_name " + order).
 		Order("last_name " + order).
 		Order("uuid").

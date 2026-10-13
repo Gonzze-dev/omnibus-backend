@@ -5,8 +5,8 @@ import (
 	echomw "github.com/labstack/echo/v4/middleware"
 )
 
-// CORS permite los orígenes indicados. Si la lista está vacía se aceptan todos:
-// se refleja el Origin de la petición, porque "*" no es válido junto a AllowCredentials.
+// CORS allows the given origins. If the list is empty, all are accepted:
+// the request Origin is echoed back, because "*" is not valid together with AllowCredentials.
 func CORS(allowedOrigins []string) echo.MiddlewareFunc {
 	cfg := echomw.CORSConfig{
 		AllowMethods:     []string{echo.GET, echo.POST, echo.PUT, echo.PATCH, echo.DELETE, echo.OPTIONS},

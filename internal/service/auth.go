@@ -33,20 +33,20 @@ type AuthService interface {
 
 type authService struct {
 	userRepo         repository.UserRepository
-	rolRepo          repository.RolRepository
+	roleRepo          repository.RoleRepository
 	refreshTokenRepo repository.RefreshTokenRepository
 	jwtSecret        string
 }
 
 func NewAuthService(
 	userRepo repository.UserRepository,
-	rolRepo repository.RolRepository,
+	roleRepo repository.RoleRepository,
 	refreshTokenRepo repository.RefreshTokenRepository,
 	jwtSecret string,
 ) *authService {
 	return &authService{
 		userRepo:         userRepo,
-		rolRepo:          rolRepo,
+		roleRepo:          roleRepo,
 		refreshTokenRepo: refreshTokenRepo,
 		jwtSecret:        jwtSecret,
 	}
@@ -61,9 +61,9 @@ func (s *authService) Register(ctx context.Context, req models.CreateUserRequest
 		return models.UserResponse{}, errorsService.ErrEmailAlreadyExists
 	}
 
-	rol, err := s.rolRepo.GetByName(ctx, roles.User)
+	role, err := s.roleRepo.GetByName(ctx, roles.User)
 	if err != nil {
-		return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
+		return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRoleNotFound, err)
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
@@ -77,14 +77,14 @@ func (s *authService) Register(ctx context.Context, req models.CreateUserRequest
 		LastName:  req.LastName,
 		Email:     req.Email,
 		Password:  string(hashedPassword),
-		RolID:     rol.UUID,
+		RoleID:     role.UUID,
 	}
 
 	if err := s.userRepo.Create(ctx, &user); err != nil {
 		return models.UserResponse{}, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	user.Rol = &rol
+	user.Role = &role
 
 	return models.ToUserResponse(user), nil
 }
@@ -107,8 +107,8 @@ func (s *authService) Login(ctx context.Context, req models.LoginRequest) (model
 	}
 
 	roleName := ""
-	if user.Rol != nil {
-		roleName = user.Rol.Name
+	if user.Role != nil {
+		roleName = user.Role.Name
 	}
 
 	accessToken, err := s.generateAccessToken(user.UUID, roleName)
@@ -160,8 +160,8 @@ func (s *authService) RefreshToken(ctx context.Context, req models.RefreshTokenR
 	}
 
 	roleName := ""
-	if user.Rol != nil {
-		roleName = user.Rol.Name
+	if user.Role != nil {
+		roleName = user.Role.Name
 	}
 
 	newAccessToken, err := s.generateAccessToken(user.UUID, roleName)

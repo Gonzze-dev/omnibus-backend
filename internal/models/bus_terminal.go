@@ -21,7 +21,7 @@ func (BusTerminal) TableName() string {
 
 type Platform struct {
 	Code          int             `json:"code" gorm:"primaryKey;column:code;autoIncrement"`
-	Anden         string          `json:"anden" gorm:"column:anden;not null"`
+	Bay         string          `json:"bay" gorm:"column:bay;not null"`
 	Coordinates   json.RawMessage `json:"coordinates" gorm:"column:coordinates;type:jsonb"`
 	BusTerminalID uuid.UUID       `json:"bus_terminal_id" gorm:"column:bus_terminal_id;type:uuid;not null"`
 	BusTerminal   *BusTerminal    `json:"bus_terminal,omitempty" gorm:"foreignKey:BusTerminalID;references:UUID"`
@@ -33,7 +33,7 @@ func (Platform) TableName() string {
 
 type PlatformResponse struct {
 	Code        int             `json:"code"`
-	Anden       string          `json:"anden"`
+	Bay       string          `json:"bay"`
 	Coordinates json.RawMessage `json:"coordinates"`
 }
 
@@ -52,7 +52,7 @@ func ToBusTerminalWithPlatformsResponse(terminals []BusTerminal) []BusTerminalWi
 		for j, p := range t.Platforms {
 			platforms[j] = PlatformResponse{
 				Code:        p.Code,
-				Anden:       p.Anden,
+				Bay:       p.Bay,
 				Coordinates: p.Coordinates,
 			}
 		}
@@ -94,7 +94,7 @@ type CreateBusTerminalRequest struct {
 }
 
 type CreatePlatformRequest struct {
-	Anden         string          `json:"anden"`
+	Bay         string          `json:"bay"`
 	Coordinates   json.RawMessage `json:"coordinates"`
 	BusTerminalID uuid.UUID       `json:"bus_terminal_id"`
 }
@@ -106,7 +106,7 @@ type UpdateBusTerminalRequest struct {
 }
 
 type UpdatePlatformRequest struct {
-	Anden       *string          `json:"anden,omitempty"`
+	Bay       *string          `json:"bay,omitempty"`
 	Coordinates *json.RawMessage `json:"coordinates,omitempty"`
 }
 
@@ -128,14 +128,14 @@ type DemoteSuperRequest struct {
 	Email string `json:"email"`
 }
 
-// ListTerminalsParams son los parámetros de paginación de GET /api/super/terminals.
+// ListTerminalsParams are the pagination parameters of GET /api/super/terminals.
 type ListTerminalsParams struct {
 	Page  int    // default 1
 	Limit int    // default 10
-	Order string // "ASC" o "DESC", default "DESC"
+	Order string // "ASC" or "DESC", default "DESC"
 }
 
-// ListTerminalsResponse es el payload paginado de terminales.
+// ListTerminalsResponse is the paginated terminals payload.
 type ListTerminalsResponse struct {
 	Terminals     []BusTerminal `json:"terminals"`
 	Page          int           `json:"page"`
@@ -145,19 +145,19 @@ type ListTerminalsResponse struct {
 	TotalElements int64         `json:"total_elements"`
 }
 
-// CountTerminalsResponse es el payload de GET /api/super/terminals/count.
+// CountTerminalsResponse is the payload of GET /api/super/terminals/count.
 type CountTerminalsResponse struct {
 	Total int64 `json:"total"`
 }
 
-// ListPlatformsParams son los parámetros de GET /api/admin/platforms.
+// ListPlatformsParams are the parameters of GET /api/admin/platforms.
 type ListPlatformsParams struct {
 	Page  int    // default 1
 	Limit int    // default 10
-	Order string // "ASC" o "DESC", default "DESC"
+	Order string // "ASC" or "DESC", default "DESC"
 }
 
-// ListPlatformsResponse es el payload paginado de plataformas agrupadas por terminal.
+// ListPlatformsResponse is the paginated payload of platforms grouped by terminal.
 type ListPlatformsResponse struct {
 	Platforms     []BusTerminalWithPlatformsResponse `json:"platforms"`
 	Page          int                                `json:"page"`
@@ -167,7 +167,7 @@ type ListPlatformsResponse struct {
 	TotalElements int64                              `json:"total_elements"`
 }
 
-// CountPlatformsResponse es el payload de GET /api/admin/platforms/count.
+// CountPlatformsResponse is the payload of GET /api/admin/platforms/count.
 type CountPlatformsResponse struct {
 	Total int64 `json:"total"`
 }

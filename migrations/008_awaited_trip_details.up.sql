@@ -1,5 +1,5 @@
--- Las filas previas solo tienen group_key: sin el ticket no se puede
--- reconstruir la espera del pasajero, así que se descartan.
+-- Previous rows only have group_key: without the ticket the passenger's
+-- wait cannot be rebuilt, so they are discarded.
 DELETE FROM awaited_trip;
 
 ALTER TABLE awaited_trip

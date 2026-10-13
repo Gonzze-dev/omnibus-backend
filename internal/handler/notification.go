@@ -29,7 +29,7 @@ func (h *NotificationHandler) NotifyPassengers(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	// Con X-API-Key (cámara) no hay usuario en contexto; con JWT viene el admin/super_admin.
+	// With X-API-Key (camera) there is no user in context; with JWT it is the admin/super_admin.
 	userID, _ := c.Get("user_id").(uuid.UUID)
 	role, _ := c.Get("role").(string)
 
@@ -237,7 +237,7 @@ func (h *NotificationHandler) NotifyBusDelay(c echo.Context) error {
 
 func mapNotificationError(err error) error {
 	switch {
-	case errors.Is(err, validators.ErrLicensePatentEmpty),
+	case errors.Is(err, validators.ErrLicensePlateEmpty),
 		errors.Is(err, validators.ErrCodeEmpty),
 		errors.Is(err, validators.ErrInvalidCode),
 		errors.Is(err, validators.ErrNotificationTimeLifeInvalid):
@@ -339,7 +339,7 @@ func mapDeleteNotificationError(err error) error {
 func mapNotifyBusDelayError(err error) error {
 	switch {
 	case errors.Is(err, validators.ErrBusDelayTypeInvalid),
-		errors.Is(err, validators.ErrBusDelayLicensePatentRequired),
+		errors.Is(err, validators.ErrBusDelayLicensePlateRequired),
 		errors.Is(err, validators.ErrBusDelayStartDateRequired),
 		errors.Is(err, validators.ErrBusDelayTimeDelayInvalid),
 		errors.Is(err, errorsService.ErrBusDelayTerminalUUIDRequired),

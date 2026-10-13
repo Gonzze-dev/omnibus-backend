@@ -1,103 +1,104 @@
 # Omnibus Backend
 
-Backend para un sistema de gestión de terminales de ómnibus. Permite administrar terminales, andenes, ciudades, usuarios y notificaciones en tiempo real a pasajeros.
+Backend for a bus terminal management system. It manages terminals, bays, cities, users and real-time notifications to passengers.
 
-## Punto de entrada
+## Entry point
 
 ```
 cmd/api/main.go
 ```
 
-El arranque sigue este flujo: carga de config → conexión a PostgreSQL → inicialización del contenedor de dependencias (`app.New`) → registro de rutas → inicio del servidor.
+Startup follows this flow: load config → connect to PostgreSQL → initialize the dependency container (`app.New`) → register routes → start the server.
 
-## Tecnologías y librerías principales
+## Main technologies and libraries
 
-| Librería | Uso |
+| Library | Use |
 |---|---|
-| `github.com/labstack/echo/v4` | Framework HTTP |
-| `gorm.io/gorm` + `gorm.io/driver/postgres` | ORM y driver de PostgreSQL |
-| `github.com/golang-jwt/jwt/v5` | Autenticación JWT |
-| `github.com/philippseith/signalr` | Comunicación en tiempo real (SignalR) |
-| `golang.org/x/crypto` | Hash de contraseñas (bcrypt) |
-| `github.com/google/uuid` | Generación de UUIDs |
-| `github.com/joho/godotenv` | Carga de variables de entorno desde `.env` |
+| `github.com/labstack/echo/v4` | HTTP framework |
+| `gorm.io/gorm` + `gorm.io/driver/postgres` | ORM and PostgreSQL driver |
+| `github.com/golang-jwt/jwt/v5` | JWT authentication |
+| `github.com/philippseith/signalr` | Real-time communication (SignalR) |
+| `golang.org/x/crypto` | Password hashing (bcrypt) |
+| `github.com/google/uuid` | UUID generation |
+| `github.com/joho/godotenv` | Loading environment variables from `.env` |
 
-## Cómo arrancar el proyecto
+## Getting started
 
-### Requisitos previos
+### Prerequisites
 
 - Go 1.25+
-- PostgreSQL corriendo localmente (o configurable vía `DATABASE_URL`)
-- `make` instalado
+- PostgreSQL running locally (or configurable via `DATABASE_URL`)
+- `make` installed
 
-### Variables de entorno
+### Environment variables
 
-Crear un archivo `.env` en la raíz (o exportar las variables al entorno):
+Create a `.env` file at the root (or export the variables to the environment):
 
 ```env
 DATABASE_URL=postgres://postgres:1234@localhost:5432/omnibus-terminal
-JWT_SECRET=tu-secreto-jwt
-PASSWORD_RESET_JWT_SECRET=tu-secreto-reset
+JWT_SECRET=your-jwt-secret
+PASSWORD_RESET_JWT_SECRET=your-reset-secret
 
 LISTEN_ADDR=:4989
 
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=correo@gmail.com
+SMTP_USER=email@gmail.com
 SMTP_PASSWORD=app-password
-SMTP_FROM=correo@gmail.com
+SMTP_FROM=email@gmail.com
 
 EXTERNAL_TERMINAL_UPSTREAM_URL=http://localhost:4990
 REALTIME_URL=http://localhost:4988/realtime
-REALTIME_API_KEY=clave-realtime
-CAMERA_NOTIFICATION_API_KEY=clave-camara
+REALTIME_API_KEY=realtime-key
+CAMERA_NOTIFICATION_API_KEY=camera-key
 
 FRONT_END_BASE_LINK=http://localhost:4200/
 ```
 
-### Correr el servidor
+### Run the server
 
 ```bash
 go run ./cmd/api
 ```
 
-## Migraciones
+## Migrations
 
-El esquema se gestiona con el comando `cmd/migrate`, que usa las mismas variables `DB_*` que la API y registra lo aplicado en la tabla `omnibus_schema_migrations`. No requiere `psql`.
+The schema is managed with the `cmd/migrate` command, which uses the same `DB_*` variables as the API and records what has been applied in the `omnibus_schema_migrations` table. It does not require `psql`.
 
 ```bash
-go run ./cmd/migrate up        # o: make migrate-up
-go run ./cmd/migrate status    # qué migraciones están aplicadas
-go run ./cmd/migrate down      # revierte la última
-go run ./cmd/migrate seed      # datos de ejemplo (migrations/seed.sql)
-go run ./cmd/migrate seed-ar   # ciudades y terminales de Argentina (o: make migrate-seed-ar)
-go run ./cmd/migrate baseline  # marca todas como aplicadas sin ejecutarlas
+go run ./cmd/migrate up        # or: make migrate-up
+go run ./cmd/migrate status    # which migrations are applied
+go run ./cmd/migrate down      # reverts the last one
+go run ./cmd/migrate seed      # sample data (migrations/seed.sql)
+go run ./cmd/migrate seed-ar   # cities and terminals of Argentina (or: make migrate-seed-ar)
+go run ./cmd/migrate baseline  # marks all of them as applied without running them
 ```
 
-- **Base vacía:** `up` ejecuta `migrations/schema.sql` (esquema completo actual + roles) y marca todas las migraciones como aplicadas.
-- **Base existente:** `up` aplica solo las migraciones `NNN_nombre.up.sql` pendientes, en orden y cada una en su propia transacción.
-- **Base creada antes de este comando** (con `psql` a mano): ejecutar `baseline` una única vez.
-- **Ciudades y terminales de Argentina:** `seed-ar` lee `migrations/data/cities.json` y `migrations/data/terminals.json`. Además hace `GET {EXTERN_TERMINAL_UPSTREAM_URL}/terminal/` a backend-terminales y completa el `external_terminal_id` de cada terminal buscando su `external_name` (sin distinguir mayúsculas ni tildes). Si backend-terminales no responde, falla sin tocar la base. Al terminar informa cuántos `external_terminal_id` cargó y lista las terminales sin coincidencia. Se puede correr las veces que se quiera: no pisa ciudades existentes, solo agrega terminales a ciudades que todavía no tienen ninguna y no reemplaza un `external_terminal_id` ya asignado. Para agregar más, editar los JSON y volver a ejecutarlo. En Docker: `/app/migrate seed-ar`.
+- **Empty database:** `up` runs `migrations/schema.sql` (full current schema + roles) and marks every migration as applied.
+- **Existing database:** `up` applies only the pending `NNN_name.up.sql` migrations, in order and each one in its own transaction.
+- **Database created before this command** (by hand with `psql`): run `baseline` exactly once.
+- **Cities and terminals of Argentina:** `seed-ar` reads `migrations/data/cities.json` and `migrations/data/terminals.json`. It also calls `GET {EXTERNAL_TERMINAL_UPSTREAM_URL}/terminal/` on backend-terminales and fills in each terminal's `external_terminal_id` by looking up its `external_name` (ignoring case and accents). If backend-terminales does not respond, it fails without touching the database. When it finishes it reports how many `external_terminal_id`s it set and lists the terminals with no match. It can be run as many times as you like: it does not overwrite existing cities, only adds terminals to cities that do not have any yet, and does not replace an already assigned `external_terminal_id`. To add more, edit the JSON files and run it again. In Docker: `/app/migrate seed-ar`.
 
-En producción la imagen Docker incluye el binario: `/app/migrate up` (por ejemplo como *Pre-Deploy Command* en Railway).
+In production the Docker image includes the binary: `/app/migrate up` (for example as the *Pre-Deploy Command* on Railway).
 
-Al agregar una migración nueva, crear `NNN_nombre.up.sql` / `NNN_nombre.down.sql` y **reflejar el cambio también en `schema.sql`**.
+When adding a new migration, create `NNN_name.up.sql` / `NNN_name.down.sql` and **reflect the change in `schema.sql` too**.
 
-| Versión | Descripción |
+| Version | Description |
 |---|---|
-| `001` | Tablas base: `city`, `bus_terminal`, `platform` |
-| `002` | Auth y roles: `rol`, `users`, `user_refresh_tokens`, `user_terminal` + seed de roles y permisos |
-| `003` | CASCADE en FK de `bus_terminal → city` |
-| `004` | Campo `external_terminal_id` en `bus_terminal` |
-| `005` | Eliminación del campo `dni` en `users` |
-| `006` | Tabla `awaited_trip` |
-| `007` | Eliminación de `permissions` y `rol_permissions` (RBAC simplificado a roles) |
-| `008` | Datos de la espera en `awaited_trip` (ticket, terminal, `notified_at`) |
-| `009` | Tabla `notifications` (existía en las bases locales pero sin migración) |
+| `001` | Base tables: `city`, `bus_terminal`, `platform` |
+| `002` | Auth and roles: `rol`, `users`, `user_refresh_tokens`, `user_terminal` + roles and permissions seed |
+| `003` | CASCADE on the `bus_terminal → city` FK |
+| `004` | `external_terminal_id` field on `bus_terminal` |
+| `005` | Removal of the `dni` field from `users` |
+| `006` | `awaited_trip` table |
+| `007` | Removal of `permissions` and `rol_permissions` (RBAC simplified to roles) |
+| `008` | Wait data in `awaited_trip` (ticket, terminal, `notified_at`) |
+| `009` | `notifications` table (it existed in local databases but had no migration) |
+| `010` | English names: `platform.anden` → `bay`, `rol` → `role`, `users.rol_id` → `role_id`; renames `anden` / `license_patent` keys in stored notifications |
 
-## Arquitectura
+## Architecture
 
-El proyecto sigue una arquitectura en capas estricta:
+The project follows a strict layered architecture:
 
 ```
 Handler → Service → Repository → Database (PostgreSQL/GORM)
@@ -105,111 +106,111 @@ Handler → Service → Repository → Database (PostgreSQL/GORM)
 
 ```
 cmd/api/            Entrypoint
-cmd/migrate/        Runner de migraciones
+cmd/migrate/        Migration runner
 internal/
-├── app/            Contenedor de dependencias (DI manual)
-├── config/         Carga de configuración (.env + defaults)
-├── database/       Conexión a PostgreSQL
-├── errors/         Errores de dominio reutilizables
-├── handler/        Controladores HTTP (entrada/salida HTTP)
-├── mail/           Servicio de email + templates HTML
-├── middleware/     CORS, logging, auth JWT, roles, API key
-├── models/         Structs de dominio y DTOs
-├── realtime/       Cliente SignalR (grupos y métodos del hub)
-├── repository/     Acceso a datos vía GORM
-├── roles/          Constantes de roles (user, admin, super_admin)
-├── router/         Registro de rutas por perfil
-├── service/        Lógica de negocio
-└── validators/     Validación de input por dominio
+├── app/            Dependency container (manual DI)
+├── config/         Configuration loading (.env + defaults)
+├── database/       PostgreSQL connection
+├── errors/         Reusable domain errors
+├── handler/        HTTP controllers (HTTP input/output)
+├── mail/           Email service + HTML templates
+├── middleware/     CORS, logging, JWT auth, roles, API key
+├── models/         Domain structs and DTOs
+├── realtime/       SignalR client (hub groups and methods)
+├── repository/     Data access via GORM
+├── roles/          Role constants (user, admin, super_admin)
+├── router/         Route registration per profile
+├── service/        Business logic
+└── validators/     Input validation per domain
 pkg/
-└── realtime/       Wrapper del cliente SignalR
-migrations/         Archivos SQL versionados
+└── realtime/       SignalR client wrapper
+migrations/         Versioned SQL files
 ```
 
-**Patrones aplicados:**
-- Dependency Injection manual en `app.New()`
-- Repository Pattern para abstraer el acceso a datos
-- Middleware chain: CORS → Logging → Auth JWT → Role check → Handler
-- JWT de acceso (corta duración) + Refresh Token en cookie HTTP-only
+**Applied patterns:**
+- Manual Dependency Injection in `app.New()`
+- Repository Pattern to abstract data access
+- Middleware chain: CORS → Logging → JWT Auth → Role check → Handler
+- Short-lived access JWT + Refresh Token in an HTTP-only cookie
 
-**Sistema de roles:**
+**Role system:**
 
-| Rol | Descripción |
+| Role | Description |
 |---|---|
-| `user` | Pasajero registrado |
-| `admin` | Administrador de una terminal |
-| `super_admin` | Administrador global del sistema |
+| `user` | Registered passenger |
+| `admin` | Administrator of a terminal |
+| `super_admin` | Global system administrator |
 
 ## Endpoints
 
-La documentación completa (OpenAPI 3) está en [internal/docs/openapi.yaml](internal/docs/openapi.yaml) y se sirve con el servidor:
+The full documentation (OpenAPI 3) is in [internal/docs/openapi.yaml](internal/docs/openapi.yaml) and is served by the server:
 
-- `GET /docs`: Swagger UI para explorar y probar los endpoints.
-- `GET /docs/openapi.yaml`: la especificación (se puede importar en Postman, Insomnia, etc.).
+- `GET /docs`: Swagger UI to explore and try the endpoints.
+- `GET /docs/openapi.yaml`: the specification (can be imported into Postman, Insomnia, etc.).
 
-### Públicos / Auth
+### Public / Auth
 
-| Método | Ruta | Descripción |
+| Method | Path | Description |
 |---|---|---|
-| `GET` | `/` | Redirige a `/health` |
+| `GET` | `/` | Redirects to `/health` |
 | `GET` | `/health` | Health check (`OK`) |
-| `GET` | `/docs` | Swagger UI con la documentación OpenAPI |
-| `GET` | `/docs/openapi.yaml` | Especificación OpenAPI |
-| `GET` | `/bus_tickets/:ticket_string` | Consulta de pasaje por string de ticket |
-| `POST` | `/notify_passengers` | Notifica llegada de bus a pasajeros (API key, o JWT de `admin`/`super_admin` para el aviso manual; el admin solo en andenes de sus terminales) |
-| `POST` | `/notify_camera_error` | Notifica error de cámara (API key) |
-| `GET` | `/api/notifications` | Lista notificaciones del usuario (JWT) |
-| `POST` | `/api/auth/register` | Registro de nuevo usuario |
-| `POST` | `/api/auth/login` | Login, devuelve access token |
-| `POST` | `/api/auth/refresh` | Refresca el access token |
-| `POST` | `/api/auth/logout` | Cierra sesión |
-| `POST` | `/api/auth/forgot-password` | Solicita email de recuperación |
-| `POST` | `/api/auth/validate-recovery-token` | Valida token de recuperación |
-| `POST` | `/api/auth/reset-password` | Resetea la contraseña |
+| `GET` | `/docs` | Swagger UI with the OpenAPI documentation |
+| `GET` | `/docs/openapi.yaml` | OpenAPI specification |
+| `GET` | `/bus_tickets/:ticket_string` | Look up a bus ticket by ticket string |
+| `POST` | `/notify_passengers` | Notifies passengers of a bus arrival (API key, or `admin`/`super_admin` JWT for the manual notice; the admin only on bays of their terminals) |
+| `POST` | `/notify_camera_error` | Notifies a camera error (API key) |
+| `GET` | `/api/notifications` | Lists the user's notifications (JWT) |
+| `POST` | `/api/auth/register` | Registers a new user |
+| `POST` | `/api/auth/login` | Login, returns an access token |
+| `POST` | `/api/auth/refresh` | Refreshes the access token |
+| `POST` | `/api/auth/logout` | Logs out |
+| `POST` | `/api/auth/forgot-password` | Requests a recovery email |
+| `POST` | `/api/auth/validate-recovery-token` | Validates a recovery token |
+| `POST` | `/api/auth/reset-password` | Resets the password |
 
-### Usuario autenticado (`user`, `admin`, `super_admin`)
+### Authenticated user (`user`, `admin`, `super_admin`)
 
-| Método | Ruta | Descripción |
+| Method | Path | Description |
 |---|---|---|
-| `GET` | `/api/users/me` | Obtiene perfil propio |
-| `PUT` | `/api/users/me` | Actualiza perfil propio |
-| `DELETE` | `/api/users/me` | Elimina cuenta propia |
-| `GET` | `/api/users/terminals` | Lista terminales asignadas al usuario |
-| `POST` | `/api/buses/join` | Queda a la espera de un viaje (valida el pasaje y devuelve el `group_key` del realtime) |
-| `GET` | `/api/buses/awaited` | Viaje que el usuario está esperando |
-| `DELETE` | `/api/buses/awaited` | Deja de esperar el viaje |
+| `GET` | `/api/users/me` | Gets own profile |
+| `PUT` | `/api/users/me` | Updates own profile |
+| `DELETE` | `/api/users/me` | Deletes own account |
+| `GET` | `/api/users/terminals` | Lists the terminals |
+| `POST` | `/api/buses/join` | Starts waiting for a trip (validates the bus ticket and returns the realtime `group_key`) |
+| `GET` | `/api/buses/awaited` | Trip the user is waiting for |
+| `DELETE` | `/api/buses/awaited` | Stops waiting for the trip |
 
 ### Admin (`admin`, `super_admin`)
 
-| Método | Ruta | Descripción |
+| Method | Path | Description |
 |---|---|---|
-| `GET` | `/api/admin/cities` | Lista ciudades |
-| `GET` | `/api/admin/cities/count` | Cantidad de ciudades |
-| `GET` | `/api/admin/cities/:postal_code` | Obtiene ciudad por código postal |
-| `GET` | `/api/admin/platforms` | Lista andenes |
-| `GET` | `/api/admin/platforms/:code` | Obtiene andén por código |
-| `POST` | `/api/admin/platforms` | Crea andén |
-| `PUT` | `/api/admin/platforms/:code` | Actualiza andén |
-| `DELETE` | `/api/admin/platforms/:code` | Elimina andén |
-| `GET` | `/api/admin/users/by-email` | Busca usuario por email |
-| `POST` | `/api/admin/users/promote` | Promueve usuario a admin |
-| `POST` | `/api/admin/users/demote` | Degrada admin a usuario |
-| `GET` | `/api/admin/notification-types` | Lista tipos de notificación disponibles |
-| `POST` | `/api/admin/notifications` | Envía notificación a pasajeros |
-| `DELETE` | `/api/admin/notifications` | Elimina una notificación |
-| `POST` | `/api/admin/notify-bus-delay` | Notifica demora de bus |
+| `GET` | `/api/admin/cities` | Lists cities |
+| `GET` | `/api/admin/cities/count` | Number of cities |
+| `GET` | `/api/admin/cities/:postal_code` | Gets a city by postal code |
+| `GET` | `/api/admin/platforms` | Lists bays |
+| `GET` | `/api/admin/platforms/:code` | Gets a bay by code |
+| `POST` | `/api/admin/platforms` | Creates a bay |
+| `PUT` | `/api/admin/platforms/:code` | Updates a bay |
+| `DELETE` | `/api/admin/platforms/:code` | Deletes a bay |
+| `GET` | `/api/admin/users/by-email` | Finds a user by email |
+| `POST` | `/api/admin/users/promote` | Promotes a user to admin |
+| `POST` | `/api/admin/users/demote` | Demotes an admin to user |
+| `GET` | `/api/admin/notification-types` | Lists the available notification types |
+| `POST` | `/api/admin/notifications` | Sends a notification to passengers |
+| `DELETE` | `/api/admin/notifications` | Deletes a notification |
+| `POST` | `/api/admin/notify-bus-delay` | Notifies a bus delay |
 
 ### Super Admin (`super_admin`)
 
-| Método | Ruta | Descripción |
+| Method | Path | Description |
 |---|---|---|
-| `GET` | `/api/super/terminals` | Lista todas las terminales |
-| `GET` | `/api/super/terminals/:uuid` | Obtiene terminal por UUID |
-| `POST` | `/api/super/terminals` | Crea terminal |
-| `PUT` | `/api/super/terminals/:uuid` | Actualiza terminal |
-| `DELETE` | `/api/super/terminals/:uuid` | Elimina terminal |
-| `POST` | `/api/super/users/promote-super` | Promueve admin a super_admin |
-| `POST` | `/api/super/users/demote-super` | Degrada super_admin a admin |
-| `POST` | `/api/admin/cities` | Crea ciudad |
-| `PUT` | `/api/admin/cities/:postal_code` | Actualiza ciudad |
-| `DELETE` | `/api/admin/cities/:postal_code` | Elimina ciudad |
+| `GET` | `/api/super/terminals` | Lists all terminals |
+| `GET` | `/api/super/terminals/:uuid` | Gets a terminal by UUID |
+| `POST` | `/api/super/terminals` | Creates a terminal |
+| `PUT` | `/api/super/terminals/:uuid` | Updates a terminal |
+| `DELETE` | `/api/super/terminals/:uuid` | Deletes a terminal |
+| `POST` | `/api/super/users/promote-super` | Promotes an admin to super_admin |
+| `POST` | `/api/super/users/demote-super` | Demotes a super_admin to admin |
+| `POST` | `/api/admin/cities` | Creates a city |
+| `PUT` | `/api/admin/cities/:postal_code` | Updates a city |
+| `DELETE` | `/api/admin/cities/:postal_code` | Deletes a city |

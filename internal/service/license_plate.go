@@ -13,7 +13,7 @@ import (
 	errorsService "tesina/backend/internal/errors"
 )
 
-// LicensePlateService lee la patente de una foto usando el microservicio de OCR.
+// LicensePlateService reads the license plate from a photo using the OCR microservice.
 type LicensePlateService interface {
 	Read(ctx context.Context, filename string, image io.Reader) (string, error)
 }

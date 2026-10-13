@@ -55,11 +55,11 @@ type Config struct {
 	OCRURL                      string
 	OCRAPIKey                   string
 	OCRTimeout                  time.Duration
-	// CORSAllowedOrigins vacío significa que se permiten todos los orígenes.
+	// An empty CORSAllowedOrigins means every origin is allowed.
 	CORSAllowedOrigins []string
 }
 
-// getEnvTrim lee una variable de entorno sin espacios sobrantes y usa def si está vacía.
+// getEnvTrim reads an environment variable without surrounding spaces and uses def if it is empty.
 func getEnvTrim(key, def string) string {
 	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
 		return v
@@ -67,8 +67,8 @@ func getEnvTrim(key, def string) string {
 	return def
 }
 
-// buildDatabaseURL arma la URL de PostgreSQL a partir de DB_URL (host), DB_USER,
-// DB_PASSWORD, DB_NAME, DB_PORT y DB_SSLMODE.
+// buildDatabaseURL builds the PostgreSQL URL from DB_URL (host), DB_USER,
+// DB_PASSWORD, DB_NAME, DB_PORT and DB_SSLMODE.
 func buildDatabaseURL() string {
 	host := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(os.Getenv("DB_URL")), "host="))
 	if host == "" {
@@ -90,7 +90,7 @@ func buildDatabaseURL() string {
 	return u.String()
 }
 
-// parseCSV separa una lista por comas descartando espacios y elementos vacíos.
+// parseCSV splits a comma-separated list, discarding spaces and empty items.
 func parseCSV(raw string) []string {
 	var out []string
 	for _, part := range strings.Split(raw, ",") {
@@ -103,7 +103,7 @@ func parseCSV(raw string) []string {
 
 func Load() Config {
 	if err := godotenv.Load(); err != nil {
-		log.Println("aviso: no se cargó .env, se usan solo variables del sistema:", err)
+		log.Println("warning: .env was not loaded, using system variables only:", err)
 	}
 
 	listenAddr := os.Getenv("LISTEN_ADDR")

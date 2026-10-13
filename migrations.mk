@@ -1,4 +1,4 @@
-# Usa las mismas variables DB_* (.env) que la API.
+# Uses the same DB_* variables (.env) as the API.
 MIGRATE := go run ./cmd/migrate
 
 migrate-up:

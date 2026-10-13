@@ -24,27 +24,27 @@ type cityRow struct {
 	Name       string `json:"name"`
 }
 
-// terminalRow es una terminal de data/terminals.json. ExternalName es su nombre
-// en backend-terminales y se usa para obtener el external_terminal_id.
+// terminalRow is a terminal from data/terminals.json. ExternalName is its name
+// in backend-terminales and is used to get the external_terminal_id.
 type terminalRow struct {
 	PostalCode   string `json:"postal_code"`
 	Name         string `json:"name"`
 	ExternalName string `json:"external_name"`
 }
 
-// externalTerminal es un ítem de GET /terminal/ de backend-terminales.
+// externalTerminal is an item of backend-terminales GET /terminal/.
 type externalTerminal struct {
 	UUID uuid.UUID `json:"uuid"`
 	Name string    `json:"terminal"`
 }
 
-// seedArgentina inserta las ciudades y terminales de los JSON de data/ y les
-// asigna el external_terminal_id de backend-terminales. Si no puede obtener las
-// terminales de backend-terminales no modifica la base.
+// seedArgentina inserts the cities and terminals from the JSON files in data/ and
+// assigns them the backend-terminales external_terminal_id. If it cannot get the
+// terminals from backend-terminales, it does not modify the database.
 //
-// Las ciudades existentes se dejan como están. Una terminal se crea solo si su
-// ciudad no tenía ninguna; si ya existe (mismo código postal y nombre) solo se
-// le completa el external_terminal_id cuando no lo tiene.
+// Existing cities are left as they are. A terminal is created only if its
+// city had none; if it already exists (same postal code and name) only its
+// external_terminal_id is filled in when it is missing.
 func (m migrator) seedArgentina() error {
 	var cities []cityRow
 	if err := readJSON(filepath.Join(m.dir, citiesFile), &cities); err != nil {
@@ -57,7 +57,7 @@ func (m migrator) seedArgentina() error {
 
 	external, err := fetchExternalTerminals(m.terminalsURL)
 	if err != nil {
-		return fmt.Errorf("no se pudieron cargar las terminales de backend-terminales (%s): %w", m.terminalsURL, err)
+		return fmt.Errorf("could not load the terminals from backend-terminales (%s): %w", m.terminalsURL, err)
 	}
 	externalIDs := make(map[string]uuid.UUID, len(external))
 	for _, t := range external {
@@ -70,13 +70,13 @@ func (m migrator) seedArgentina() error {
 			res := tx.Exec(`INSERT INTO city (postal_code, name) VALUES (?, ?) ON CONFLICT (postal_code) DO NOTHING`,
 				c.PostalCode, c.Name)
 			if res.Error != nil {
-				return fmt.Errorf("ciudad %s (%s): %w", c.Name, c.PostalCode, res.Error)
+				return fmt.Errorf("city %s (%s): %w", c.Name, c.PostalCode, res.Error)
 			}
 			newCities += int(res.RowsAffected)
 		}
 
-		// Las ciudades que ya tenían terminales no reciben nuevas: pueden estar
-		// cargadas con otro nombre.
+		// Cities that already had terminals do not get new ones: they may have been
+		// loaded under another name.
 		var withTerminals []string
 		if err := tx.Raw(`SELECT DISTINCT postal_code FROM bus_terminal`).Scan(&withTerminals).Error; err != nil {
 			return err
@@ -89,9 +89,9 @@ func (m migrator) seedArgentina() error {
 		var (
 			newTerminals int
 			linked       int
-			skipped      []string // la ciudad ya tenía otra terminal
-			notFound     []string // sin coincidencia en backend-terminales
-			taken        []string // el external_terminal_id ya lo usa otra terminal
+			skipped      []string // the city already had another terminal
+			notFound     []string // no match in backend-terminales
+			taken        []string // the external_terminal_id is already used by another terminal
 		)
 		for _, t := range terminals {
 			var row struct {
@@ -139,13 +139,13 @@ func (m migrator) seedArgentina() error {
 			linked++
 		}
 
-		log.Printf("ciudades: %d nuevas de %d", newCities, len(cities))
-		log.Printf("terminales: %d nuevas de %d", newTerminals, len(terminals))
-		log.Printf("external_terminal_id: %d cargados, %d sin cargar (backend-terminales devolvió %d terminales)",
+		log.Printf("cities: %d new out of %d", newCities, len(cities))
+		log.Printf("terminals: %d new out of %d", newTerminals, len(terminals))
+		log.Printf("external_terminal_id: %d set, %d not set (backend-terminales returned %d terminals)",
 			linked, len(notFound)+len(taken), len(external))
-		logNames("sin coincidencia en backend-terminales", notFound)
-		logNames("su external_terminal_id ya lo usa otra terminal", taken)
-		logNames("omitidas porque la ciudad ya tenía otra terminal", skipped)
+		logNames("no match in backend-terminales", notFound)
+		logNames("external_terminal_id already used by another terminal", taken)
+		logNames("skipped because the city already had another terminal", skipped)
 		return nil
 	})
 }
@@ -158,21 +158,21 @@ func fetchExternalTerminals(baseURL string) ([]externalTerminal, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("GET /terminal/ respondió %s", resp.Status)
+		return nil, fmt.Errorf("GET /terminal/ responded %s", resp.Status)
 	}
 	var terminals []externalTerminal
 	if err := json.NewDecoder(resp.Body).Decode(&terminals); err != nil {
-		return nil, fmt.Errorf("respuesta inválida de GET /terminal/: %w", err)
+		return nil, fmt.Errorf("invalid response from GET /terminal/: %w", err)
 	}
 	if len(terminals) == 0 {
-		return nil, fmt.Errorf("GET /terminal/ no devolvió terminales")
+		return nil, fmt.Errorf("GET /terminal/ returned no terminals")
 	}
 	return terminals, nil
 }
 
 var accents = strings.NewReplacer("á", "a", "é", "e", "í", "i", "ó", "o", "ú", "u", "ü", "u", "ñ", "n")
 
-// normalizeName compara nombres sin distinguir mayúsculas, tildes ni espacios extra.
+// normalizeName lets names be compared ignoring case, accents and extra spaces.
 func normalizeName(s string) string {
 	return strings.Join(strings.Fields(accents.Replace(strings.ToLower(s))), " ")
 }

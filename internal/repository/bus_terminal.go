@@ -65,7 +65,7 @@ func (r *busTerminalRepository) GetByUUIDWithPlatforms(ctx context.Context, id u
 	err := r.db.WithContext(ctx).
 		Where("uuid = ?", id).
 		Preload("Platforms", func(db *gorm.DB) *gorm.DB {
-			return db.Order("anden")
+			return db.Order("bay")
 		}).
 		First(&bt).Error
 	if err != nil {
@@ -109,7 +109,7 @@ func (r *busTerminalRepository) ListWithPlatforms(ctx context.Context) ([]models
 	var terminals []models.BusTerminal
 	err := r.db.WithContext(ctx).
 		Preload("Platforms", func(db *gorm.DB) *gorm.DB {
-			return db.Order("anden")
+			return db.Order("bay")
 		}).
 		Order("name").
 		Find(&terminals).Error
@@ -124,7 +124,7 @@ func (r *busTerminalRepository) ListByUUIDs(ctx context.Context, ids []uuid.UUID
 	err := r.db.WithContext(ctx).
 		Where("uuid IN ?", ids).
 		Preload("Platforms", func(db *gorm.DB) *gorm.DB {
-			return db.Order("anden")
+			return db.Order("bay")
 		}).
 		Order("name").
 		Find(&terminals).Error
@@ -135,7 +135,7 @@ func (r *busTerminalRepository) ListWithPlatformsPaginated(ctx context.Context, 
 	var terminals []models.BusTerminal
 	err := r.db.WithContext(ctx).
 		Preload("Platforms", func(db *gorm.DB) *gorm.DB {
-			return db.Order("anden")
+			return db.Order("bay")
 		}).
 		Order("name " + order).
 		Limit(limit).
@@ -152,7 +152,7 @@ func (r *busTerminalRepository) ListByUUIDsPaginated(ctx context.Context, ids []
 	err := r.db.WithContext(ctx).
 		Where("uuid IN ?", ids).
 		Preload("Platforms", func(db *gorm.DB) *gorm.DB {
-			return db.Order("anden")
+			return db.Order("bay")
 		}).
 		Order("name " + order).
 		Limit(limit).

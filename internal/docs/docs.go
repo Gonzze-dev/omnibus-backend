@@ -1,4 +1,4 @@
-// Package docs sirve la especificación OpenAPI del backend y una UI de Swagger para explorarla.
+// Package docs serves the backend OpenAPI specification and a Swagger UI to explore it.
 package docs
 
 import (
@@ -14,7 +14,7 @@ var openAPISpec []byte
 const swaggerUIVersion = "5.17.14"
 
 const swaggerUIPage = `<!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -35,12 +35,12 @@ const swaggerUIPage = `<!doctype html>
 </body>
 </html>`
 
-// SpecHandler devuelve el archivo openapi.yaml.
+// SpecHandler returns the openapi.yaml file.
 func SpecHandler(c echo.Context) error {
 	return c.Blob(http.StatusOK, "application/yaml; charset=utf-8", openAPISpec)
 }
 
-// UIHandler devuelve la página de Swagger UI que carga /docs/openapi.yaml.
+// UIHandler returns the Swagger UI page that loads /docs/openapi.yaml.
 func UIHandler(c echo.Context) error {
 	return c.HTML(http.StatusOK, swaggerUIPage)
 }

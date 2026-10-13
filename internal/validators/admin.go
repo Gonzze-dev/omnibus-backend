@@ -11,12 +11,12 @@ import (
 var (
 	ErrPostalCodeRequired = errors.New("postal_code is required")
 	ErrCityNameRequired   = errors.New("name is required")
-	ErrAndenRequired      = errors.New("anden is required")
-	ErrAndenInvalid       = errors.New("anden may only contain letters, numbers and '-'")
+	ErrBayRequired      = errors.New("bay is required")
+	ErrBayInvalid       = errors.New("bay may only contain letters, numbers and '-'")
 	ErrEmailRequired      = errors.New("email is required")
 )
 
-var andenPattern = regexp.MustCompile(`^[A-Z0-9-]+$`)
+var bayPattern = regexp.MustCompile(`^[A-Z0-9-]+$`)
 
 func ValidateCreateCityRequest(req models.CreateCityRequest) error {
 	if req.PostalCode == "" {
@@ -29,21 +29,21 @@ func ValidateCreateCityRequest(req models.CreateCityRequest) error {
 }
 
 func ValidateCreatePlatformRequest(req models.CreatePlatformRequest) error {
-	_, err := NormalizeAnden(req.Anden)
+	_, err := NormalizeBay(req.Bay)
 	return err
 }
 
-// NormalizeAnden trims and uppercases the anden, and checks it only contains
+// NormalizeBay trims and uppercases the bay, and checks it only contains
 // letters, digits and '-'. Returns the normalized value on success.
-func NormalizeAnden(anden string) (string, error) {
-	anden = strings.ToUpper(strings.TrimSpace(anden))
-	if anden == "" {
-		return "", ErrAndenRequired
+func NormalizeBay(bay string) (string, error) {
+	bay = strings.ToUpper(strings.TrimSpace(bay))
+	if bay == "" {
+		return "", ErrBayRequired
 	}
-	if !andenPattern.MatchString(anden) {
-		return "", ErrAndenInvalid
+	if !bayPattern.MatchString(bay) {
+		return "", ErrBayInvalid
 	}
-	return anden, nil
+	return bay, nil
 }
 
 // ValidateAdminEmail trims the email and checks it is not empty.

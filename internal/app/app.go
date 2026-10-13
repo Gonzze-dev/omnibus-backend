@@ -33,7 +33,7 @@ func New(cfg config.Config, db *gorm.DB) *App {
 	awaitedTripRepo := repository.NewAwaitedTripRepository(db)
 	platformRepo := repository.NewPlatformRepository(db)
 	userRepo := repository.NewUserRepository(db)
-	rolRepo := repository.NewRolRepository(db)
+	roleRepo := repository.NewRoleRepository(db)
 	refreshTokenRepo := repository.NewRefreshTokenRepository(db)
 	userTerminalRepo := repository.NewUserTerminalRepository(db)
 
@@ -63,7 +63,7 @@ func New(cfg config.Config, db *gorm.DB) *App {
 	signalRClient := realtime.NewClient(cfg.RealtimeURL, cfg.RealtimeAPIKey)
 	notificationSvc := service.NewNotificationService(platformRepo, userTerminalRepo, busTerminalRepo, notificationRepo, awaitedTripRepo, signalRClient, realtimeHubMethods.DefaultRealtimeHubMethods(), BusTicketSvc, smtpMailer, cfg.MailSiteName, cfg.FrontEndBaseLink)
 
-	authSvc := service.NewAuthService(userRepo, rolRepo, refreshTokenRepo, cfg.JWTSecret)
+	authSvc := service.NewAuthService(userRepo, roleRepo, refreshTokenRepo, cfg.JWTSecret)
 
 	recoverySvc := service.NewPasswordRecoveryService(
 		userRepo,
@@ -78,8 +78,8 @@ func New(cfg config.Config, db *gorm.DB) *App {
 
 	userSvc := service.NewUserService(userRepo, refreshTokenRepo, busTerminalRepo, userTerminalRepo)
 
-	adminSvc := service.NewAdminService(cityRepo, platformRepo, busTerminalRepo, userRepo, rolRepo, userTerminalRepo)
-	superAdminSvc := service.NewSuperAdminService(cityRepo, busTerminalRepo, userRepo, rolRepo, userTerminalRepo, BusTicketSvc)
+	adminSvc := service.NewAdminService(cityRepo, platformRepo, busTerminalRepo, userRepo, roleRepo, userTerminalRepo)
+	superAdminSvc := service.NewSuperAdminService(cityRepo, busTerminalRepo, userRepo, roleRepo, userTerminalRepo, BusTicketSvc)
 
 	licensePlateSvc := service.NewLicensePlateService(&http.Client{Timeout: cfg.OCRTimeout}, cfg.OCRURL, cfg.OCRAPIKey)
 

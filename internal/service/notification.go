@@ -104,9 +104,9 @@ func (s *notificationService) ListAdminSelectableNotificationTypes(_ context.Con
 	}
 }
 
-// NotifyPassengers avisa la llegada de un colectivo. La invoca la cámara (X-API-Key, role vacío)
-// o un admin/super_admin manualmente (JWT) cuando la cámara falla; el admin solo puede avisar
-// en andenes de terminales que tiene asignadas.
+// NotifyPassengers announces a bus arrival. It is called by the camera (X-API-Key, empty role)
+// or manually by an admin/super_admin (JWT) when the camera fails; the admin can only notify
+// on bays of terminals assigned to them.
 func (s *notificationService) NotifyPassengers(ctx context.Context, userID uuid.UUID, role string, req models.NotifyPassengersRequest) (models.NotifyPassengersResponse, error) {
 	code, err := validators.ValidateNotifyPassengersRequest(req)
 	if err != nil {
@@ -133,7 +133,7 @@ func (s *notificationService) NotifyPassengers(ctx context.Context, userID uuid.
 	notifID := uuid.New()
 	platformInfo := models.PlatformInfo{
 		ID:          notifID,
-		Anden:       platform.Anden,
+		Bay:       platform.Bay,
 		Coordinates: platform.Coordinates,
 		TimeLife:    req.TimeLife,
 	}
@@ -148,8 +148,8 @@ func (s *notificationService) NotifyPassengers(ctx context.Context, userID uuid.
 		Payload: payload,
 	}
 
-	licensePatent := normalizeLicensePlate(req.LicensePatent)
-	groupKey := licensePatent + ":" + platform.BusTerminalID.String()
+	licensePlate := normalizeLicensePlate(req.LicensePlate)
+	groupKey := licensePlate + ":" + platform.BusTerminalID.String()
 	groupName := realtime.GroupPrefixFrontend + groupKey
 
 	msgJSON, err := json.Marshal(msg)
@@ -167,8 +167,8 @@ func (s *notificationService) NotifyPassengers(ctx context.Context, userID uuid.
 		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
 	}
 
-	// El mail no depende del realtime: si el hub está caído, igual se avisa por correo.
-	go s.notifyAwaitingPassengers(groupKey, licensePatent, platform.BusTerminalID, platform.Anden, platform.Coordinates)
+	// The email does not depend on realtime: if the hub is down, passengers are still notified by email.
+	go s.notifyAwaitingPassengers(groupKey, licensePlate, platform.BusTerminalID, platform.Bay, platform.Coordinates)
 
 	if err := s.notifier.Invoke(ctx, s.hubMethods.SendToFrontend, groupName, msg); err != nil {
 		return models.NotifyPassengersResponse{}, fmt.Errorf("%w: %w", errorsService.ErrNotification, err)
@@ -179,11 +179,11 @@ func (s *notificationService) NotifyPassengers(ctx context.Context, userID uuid.
 	}, nil
 }
 
-// notifyAwaitingPassengers marca como notificados a los pasajeros que esperaban
-// el colectivo y les manda el mail de llegada (si hay SMTP configurado).
-// El awaited_trip no se borra: el pasajero puede recargar el frontend y seguir
-// viendo su viaje hasta que lo abandone.
-func (s *notificationService) notifyAwaitingPassengers(groupKey, licensePatent string, terminalID uuid.UUID, anden string, coordinates json.RawMessage) {
+// notifyAwaitingPassengers marks the passengers who were waiting for the bus as
+// notified and sends them the arrival email (if SMTP is configured).
+// The awaited_trip is not deleted: the passenger can reload the frontend and keep
+// seeing their trip until they leave it.
+func (s *notificationService) notifyAwaitingPassengers(groupKey, licensePlate string, terminalID uuid.UUID, bay string, coordinates json.RawMessage) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -205,9 +205,9 @@ func (s *notificationService) notifyAwaitingPassengers(groupKey, licensePatent s
 
 	body, err := mail.RenderBusArrivalHTML(mail.BusArrivalEmailData{
 		SiteName:      s.mailSiteName,
-		LicensePatent: licensePatent,
+		LicensePlate: licensePlate,
 		TerminalName:  terminalName,
-		Anden:         anden,
+		Bay:         bay,
 		AppURL:        s.awaitedTripAppURL(),
 		MapsURL:       mapsURLFromCoords(coordinates),
 	})
@@ -219,7 +219,7 @@ func (s *notificationService) notifyAwaitingPassengers(groupKey, licensePatent s
 	for _, email := range emails {
 		if err := s.mailer.Send(mail.SendOptions{
 			To:      []string{email},
-			Subject: "Tu colectivo llegó al andén " + anden,
+			Subject: "Tu colectivo llegó al andén " + bay,
 			Body:    body,
 			IsHTML:  true,
 		}); err != nil {
@@ -242,7 +242,7 @@ func mapsURLFromCoords(coordinates json.RawMessage) string {
 	return fmt.Sprintf("https://www.google.com/maps/search/?api=1&query=%.6f,%.6f", c.Lat, c.Lng)
 }
 
-// awaitedTripAppURL es la pantalla del frontend donde el pasajero ve el viaje que espera.
+// awaitedTripAppURL is the frontend screen where the passenger sees the trip they are waiting for.
 func (s *notificationService) awaitedTripAppURL() string {
 	base := strings.TrimRight(strings.TrimSpace(s.frontEndBaseLink), "/")
 	if base == "" {
@@ -458,7 +458,7 @@ func (s *notificationService) NotifyBusDelay(
 		return models.NotifyBusDelayResponse{}, errorsService.ErrExternalTerminalNotConfigured
 	}
 
-	exists, err := s.BusTicketSvc.TripExists(ctx, *terminal.ExternalTerminalID, req.StartDate, req.LicensePatent)
+	exists, err := s.BusTicketSvc.TripExists(ctx, *terminal.ExternalTerminalID, req.StartDate, req.LicensePlate)
 
 	if err != nil {
 		return models.NotifyBusDelayResponse{}, err
@@ -470,7 +470,7 @@ func (s *notificationService) NotifyBusDelay(
 	notifID := uuid.New()
 	inner, err := json.Marshal(models.NotifyBusDelayPayload{
 		ID:            notifID.String(),
-		LicensePatent: req.LicensePatent,
+		LicensePlate: req.LicensePlate,
 		TimeDelay:     req.Payload.TimeDelay,
 		TimeLife:      req.Payload.TimeLife,
 	})
@@ -483,9 +483,9 @@ func (s *notificationService) NotifyBusDelay(
 		Payload: inner,
 	}
 
-	normalizedPatent := normalizeLicensePlateForDelay(req.LicensePatent)
+	normalizedPlate := normalizeLicensePlateForDelay(req.LicensePlate)
 
-	compositeKey := normalizedPatent + ":" + terminalID.String()
+	compositeKey := normalizedPlate + ":" + terminalID.String()
 	groupName := realtime.GroupPrefixFrontend + compositeKey
 
 	msgJSON, err := json.Marshal(msg)
@@ -510,8 +510,8 @@ func (s *notificationService) NotifyBusDelay(
 	return models.NotifyBusDelayResponse{Message: "bus delay notification sent"}, nil
 }
 
-func normalizeLicensePlateForDelay(patent string) string {
-	return strings.ToUpper(strings.ReplaceAll(strings.TrimSpace(patent), " ", ""))
+func normalizeLicensePlateForDelay(plate string) string {
+	return strings.ToUpper(strings.ReplaceAll(strings.TrimSpace(plate), " ", ""))
 }
 
 func (s *notificationService) NotifyAdminCameraError(
@@ -636,8 +636,8 @@ const (
 	maxAdminNotificationsLimit     = 100
 )
 
-// ListAdminNotifications lista las notificaciones según el rol:
-// super_admin ve todas (incluidas las globales); admin solo las de sus terminales.
+// ListAdminNotifications lists the notifications according to the role:
+// super_admin sees all of them (including global ones); admin only those of their terminals.
 func (s *notificationService) ListAdminNotifications(
 	ctx context.Context,
 	userID uuid.UUID,
@@ -737,8 +737,8 @@ func (s *notificationService) ListAdminNotifications(
 	}, nil
 }
 
-// GetAdminNotification devuelve una notificación si el rol puede verla:
-// super_admin cualquiera; admin solo las de sus terminales.
+// GetAdminNotification returns a notification if the role can see it:
+// super_admin any of them; admin only those of their terminals.
 func (s *notificationService) GetAdminNotification(
 	ctx context.Context,
 	userID uuid.UUID,
@@ -778,8 +778,8 @@ func (s *notificationService) GetAdminNotification(
 	return items[0], nil
 }
 
-// toAdminNotificationItems arma los ítems del listado de admin, resolviendo
-// el nombre de cada terminal con una sola consulta.
+// toAdminNotificationItems builds the admin list items, resolving
+// each terminal's name with a single query.
 func (s *notificationService) toAdminNotificationItems(ctx context.Context, rows []models.Notification) ([]models.AdminNotificationListItem, error) {
 	terminalIDs := make([]*uuid.UUID, len(rows))
 	var lookup []uuid.UUID
@@ -838,8 +838,8 @@ func isKnownNotificationType(t models.PassengerNotificationType) bool {
 	return false
 }
 
-// terminalIDFromGroupKey extrae la terminal de un group_key ("<tid>" o "<patente>:<tid>").
-// Devuelve nil para notificaciones globales o claves inválidas.
+// terminalIDFromGroupKey extracts the terminal from a group_key ("<tid>" or "<plate>:<tid>").
+// Returns nil for global notifications or invalid keys.
 func terminalIDFromGroupKey(groupKey *string) *uuid.UUID {
 	if groupKey == nil {
 		return nil

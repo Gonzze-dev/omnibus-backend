@@ -5,7 +5,7 @@ INSERT INTO city (postal_code, name) VALUES
 INSERT INTO bus_terminal (uuid, postal_code, name) VALUES
     ('a0000000-0000-0000-0000-000000000001', '2820', 'Terminal de Gualeguaychú');
 
-INSERT INTO platform (anden, coordinates, bus_terminal_id) VALUES
+INSERT INTO platform (bay, coordinates, bus_terminal_id) VALUES
     ('A01', '{"lat": -33.02083044935717, "lng": -58.535303043383294}', 'a0000000-0000-0000-0000-000000000001'),
     ('A02', '{"lat": -33.0208332605552, "lng": -58.53523397650666}', 'a0000000-0000-0000-0000-000000000001'),
     ('A03', '{"lat": -33.020835509513574, "lng": -58.53514680472061}', 'a0000000-0000-0000-0000-000000000001'),

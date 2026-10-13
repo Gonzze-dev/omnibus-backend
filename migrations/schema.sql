@@ -1,6 +1,6 @@
--- Esquema completo y actual de backend-omnibus (equivale a aplicar 001..NNN).
--- `go run ./cmd/migrate up` lo usa para inicializar una base vacía.
--- Al agregar una migración nueva, reflejar el cambio también acá.
+-- Full, current schema of backend-omnibus (equivalent to applying 001..NNN).
+-- `go run ./cmd/migrate up` uses it to initialize an empty database.
+-- When adding a new migration, reflect the change here too.
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -23,14 +23,14 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_bus_terminal_external_terminal_id
 
 CREATE TABLE IF NOT EXISTS platform (
     code            SERIAL PRIMARY KEY,
-    anden           VARCHAR(50) NOT NULL,
+    bay             VARCHAR(50) NOT NULL,
     coordinates     JSONB,
     bus_terminal_id UUID NOT NULL REFERENCES bus_terminal(uuid)
 );
 
 CREATE INDEX IF NOT EXISTS idx_platform_bus_terminal_id ON platform(bus_terminal_id);
 
-CREATE TABLE IF NOT EXISTS rol (
+CREATE TABLE IF NOT EXISTS role (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(50) NOT NULL UNIQUE
 );
@@ -41,13 +41,13 @@ CREATE TABLE IF NOT EXISTS users (
     last_name  VARCHAR(255) NOT NULL,
     email      VARCHAR(255) NOT NULL UNIQUE,
     password   VARCHAR(255) NOT NULL,
-    rol_id     UUID         NOT NULL REFERENCES rol(uuid),
+    role_id    UUID         NOT NULL REFERENCES role(uuid),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_users_email  ON users(email);
-CREATE INDEX IF NOT EXISTS idx_users_rol_id ON users(rol_id);
+CREATE INDEX IF NOT EXISTS idx_users_email   ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_role_id ON users(role_id);
 
 CREATE TABLE IF NOT EXISTS user_refresh_tokens (
     uuid        UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -88,8 +88,8 @@ CREATE TABLE IF NOT EXISTS notifications (
     date       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Roles fijos: el código los referencia por nombre.
-INSERT INTO rol (uuid, name) VALUES
+-- Fixed roles: the code references them by name.
+INSERT INTO role (uuid, name) VALUES
     ('b0000000-0000-0000-0000-000000000001', 'user'),
     ('b0000000-0000-0000-0000-000000000002', 'admin'),
     ('b0000000-0000-0000-0000-000000000003', 'super_admin')

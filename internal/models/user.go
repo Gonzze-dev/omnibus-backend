@@ -13,10 +13,10 @@ type User struct {
 	LastName  string    `json:"last_name" gorm:"column:last_name;not null"`
 	Email     string    `json:"email" gorm:"column:email;not null;uniqueIndex"`
 	Password  string    `json:"-" gorm:"column:password;not null"`
-	RolID     uuid.UUID `json:"rol_id" gorm:"column:rol_id;type:uuid;not null"`
+	RoleID     uuid.UUID `json:"role_id" gorm:"column:role_id;type:uuid;not null"`
 	CreatedAt time.Time `json:"created_at" gorm:"column:created_at;autoCreateTime"`
 	UpdatedAt time.Time `json:"updated_at" gorm:"column:updated_at;autoUpdateTime"`
-	Rol       *Rol      `json:"rol,omitempty" gorm:"foreignKey:RolID;references:UUID"`
+	Role       *Role      `json:"role,omitempty" gorm:"foreignKey:RoleID;references:UUID"`
 }
 
 func (User) TableName() string {
@@ -89,23 +89,23 @@ type UserResponse struct {
 	FirstName string                 `json:"first_name"`
 	LastName  string                 `json:"last_name"`
 	Email     string                 `json:"email"`
-	Rol       string                 `json:"rol"`
+	Role       string                 `json:"role"`
 	CreatedAt time.Time              `json:"created_at"`
 	UpdatedAt time.Time              `json:"updated_at"`
 	Terminals []ProfileTerminalRef   `json:"terminals,omitempty"`
 }
 
 func ToUserResponse(u User) UserResponse {
-	rolName := ""
-	if u.Rol != nil {
-		rolName = u.Rol.Name
+	roleName := ""
+	if u.Role != nil {
+		roleName = u.Role.Name
 	}
 	return UserResponse{
 		UUID:      u.UUID,
 		FirstName: u.FirstName,
 		LastName:  u.LastName,
 		Email:     u.Email,
-		Rol:       rolName,
+		Role:       roleName,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 	}
@@ -122,8 +122,8 @@ type AdminUserByEmailResponse struct {
 func ToAdminUserByEmailResponse(u User, terminals []string) AdminUserByEmailResponse {
 	fullName := strings.TrimSpace(u.FirstName + " " + u.LastName)
 	roleName := ""
-	if u.Rol != nil {
-		roleName = u.Rol.Name
+	if u.Role != nil {
+		roleName = u.Role.Name
 	}
 	return AdminUserByEmailResponse{
 		Name:      fullName,
@@ -133,25 +133,25 @@ func ToAdminUserByEmailResponse(u User, terminals []string) AdminUserByEmailResp
 	}
 }
 
-// ListUsersParams son los parámetros de paginación y búsqueda de GET /api/admin/users.
+// ListUsersParams are the pagination and search parameters of GET /api/admin/users.
 type ListUsersParams struct {
 	Page   int    // default 1
 	Limit  int    // default 10
-	Order  string // "ASC" o "DESC", default "DESC"
-	Search string // filtra por nombre o email; vacío no filtra
+	Order  string // "ASC" or "DESC", default "DESC"
+	Search string // filters by name or email; empty does not filter
 }
 
-// UserListItem es un usuario dentro del listado paginado de GET /api/admin/users.
+// UserListItem is a user within the paginated GET /api/admin/users list.
 type UserListItem struct {
 	UUID      uuid.UUID            `json:"uuid"`
 	FirstName string               `json:"first_name"`
 	LastName  string               `json:"last_name"`
 	Email     string               `json:"email"`
-	Rol       string               `json:"rol"`
+	Role       string               `json:"role"`
 	Terminals []ProfileTerminalRef `json:"terminals"`
 }
 
-// ListUsersResponse es el payload paginado de usuarios.
+// ListUsersResponse is the paginated users payload.
 type ListUsersResponse struct {
 	Users         []UserListItem `json:"users"`
 	Page          int            `json:"page"`
@@ -161,15 +161,15 @@ type ListUsersResponse struct {
 	TotalElements int64          `json:"total_elements"`
 }
 
-// CountUsersResponse es el payload de GET /api/admin/users/count.
+// CountUsersResponse is the payload of GET /api/admin/users/count.
 type CountUsersResponse struct {
 	Total int64 `json:"total"`
 }
 
 func ToUserListItem(u User, terminals []ProfileTerminalRef) UserListItem {
-	rolName := ""
-	if u.Rol != nil {
-		rolName = u.Rol.Name
+	roleName := ""
+	if u.Role != nil {
+		roleName = u.Role.Name
 	}
 	if terminals == nil {
 		terminals = []ProfileTerminalRef{}
@@ -179,7 +179,7 @@ func ToUserListItem(u User, terminals []ProfileTerminalRef) UserListItem {
 		FirstName: u.FirstName,
 		LastName:  u.LastName,
 		Email:     u.Email,
-		Rol:       rolName,
+		Role:       roleName,
 		Terminals: terminals,
 	}
 }

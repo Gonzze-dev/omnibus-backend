@@ -1,6 +1,6 @@
-# Build context: raíz del repo (docker build -f infra.prod/Dockerfile .)
-# En Railway: RAILWAY_DOCKERFILE_PATH=infra.prod/Dockerfile
-# Migraciones (p. ej. como Pre-Deploy Command en Railway): /app/migrate up
+# Build context: repo root (docker build -f infra.prod/Dockerfile .)
+# On Railway: RAILWAY_DOCKERFILE_PATH=infra.prod/Dockerfile
+# Migrations (e.g. as the Pre-Deploy Command on Railway): /app/migrate up
 
 FROM golang:1.25-alpine AS build
 WORKDIR /src
@@ -26,5 +26,5 @@ COPY migrations ./migrations
 USER app
 EXPOSE 4989
 
-# Railway inyecta PORT; si no existe se usa LISTEN_ADDR o :4989.
+# Railway injects PORT; if it is not set, LISTEN_ADDR or :4989 is used.
 CMD ["sh", "-c", "if [ -n \"$PORT\" ]; then export LISTEN_ADDR=\":$PORT\"; fi; exec /app/api"]

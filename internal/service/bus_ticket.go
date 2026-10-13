@@ -136,7 +136,7 @@ func (s *busTicketService) TripExists(ctx context.Context, externalTerminalUUID 
 		return false, validators.ErrBusDelayStartDateRequired
 	}
 	if strings.TrimSpace(licensePlate) == "" {
-		return false, validators.ErrBusDelayLicensePatentRequired
+		return false, validators.ErrBusDelayLicensePlateRequired
 	}
 
 	u, err := url.Parse(s.upstreamURL)

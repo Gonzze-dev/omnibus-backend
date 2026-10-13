@@ -68,7 +68,7 @@ type adminService struct {
 	platformRepo     repository.PlatformRepository
 	busTerminalRepo  repository.BusTerminalRepository
 	userRepo         repository.UserRepository
-	rolRepo          repository.RolRepository
+	roleRepo          repository.RoleRepository
 	userTerminalRepo repository.UserTerminalRepository
 }
 
@@ -77,7 +77,7 @@ func NewAdminService(
 	platformRepo repository.PlatformRepository,
 	busTerminalRepo repository.BusTerminalRepository,
 	userRepo repository.UserRepository,
-	rolRepo repository.RolRepository,
+	roleRepo repository.RoleRepository,
 	userTerminalRepo repository.UserTerminalRepository,
 ) *adminService {
 	return &adminService{
@@ -85,7 +85,7 @@ func NewAdminService(
 		platformRepo:     platformRepo,
 		busTerminalRepo:  busTerminalRepo,
 		userRepo:         userRepo,
-		rolRepo:          rolRepo,
+		roleRepo:          roleRepo,
 		userTerminalRepo: userTerminalRepo,
 	}
 }
@@ -317,7 +317,7 @@ func (s *adminService) CountPlatforms(ctx context.Context, adminID uuid.UUID, bu
 	return total, nil
 }
 
-// adminTerminalIDs devuelve los UUIDs de las terminales asignadas al admin.
+// adminTerminalIDs returns the UUIDs of the terminals assigned to the admin.
 func (s *adminService) adminTerminalIDs(ctx context.Context, adminID uuid.UUID) ([]uuid.UUID, error) {
 	uts, err := s.userTerminalRepo.GetByUserID(ctx, adminID)
 	if err != nil {
@@ -331,7 +331,7 @@ func (s *adminService) adminTerminalIDs(ctx context.Context, adminID uuid.UUID) 
 	return ids, nil
 }
 
-// platformsPage arma el payload paginado a partir de la página ya consultada.
+// platformsPage builds the paginated payload from the page already queried.
 func platformsPage(terminals []models.BusTerminal, total int64, page, limit int) models.ListPlatformsResponse {
 	items := models.ToBusTerminalWithPlatformsResponse(terminals)
 	if items == nil {
@@ -349,8 +349,8 @@ func platformsPage(terminals []models.BusTerminal, total int64, page, limit int)
 	}
 }
 
-// singleTerminalPlatformsPage arma el payload cuando se filtra por bus_terminal_id,
-// caso en el que el resultado es siempre una única terminal.
+// singleTerminalPlatformsPage builds the payload when filtering by bus_terminal_id,
+// in which case the result is always a single terminal.
 func singleTerminalPlatformsPage(bt models.BusTerminal, page, limit int) models.ListPlatformsResponse {
 	if page > 1 {
 		return platformsPage(nil, 1, page, limit)
@@ -399,7 +399,7 @@ func (s *adminService) GetPlatform(ctx context.Context, adminID uuid.UUID, code 
 }
 
 func (s *adminService) CreatePlatformDirect(ctx context.Context, req models.CreatePlatformRequest) (models.Platform, error) {
-	anden, err := validators.NormalizeAnden(req.Anden)
+	bay, err := validators.NormalizeBay(req.Bay)
 	if err != nil {
 		return models.Platform{}, err
 	}
@@ -412,7 +412,7 @@ func (s *adminService) CreatePlatformDirect(ctx context.Context, req models.Crea
 	}
 
 	platform := models.Platform{
-		Anden:         anden,
+		Bay:         bay,
 		Coordinates:   req.Coordinates,
 		BusTerminalID: req.BusTerminalID,
 	}
@@ -423,7 +423,7 @@ func (s *adminService) CreatePlatformDirect(ctx context.Context, req models.Crea
 }
 
 func (s *adminService) CreatePlatform(ctx context.Context, adminID uuid.UUID, req models.CreatePlatformRequest) (models.Platform, error) {
-	anden, err := validators.NormalizeAnden(req.Anden)
+	bay, err := validators.NormalizeBay(req.Bay)
 	if err != nil {
 		return models.Platform{}, err
 	}
@@ -433,7 +433,7 @@ func (s *adminService) CreatePlatform(ctx context.Context, adminID uuid.UUID, re
 	}
 
 	platform := models.Platform{
-		Anden:         anden,
+		Bay:         bay,
 		Coordinates:   req.Coordinates,
 		BusTerminalID: req.BusTerminalID,
 	}
@@ -452,12 +452,12 @@ func (s *adminService) UpdatePlatformByCode(ctx context.Context, code int, req m
 		return models.Platform{}, err
 	}
 
-	if req.Anden != nil {
-		anden, err := validators.NormalizeAnden(*req.Anden)
+	if req.Bay != nil {
+		bay, err := validators.NormalizeBay(*req.Bay)
 		if err != nil {
 			return models.Platform{}, err
 		}
-		platform.Anden = anden
+		platform.Bay = bay
 	}
 	if req.Coordinates != nil {
 		platform.Coordinates = *req.Coordinates
@@ -482,12 +482,12 @@ func (s *adminService) UpdatePlatform(ctx context.Context, adminID uuid.UUID, co
 		return models.Platform{}, err
 	}
 
-	if req.Anden != nil {
-		anden, err := validators.NormalizeAnden(*req.Anden)
+	if req.Bay != nil {
+		bay, err := validators.NormalizeBay(*req.Bay)
 		if err != nil {
 			return models.Platform{}, err
 		}
-		platform.Anden = anden
+		platform.Bay = bay
 	}
 	if req.Coordinates != nil {
 		platform.Coordinates = *req.Coordinates
@@ -590,7 +590,7 @@ func (s *adminService) GetUserByEmail(ctx context.Context, email string) (models
 	}
 
 	var terminals []string
-	if user.Rol != nil && user.Rol.Name == roles.Admin {
+	if user.Role != nil && user.Role.Name == roles.Admin {
 		userTerminals, err := s.userTerminalRepo.GetByUserID(ctx, user.UUID)
 		if err != nil {
 			return models.AdminUserByEmailResponse{}, err
@@ -634,17 +634,17 @@ func (s *adminService) PromoteToAdminDirect(ctx context.Context, req models.Prom
 		return models.UserResponse{}, err
 	}
 
-	if user.Rol != nil && user.Rol.Name == roles.SuperAdmin {
+	if user.Role != nil && user.Role.Name == roles.SuperAdmin {
 		return models.UserResponse{}, errorsService.ErrAlreadySuperAdmin
 	}
 
-	adminRol, err := s.rolRepo.GetByName(ctx, roles.Admin)
+	adminRole, err := s.roleRepo.GetByName(ctx, roles.Admin)
 	if err != nil {
-		return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
+		return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRoleNotFound, err)
 	}
 
-	user.RolID = adminRol.UUID
-	user.Rol = &adminRol
+	user.RoleID = adminRole.UUID
+	user.Role = &adminRole
 	if err := s.userRepo.Update(ctx, &user); err != nil {
 		return models.UserResponse{}, fmt.Errorf("failed to update user role: %w", err)
 	}
@@ -680,17 +680,17 @@ func (s *adminService) PromoteToAdmin(ctx context.Context, adminID uuid.UUID, re
 		return models.UserResponse{}, err
 	}
 
-	adminRol, err := s.rolRepo.GetByName(ctx, roles.Admin)
+	adminRole, err := s.roleRepo.GetByName(ctx, roles.Admin)
 	if err != nil {
-		return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
+		return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRoleNotFound, err)
 	}
 
-	if user.Rol != nil && user.Rol.Name == roles.SuperAdmin {
+	if user.Role != nil && user.Role.Name == roles.SuperAdmin {
 		return models.UserResponse{}, errorsService.ErrAlreadySuperAdmin
 	}
 
-	user.RolID = adminRol.UUID
-	user.Rol = &adminRol
+	user.RoleID = adminRole.UUID
+	user.Role = &adminRole
 	if err := s.userRepo.Update(ctx, &user); err != nil {
 		return models.UserResponse{}, fmt.Errorf("failed to update user role: %w", err)
 	}
@@ -722,7 +722,7 @@ func (s *adminService) DemoteAdminDirect(ctx context.Context, req models.DemoteA
 		return models.UserResponse{}, err
 	}
 
-	if user.Rol == nil || user.Rol.Name != roles.Admin {
+	if user.Role == nil || user.Role.Name != roles.Admin {
 		return models.UserResponse{}, errorsService.ErrNotAdmin
 	}
 
@@ -736,12 +736,12 @@ func (s *adminService) DemoteAdminDirect(ctx context.Context, req models.DemoteA
 	}
 
 	if len(remaining) == 0 {
-		userRol, err := s.rolRepo.GetByName(ctx, roles.User)
+		userRole, err := s.roleRepo.GetByName(ctx, roles.User)
 		if err != nil {
-			return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
+			return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRoleNotFound, err)
 		}
-		user.RolID = userRol.UUID
-		user.Rol = &userRol
+		user.RoleID = userRole.UUID
+		user.Role = &userRole
 		if err := s.userRepo.Update(ctx, &user); err != nil {
 			return models.UserResponse{}, fmt.Errorf("failed to update user role: %w", err)
 		}
@@ -771,7 +771,7 @@ func (s *adminService) DemoteAdmin(ctx context.Context, adminID uuid.UUID, req m
 		return models.UserResponse{}, errorsService.ErrCannotDemoteSelf
 	}
 
-	if user.Rol == nil || user.Rol.Name != roles.Admin {
+	if user.Role == nil || user.Role.Name != roles.Admin {
 		return models.UserResponse{}, errorsService.ErrNotAdmin
 	}
 
@@ -785,12 +785,12 @@ func (s *adminService) DemoteAdmin(ctx context.Context, adminID uuid.UUID, req m
 	}
 
 	if len(remaining) == 0 {
-		userRol, err := s.rolRepo.GetByName(ctx, roles.User)
+		userRole, err := s.roleRepo.GetByName(ctx, roles.User)
 		if err != nil {
-			return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRolNotFound, err)
+			return models.UserResponse{}, fmt.Errorf("%w: %w", errorsService.ErrRoleNotFound, err)
 		}
-		user.RolID = userRol.UUID
-		user.Rol = &userRol
+		user.RoleID = userRole.UUID
+		user.Role = &userRole
 		if err := s.userRepo.Update(ctx, &user); err != nil {
 			return models.UserResponse{}, fmt.Errorf("failed to update user role: %w", err)
 		}
@@ -801,7 +801,7 @@ func (s *adminService) DemoteAdmin(ctx context.Context, adminID uuid.UUID, req m
 
 // --- Stats ---
 
-// TotalTerminals devuelve la cantidad de terminales registradas.
+// TotalTerminals returns the number of registered terminals.
 func (s *adminService) TotalTerminals(ctx context.Context) (int64, error) {
 	total, err := s.busTerminalRepo.Count(ctx)
 	if err != nil {
@@ -810,7 +810,7 @@ func (s *adminService) TotalTerminals(ctx context.Context) (int64, error) {
 	return total, nil
 }
 
-// TotalPlatforms devuelve la cantidad de plataformas (andenes) registradas.
+// TotalPlatforms returns the number of registered platforms (bays).
 func (s *adminService) TotalPlatforms(ctx context.Context) (int64, error) {
 	total, err := s.platformRepo.Count(ctx)
 	if err != nil {
@@ -819,7 +819,7 @@ func (s *adminService) TotalPlatforms(ctx context.Context) (int64, error) {
 	return total, nil
 }
 
-// TotalCities devuelve la cantidad de ciudades registradas.
+// TotalCities returns the number of registered cities.
 func (s *adminService) TotalCities(ctx context.Context) (int64, error) {
 	total, err := s.cityRepo.Count(ctx)
 	if err != nil {

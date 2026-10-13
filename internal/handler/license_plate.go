@@ -10,7 +10,7 @@ import (
 	"tesina/backend/internal/service"
 )
 
-// maxLicensePlateImageSize limita el tamaño de la foto que se reenvia al OCR.
+// maxLicensePlateImageSize limits the size of the photo forwarded to the OCR.
 const maxLicensePlateImageSize = 10 << 20
 
 type LicensePlateHandler struct {
@@ -25,7 +25,7 @@ type readLicensePlateResponse struct {
 	LicensePlate string `json:"license_plate"`
 }
 
-// Read recibe una foto (multipart, campo "image") y devuelve la patente leida.
+// Read receives a photo (multipart, "image" field) and returns the license plate read.
 func (h *LicensePlateHandler) Read(c echo.Context) error {
 	fileHeader, err := c.FormFile("image")
 	if err != nil {

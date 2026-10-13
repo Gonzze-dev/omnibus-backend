@@ -178,7 +178,7 @@ func (h *AdminHandler) CountPlatforms(c echo.Context) error {
 	return c.JSON(http.StatusOK, models.CountPlatformsResponse{Total: total})
 }
 
-// platformTerminalFilter lee el query param opcional bus_terminal_id.
+// platformTerminalFilter reads the optional bus_terminal_id query param.
 func platformTerminalFilter(c echo.Context) (*uuid.UUID, error) {
 	raw := c.QueryParam("bus_terminal_id")
 	if raw == "" {
@@ -433,8 +433,8 @@ func mapAdminError(err error) error {
 	switch {
 	case errors.Is(err, validators.ErrPostalCodeRequired),
 		errors.Is(err, validators.ErrCityNameRequired),
-		errors.Is(err, validators.ErrAndenRequired),
-		errors.Is(err, validators.ErrAndenInvalid),
+		errors.Is(err, validators.ErrBayRequired),
+		errors.Is(err, validators.ErrBayInvalid),
 		errors.Is(err, validators.ErrEmailRequired):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	case errors.Is(err, errorsService.ErrCityNotFound):

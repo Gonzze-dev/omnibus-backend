@@ -6,8 +6,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// AwaitedTrip es el viaje que un pasajero está esperando en una terminal.
-// Un usuario espera un único viaje a la vez (user_id es la PK).
+// AwaitedTrip is the trip a passenger is waiting for at a terminal.
+// A user waits for a single trip at a time (user_id is the PK).
 type AwaitedTrip struct {
 	UserID        uuid.UUID  `gorm:"primaryKey;column:user_id;type:uuid"`
 	GroupKey      string     `gorm:"column:group_key;not null"`
@@ -31,8 +31,8 @@ type AwaitedTripTerminal struct {
 	Name string    `json:"name"`
 }
 
-// AwaitedTripResponse es lo que necesita el frontend para quedar a la espera:
-// los datos del pasaje y el group_key para unirse al canal de realtime.
+// AwaitedTripResponse is what the frontend needs to start waiting:
+// the bus ticket data and the group_key to join the realtime channel.
 type AwaitedTripResponse struct {
 	GroupKey   string              `json:"group_key"`
 	Terminal   AwaitedTripTerminal `json:"terminal"`

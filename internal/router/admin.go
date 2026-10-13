@@ -13,7 +13,7 @@ func registerAdmin(e *echo.Echo, a *app.App, jwtSecret string) {
 	admin.GET("/cities", a.Admin.ListCities)
 	admin.GET("/cities/count", a.Admin.CountCities)
 	admin.GET("/cities/:postal_code", a.Admin.GetCity)
-	// Modificar ciudades afecta a terminales de todos los admins: solo super_admin.
+	// Changing cities affects every admin's terminals: super_admin only.
 	cities := admin.Group("/cities", middleware.RequireRole(roles.SuperAdmin))
 	cities.POST("", a.Admin.CreateCity)
 	cities.PUT("/:postal_code", a.Admin.UpdateCity)

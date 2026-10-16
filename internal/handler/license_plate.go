@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -57,6 +58,8 @@ func mapLicensePlateError(err error) error {
 		return echo.NewHTTPError(http.StatusUnprocessableEntity, err.Error())
 	case errors.Is(err, errorsService.ErrUpstreamRequest),
 		errors.Is(err, errorsService.ErrUpstreamResponse):
+		// The client only gets a generic message; the cause stays in the log.
+		log.Printf("license plate reader: %v", err)
 		return echo.NewHTTPError(http.StatusBadGateway, "license plate reader unavailable")
 	default:
 		return echo.NewHTTPError(http.StatusInternalServerError, "internal server error")

@@ -10,8 +10,14 @@ import (
 )
 
 func Register(e *echo.Echo, a *app.App, cfg config.Config) {
+	// The client IP comes in X-Real-IP (set by the frontend nginx), trusted only
+	// when the direct peer is on a private network (Railway's internal network).
+	e.IPExtractor = echo.ExtractIPFromRealIPHeader()
+
 	e.Use(middleware.CORS(cfg.CORSAllowedOrigins))
 	e.Use(middleware.Logging())
+	// Second layer behind the frontend nginx limits, looser than those.
+	e.Use(middleware.RateLimit(1200, 80))
 
 	registerPublic(e, a, cfg)
 	registerUser(e, a, cfg.JWTSecret)

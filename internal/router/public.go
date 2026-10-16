@@ -23,11 +23,13 @@ func registerPublic(e *echo.Echo, a *app.App, cfg config.Config) {
 	e.GET("/api/notifications", a.Notification.GetNotifications, middleware.Auth(cfg.JWTSecret))
 
 	auth := e.Group("/api/auth")
-	auth.POST("/register", a.Auth.Register)
-	auth.POST("/login", a.Auth.Login)
+	// Brute force on passwords and recovery tokens, and mass sending of emails.
+	strict := middleware.RateLimit(10, 10)
+	auth.POST("/register", a.Auth.Register, strict)
+	auth.POST("/login", a.Auth.Login, strict)
 	auth.POST("/refresh", a.Auth.RefreshToken)
 	auth.POST("/logout", a.Auth.Logout)
-	auth.POST("/forgot-password", a.PasswordRecovery.ForgotPassword)
-	auth.POST("/validate-recovery-token", a.PasswordRecovery.ValidateRecoveryToken)
-	auth.POST("/reset-password", a.PasswordRecovery.ResetPassword)
+	auth.POST("/forgot-password", a.PasswordRecovery.ForgotPassword, strict)
+	auth.POST("/validate-recovery-token", a.PasswordRecovery.ValidateRecoveryToken, strict)
+	auth.POST("/reset-password", a.PasswordRecovery.ResetPassword, strict)
 }

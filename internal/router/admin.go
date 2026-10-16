@@ -38,5 +38,6 @@ func registerAdmin(e *echo.Echo, a *app.App, jwtSecret string) {
 	admin.POST("/notifications", a.Notification.SendAdminNotification)
 	admin.DELETE("/notifications", a.Notification.DeleteNotification)
 	admin.POST("/notify-bus-delay", a.Notification.NotifyBusDelay)
-	admin.POST("/license-plate/read", a.LicensePlate.Read)
+	// Each read runs the OCR model (CPU-heavy).
+	admin.POST("/license-plate/read", a.LicensePlate.Read, middleware.RateLimit(20, 5))
 }

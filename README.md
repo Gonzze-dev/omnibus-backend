@@ -41,11 +41,14 @@ PASSWORD_RESET_JWT_SECRET=your-reset-secret
 
 LISTEN_ADDR=:4989
 
+SMTP_FROM="Ya llegó <email@gmail.com>"
+# Optional: send through the Brevo HTTP API instead of SMTP
+# (needed on hosts that block outbound SMTP). SMTP_FROM must be a verified Brevo sender.
+BREVO_API_KEY=
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=email@gmail.com
 SMTP_PASSWORD=app-password
-SMTP_FROM=email@gmail.com
 
 EXTERNAL_TERMINAL_UPSTREAM_URL=http://localhost:4990
 REALTIME_URL=http://localhost:4988/realtime

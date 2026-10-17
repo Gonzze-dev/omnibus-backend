@@ -45,16 +45,17 @@ func New(cfg config.Config, db *gorm.DB) *App {
 	BusTicketSvc := service.NewBusTicketService(httpClient, cfg.ExternalTerminalUpstreamURL)
 
 	var smtpMailer *mail.Mailer
-	if cfg.SMTPHost != "" {
+	if cfg.SMTPHost != "" || cfg.BrevoAPIKey != "" {
 		m, err := mail.New(mail.Config{
-			Host:     cfg.SMTPHost,
-			Port:     cfg.SMTPPort,
-			User:     cfg.SMTPUser,
-			Password: cfg.SMTPPassword,
-			From:     cfg.SMTPFrom,
+			Host:        cfg.SMTPHost,
+			Port:        cfg.SMTPPort,
+			User:        cfg.SMTPUser,
+			Password:    cfg.SMTPPassword,
+			From:        cfg.SMTPFrom,
+			BrevoAPIKey: cfg.BrevoAPIKey,
 		})
 		if err != nil {
-			log.Printf("password recovery: SMTP mailer disabled: %v", err)
+			log.Printf("password recovery: mailer disabled: %v", err)
 		} else {
 			smtpMailer = m
 		}

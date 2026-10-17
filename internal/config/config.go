@@ -49,6 +49,7 @@ type Config struct {
 	SMTPUser                    string
 	SMTPPassword                string
 	SMTPFrom                    string
+	BrevoAPIKey                 string
 	ExternalTerminalUpstreamURL string
 	RealtimeURL                 string
 	HTTPClientTimeout           time.Duration
@@ -190,6 +191,7 @@ func Load() Config {
 		SMTPUser:                    os.Getenv("SMTP_USER"),
 		SMTPPassword:                os.Getenv("SMTP_PASSWORD"),
 		SMTPFrom:                    os.Getenv("SMTP_FROM"),
+		BrevoAPIKey:                 strings.TrimSpace(os.Getenv("BREVO_API_KEY")),
 		ExternalTerminalUpstreamURL: externalTerminalUpstreamURL,
 		RealtimeURL:                 realtimeURL,
 		HTTPClientTimeout:           defaultHTTPClientTimeout,

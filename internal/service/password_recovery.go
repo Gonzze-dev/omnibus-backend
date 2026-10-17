@@ -112,14 +112,18 @@ func (s *passwordRecoveryService) ForgotPassword(ctx context.Context, email stri
 		return models.ForgotPasswordResponse{Message: forgotPasswordMessage}, nil
 	}
 
-	if err := s.mailer.Send(mail.SendOptions{
-		To:      []string{user.Email},
-		Subject: "Recuperar contraseña",
-		Body:    htmlBody,
-		IsHTML:  true,
-	}); err != nil {
-		log.Printf("password recovery: send mail: %v", err)
-	}
+	// Sent in the background so the response time does not depend on the mail
+	// provider (and does not reveal whether the email is registered).
+	go func(to string) {
+		if err := s.mailer.Send(mail.SendOptions{
+			To:      []string{to},
+			Subject: "Recuperar contraseña",
+			Body:    htmlBody,
+			IsHTML:  true,
+		}); err != nil {
+			log.Printf("password recovery: send mail: %v", err)
+		}
+	}(user.Email)
 
 	return models.ForgotPasswordResponse{Message: forgotPasswordMessage}, nil
 }

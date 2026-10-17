@@ -8,3 +8,4 @@ help:
 	@echo "  make migrate-baseline - Marks all as applied (manually created databases)"
 	@echo "  make migrate-seed     - Inserts the sample data (seed.sql)"
 	@echo "  make migrate-seed-ar  - Loads cities and terminals of Argentina (migrations/data/*.json)"
+	@echo "  make migrate-seed-platforms - Loads the bays of TERMINAL DE GUALEGUAYCHÚ (after seed-ar)"

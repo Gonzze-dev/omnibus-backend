@@ -18,3 +18,6 @@ migrate-seed:
 
 migrate-seed-ar:
 	$(MIGRATE) seed-ar
+
+migrate-seed-platforms:
+	$(MIGRATE) seed-platforms

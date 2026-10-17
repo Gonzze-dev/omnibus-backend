@@ -3,7 +3,7 @@
 //
 // Usage:
 //
-//	go run ./cmd/migrate [-dir migrations] <up|down|status|baseline|seed|seed-ar>
+//	go run ./cmd/migrate [-dir migrations] <up|down|status|baseline|seed|seed-ar|seed-platforms>
 //
 //	up        Empty database: applies schema.sql and marks every migration.
 //	          Existing database: applies the pending migrations in order.
@@ -12,6 +12,9 @@
 //	baseline  Marks every migration as applied without running it
 //	          (for databases created before this command existed).
 //	seed      Runs seed.sql (sample data).
+//	seed-platforms
+//	          Runs seed_platforms.sql: the bays of TERMINAL DE GUALEGUAYCHÚ
+//	          (run seed-ar first). It is idempotent.
 //	seed-ar   Loads the cities and terminals of Argentina from data/cities.json
 //	          and data/terminals.json, and assigns their external_terminal_id
 //	          by querying backend-terminales. It is idempotent.
@@ -36,6 +39,7 @@ const (
 	migrationsTable = "omnibus_schema_migrations"
 	schemaFile      = "schema.sql"
 	seedFile        = "seed.sql"
+	platformsFile   = "seed_platforms.sql"
 	upSuffix        = ".up.sql"
 	downSuffix      = ".down.sql"
 	// sentinelTable means the database already has the application schema.
@@ -45,7 +49,7 @@ const (
 func main() {
 	dir := flag.String("dir", "migrations", "directory with the .sql files")
 	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "usage: migrate [-dir migrations] <up|down|status|baseline|seed|seed-ar>")
+		fmt.Fprintln(os.Stderr, "usage: migrate [-dir migrations] <up|down|status|baseline|seed|seed-ar|seed-platforms>")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -79,6 +83,8 @@ func main() {
 		err = m.execFile(seedFile, "")
 	case "seed-ar":
 		err = m.seedArgentina()
+	case "seed-platforms":
+		err = m.execFile(platformsFile, "")
 	default:
 		flag.Usage()
 		os.Exit(2)

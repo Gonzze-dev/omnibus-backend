@@ -79,6 +79,7 @@ func bearerTokenFromRequest(c echo.Context) (string, error) {
 func mapPasswordRecoveryError(err error) error {
 	switch {
 	case errors.Is(err, validators.ErrEmailRequired),
+		errors.Is(err, validators.ErrEmailInvalid),
 		errors.Is(err, validators.ErrPasswordRequired),
 		errors.Is(err, validators.ErrTokenRequired):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())

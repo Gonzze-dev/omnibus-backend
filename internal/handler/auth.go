@@ -120,6 +120,7 @@ func mapAuthError(err error) error {
 	switch {
 	case errors.Is(err, errorsService.ErrMissingFields),
 		errors.Is(err, validators.ErrEmailRequired),
+		errors.Is(err, validators.ErrEmailInvalid),
 		errors.Is(err, validators.ErrPasswordRequired),
 		errors.Is(err, validators.ErrFirstNameRequired),
 		errors.Is(err, validators.ErrLastNameRequired),

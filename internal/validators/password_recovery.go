@@ -10,10 +10,11 @@ import (
 var ErrTokenRequired = errors.New("token is required")
 
 func ValidateForgotPasswordRequest(req models.ForgotPasswordRequest) error {
-	if strings.TrimSpace(req.Email) == "" {
+	email := strings.TrimSpace(req.Email)
+	if email == "" {
 		return ErrEmailRequired
 	}
-	return nil
+	return validateEmailFormat(email)
 }
 
 func ValidateRecoveryTokenRequest(token string) error {

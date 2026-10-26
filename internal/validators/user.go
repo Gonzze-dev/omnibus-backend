@@ -24,8 +24,13 @@ func ValidateUpdateUserRequest(req models.UpdateUserRequest) error {
 	if req.LastName != nil && *req.LastName == "" {
 		return ErrLastNameEmpty
 	}
-	if req.Email != nil && *req.Email == "" {
-		return ErrEmailEmpty
+	if req.Email != nil {
+		if *req.Email == "" {
+			return ErrEmailEmpty
+		}
+		if err := validateEmailFormat(*req.Email); err != nil {
+			return err
+		}
 	}
 	if req.Password != nil && *req.Password == "" {
 		return ErrPasswordEmpty

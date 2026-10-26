@@ -94,6 +94,7 @@ func mapUserError(err error) error {
 		errors.Is(err, validators.ErrFirstNameEmpty),
 		errors.Is(err, validators.ErrLastNameEmpty),
 		errors.Is(err, validators.ErrEmailEmpty),
+		errors.Is(err, validators.ErrEmailInvalid),
 		errors.Is(err, validators.ErrPasswordEmpty):
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	default:

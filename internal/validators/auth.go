@@ -17,6 +17,9 @@ func ValidateCreateUserRequest(req models.CreateUserRequest) error {
 	if req.Email == "" {
 		return ErrEmailRequired
 	}
+	if err := validateEmailFormat(req.Email); err != nil {
+		return err
+	}
 	if req.Password == "" {
 		return ErrPasswordRequired
 	}
